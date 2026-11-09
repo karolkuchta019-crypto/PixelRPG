@@ -1,0 +1,18 @@
+<!DOCTYPE html><html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Monster Waves</title><link rel="stylesheet" href="style.css"></head><body>
+<div id="game">
+ <div id="top"><span id="wave"></span><span id="mapname"></span><span id="lvl"></span><div class="bar xp"><i id="xpbar"></i></div><button id="music" class="icon-btn off" type="button" aria-pressed="false" aria-label="Muzyka (M)" title="Muzyka wyłączona – kliknij lub naciśnij M, aby włączyć"><svg viewBox="0 0 16 16" width="24" height="24" shape-rendering="crispEdges" aria-hidden="true"><g fill="#14101f"><rect x="1" y="6" width="3" height="4"/><rect x="4" y="5" width="2" height="6"/><rect x="6" y="4" width="2" height="8"/><rect x="8" y="3" width="2" height="10"/><rect x="10" y="2" width="2" height="12"/><rect x="3" y="10" width="2" height="4"/></g><g fill="#fff6" class="shine"><rect x="2" y="7" width="1" height="1"/><rect x="5" y="6" width="1" height="1"/><rect x="7" y="5" width="1" height="1"/><rect x="9" y="4" width="1" height="1"/></g><g class="waves" fill="#14101f"><rect x="13" y="6" width="1" height="4"/><rect x="15" y="4" width="1" height="8"/></g><path class="slash" d="M1.5 14.5 L14.5 1.5" stroke="#d64545" stroke-width="2.2" fill="none"/></svg></button></div>
+ <canvas id="cv" width="640" height="320"></canvas>
+ <div id="bottom">
+  <div id="pp"><canvas id="portrait" width="32" height="32"></canvas>
+   <div><div class="bar hp"><i id="hpbar"></i></div><div id="stats"></div></div></div>
+  <div id="actions"><button data-a="attack">Atak</button><button data-a="crit">Cios krytyczny</button><button data-a="defend">Obrona</button><button data-a="potion">Eliksir</button><button data-a="shoot" class="hidden">Strzał</button><button data-a="fire" class="hidden">Kula ognia</button></div>
+  <div id="log"></div>
+ </div>
+ <div id="screen" class="hidden"></div>
+ <button id="skip" class="hidden">Pomiń ▶▶</button>
+</div>
+<!-- Kolejność ma znaczenie: dane -> logika -> start -->
+<script src="assets.js"></script><script src="maps.js"></script><script src="enemies.js"></script>
+<script src="player.js"></script><script src="ui.js"></script><script src="music.js"></script><script src="combat.js"></script><script src="story.js"></script><script src="game.js"></script>
+<script>Assets.load().then(()=>G.init());</script></body></html>

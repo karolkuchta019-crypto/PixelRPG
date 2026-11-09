@@ -1,0 +1,15 @@
+Wklej zawartość tego folderu do pixel-rpg/ (nadpisz pliki JS i dodaj nowe grafiki).
+
+Nowe pliki graficzne:
+  assets/player/hero_leather*.png, hero_iron*, hero_steel*, hero_mythril*
+  assets/ui/blacksmith.png
+  assets/items/anvil.png + ikony
+
+Zmiany:
+1. ZBROJMISTRZ – pojawia się PO walce z bossem, sprzedaje miecze (+ATK), zbroje (+DEF + zmiana wyglądu), tarcze (+DEF)
+2. WIEŚNIAK (kupiec umiejętności) – pojawia się PRZED walką z bossem
+3. Założona zbroja zmienia sprite bohatera (skóra / żelazo / stal / mithril)
+4. ATK/DEF na HUD pokazują bonus z ekwipunku
+5. Ekwipunek zapisuje się razem z postacią
+
+Sterowanie bez zmian + Spacja = skok.
