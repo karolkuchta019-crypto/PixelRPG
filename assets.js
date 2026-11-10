@@ -37,7 +37,7 @@ const ASSETS={
  stall:{src:'assets/items/stall',fw:64,fh:48,color:'#8a5a2a'},
  anvil:{src:'assets/items/anvil',fw:64,fh:48,color:'#5a5a6a'},
  coach:{src:'assets/enemies/coach',fw:72,fh:56,ax:27,color:'#8a2030',extra:['run','shoot','throw','jump'],ms:{walk:90,run:70},muz:{bullet:31,bottle:17}},               // OSTATECZNY BOSS: Mroczny Trener
- kicker:{src:'assets/enemies/kicker',fw:32,fh:32,color:'#d64545'},
+ kicker:{src:'assets/enemies/kicker',fw:32,fh:32,color:'#d64545',extra:['kick']},   // kick = animacja kopnięcia (piłkę rysuje gra)
  referee:{src:'assets/enemies/referee',fw:32,fh:32,color:'#2c2c38'},        // sędzia (supporter piłkarzy)
  bat:{src:'assets/enemies/bat',fw:32,fh:32,color:'#5a3f70'},                // jaskinia: nietoperz
  snowman:{src:'assets/enemies/snowman',fw:32,fh:32,color:'#f3f8ff'},        // lodowe góry: bałwan
@@ -46,6 +46,7 @@ const ASSETS={
  fighter:{src:'assets/enemies/fighter',fw:32,fh:32,color:'#5a6474',muz:{laser:11}},   // elektrownia: myśliwiec laserowy
  princess:{src:'assets/player/princess',fw:32,fh:32,color:'#e060a0'},
  comp_squire:{src:'assets/player/comp_squire',fw:32,fh:32,color:'#8a5a2a'},
+ comp_squire_leather:{src:'assets/player/comp_squire_leather',fw:32,fh:32,color:'#8a5a2a'},   // giermek w skórzanej zbroi (kowal)
  comp_archer:{src:'assets/player/comp_archer',fw:32,fh:32,color:'#2a7a4a'},
  slimeking:{src:'assets/enemies/slimeking',fw:48,fh:48,color:'#4fb04a'},   // boss etapu 1
  orc:{src:'assets/enemies/orc',fw:48,fh:48,color:'#5a8a4a'},               // boss etapu 2
