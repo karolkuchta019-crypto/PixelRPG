@@ -1,0 +1,7 @@
+Nazewnictwo wersji w grze:
+Wersja np. 0.0.0 lub 1.0.3
+
+Liczby w kolejności po kropce oznaczają:
+Pierwsza liczba - Ogromna aktualizacja, zmienia grę bardzo mocno
+Druga liczba - Mniejsza aktualizacja, dodaje średnie zmiany
+Trzecia liczba - Aktualizacja naprawiająca błędy 
