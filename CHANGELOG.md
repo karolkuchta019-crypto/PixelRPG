@@ -1,5 +1,47 @@
 # Changelog – Monster Waves
 
+## [1.0.0] – 2026-11-10  (pierwsze wydanie stabilne)
+
+### Dialogi bossów
+- Każdy boss ma teraz prawdziwe **dymki dialogowe** (klik / Spacja / Enter = dalej): na początku walki **obraża bohatera**, przy śmierci **życzy mu niepowodzeń**, a gdy zabije gracza – **go wyśmiewa**. Teksty w `DLG` (enemies.js).
+- Walka rusza dopiero po zakończeniu rozmowy (stan `talk`).
+
+### Ekwipunek
+- Usunięto „sprzedaż” (zwrot połowy kosztu starego przedmiotu). Nowy przedmiot zastępuje stary – zostaje **tylko najlepszy kupiony** w danym slocie (miecz / zbroja / tarcza / dystans). Słabszego przedmiotu nie da się kupić („masz lepszy”).
+
+### Mapa świata
+- Nowy układ: siatka „wężykiem” 5×2, kafelki **z obrazkami światów**, nazwą, bossem i stanem (ukończony / dostępny / zablokowany / tu jesteś); strzałki pokazują kolejność, nic się nie nakłada. Najechanie pokazuje przeciwników etapu.
+- **Podgląd mapy w menu (Tab)**: kliknięcie odblokowanego etapu **przenosi do niego** (z potwierdzeniem).
+
+### Grafika
+- Wszystkie tła etapów narysowane od nowa (głębia, warstwy, światło): las, wioska, moczary, **tajga** (góry, świerki, mgła), przełęcz, lodowe góry, wejście do jaskini, jaskinia z kryształami, **pustynia** (piramidy z Gizy, oaza, ruiny, wydmy), tunel, elektrownia, szyb, otchłań, stadion.
+- Wszyscy przeciwnicy przerysowani (cieniowanie, kontury, animacje ataku 3-klatkowe).
+- **Leszy** jak z Wiedźmina (czaszka jelenia z porożem, kora, korzenie, mech, wrona) – 64×64.
+- **Sfinks** jak z Egiptu (nemes, uraeus, broda, kołnierz usekh, ślady pazurów) – 64×64.
+- Nowe ikony efektów: but (szybkość), kamień.
+- Generatory: `tools/generate_v1.py` (+ `art.py`, `gen_*.py`); stare skrypty w `tools/legacy/`.
+
+### Nowi przeciwnicy
+- **Jaskinia – Nietoperz** (latający, wysysa życie).
+- **Lodowe góry – Bałwan** (zimowy; co 3. tura ciska lodową kulą = zamrożenie, plus szansa przy ciosach).
+- **Opuszczona wioska – Krasnolud** (twardy, mocny cios toporem co 3. tura).
+- **Lawowa otchłań – Bazyliszek** (spojrzenie zamienia w **kamień na 2 rundy** – działa jak zamrożenie; odporność na efekty działa; skamieniały nie płonie i nie zamarza).
+- **Stara elektrownia – Myśliwiec laserowy** (latający, strzela laserem; oryginalny projekt w stylu TIE).
+- **Utopiec** ma animację **rzutu trójzębem** (co 3. tura) – trójząb leci łukiem w bohatera.
+
+### Piłkarze i Mroczny Trener
+- Piłkarze mocniejsi (34 HP, ATK 12, DEF 2, unik 15%, czasem podwójne kopnięcie).
+- Trener przywołuje **2 piłkarzy + Sędziego** (supporter). Dopóki żyje sędzia, piłkarze mają efekt **Szybkości (ikona buta)**: **atakują jako pierwsi** (przed ruchem gracza) i **o 40% mocniej**. Sędzia nie atakuje – gwiżdże i podtrzymuje szybkość.
+- Trener jest **nietykalny** (niebieska tarcza, napis NIETYKALNY), dopóki żyją piłkarze lub sędzia – trzeba ich najpierw pokonać. Kula ognia omija nietykalnego.
+- Trener **leczy się** (15% HP, izotonik), gdy ma mniej niż 65% zdrowia.
+
+### Naprawione
+- `story.js`: urwane `(500);` w prologu zamiast `await c.wait(500)`.
+- Pociski wrogów latających startują z poprawnej wysokości.
+- Wersja gry widoczna na ekranie tytułowym.
+
+---
+
 ## [9.2] – 2026-11-09
 
 ### Naprawione

@@ -2,18 +2,18 @@
 /* tone = jasność świata (1 jasny ... 0 mroczny). link = mapa-łącznik. foes/boss = przeciwnicy w trybie nieskończonym */
 const MAPS={
  forest:{sun:{x:508,y:48,r:28},amb:'leaf',name:'Zielony las',src:'assets/maps/forest.png',sky:'#6ec6f0',ground:'#4a9a3a',decor:'#2c6b2c',tone:1,foes:['slime','shroom'],boss:'slimeking'},
- village:{amb:'dust',name:'Opuszczona wioska',src:'assets/maps/village.png',sky:'#d89060',ground:'#8a7a50',decor:'#4a3d28',tone:.8,foes:['goblin','elf'],boss:'orc'},
+ village:{amb:'dust',name:'Opuszczona wioska',src:'assets/maps/village.png',sky:'#d89060',ground:'#8a7a50',decor:'#4a3d28',tone:.8,foes:['goblin','elf','dwarf'],boss:'orc'},
  swamp:{amb:'firefly',name:'Moczary',src:'assets/maps/swamp.png',sky:'#8aa88c',ground:'#46583a',decor:'#2a4a32',tone:.5,foes:['drowned','mosquitos'],boss:'witch'},
  taiga:{amb:'leaf',name:'Tajga',src:'assets/maps/taiga.png',sky:'#6a9ac0',ground:'#3a4a2a',decor:'#2a3a1a',tone:.7,foes:['bear','beaver'],boss:'leshy'},
  pass:{amb:'snow',name:'Górska ścieżka',src:'assets/maps/pass.png',sky:'#a0d4ee',ground:'#9ab88a',decor:'#4a3d28',tone:.85,link:1},
- ice:{sun:{x:108,y:52,r:28},amb:'snow',name:'Lodowe góry',src:'assets/maps/ice.png',sky:'#b8dcf2',ground:'#e8f0ff',decor:'#9ab8e0',tone:.9,foes:['wolf','goblin'],boss:'yeti'},
+ ice:{sun:{x:108,y:52,r:28},amb:'snow',name:'Lodowe góry',src:'assets/maps/ice.png',sky:'#b8dcf2',ground:'#e8f0ff',decor:'#9ab8e0',tone:.9,foes:['wolf','goblin','snowman'],boss:'yeti'},
  cavemouth:{amb:'snow',name:'Wejście do jaskini',src:'assets/maps/cavemouth.png',sky:'#8a98ac',ground:'#9aa4b8',decor:'#6a7488',tone:.5,link:1},
- cave:{amb:'glint',name:'Kryształowa jaskinia',src:'assets/maps/cave.png',sky:'#1c1828',ground:'#3a3448',decor:'#2a2438',tone:.3,foes:['spider','imp'],boss:'spiderqueen'},
+ cave:{amb:'glint',name:'Kryształowa jaskinia',src:'assets/maps/cave.png',sky:'#1c1828',ground:'#3a3448',decor:'#2a2438',tone:.3,foes:['spider','imp','bat'],boss:'spiderqueen'},
  desert:{amb:'dust',name:'Pustynia',src:'assets/maps/desert.png',sky:'#f0c878',ground:'#d0b060',decor:'#a89050',tone:.55,foes:['scorpion','mummy'],boss:'sphinx'},
  tunnel:{name:'Stary tunel',src:'assets/maps/tunnel.png',sky:'#22222c',ground:'#3a3a44',decor:'#4a3a2a',tone:.3,link:1},
- plant:{amb:'spark',name:'Stara elektrownia',src:'assets/maps/plant.png',sky:'#2a2630',ground:'#3a3a40',decor:'#2a2a32',tone:.25,foes:['drone','robot'],boss:'mech'},
+ plant:{amb:'spark',name:'Stara elektrownia',src:'assets/maps/plant.png',sky:'#2a2630',ground:'#3a3a40',decor:'#2a2a32',tone:.25,foes:['drone','robot','fighter'],boss:'mech'},
  hotshaft:{amb:'ember',name:'Gorący szyb',src:'assets/maps/hotshaft.png',sky:'#2a1010',ground:'#3a1c1a',decor:'#3a2420',tone:.15,link:1},
- lava:{amb:'ember',name:'Lawowa otchłań',src:'assets/maps/lava.png',sky:'#0a0303',ground:'#241010',decor:'#0e0505',tone:.1,foes:['imp','lavagolem','skeleton'],boss:'demon'},
+ lava:{amb:'ember',name:'Lawowa otchłań',src:'assets/maps/lava.png',sky:'#0a0303',ground:'#241010',decor:'#0e0505',tone:.1,foes:['imp','lavagolem','skeleton','basilisk'],boss:'demon'},
  ruins:{amb:'dust',name:'Mroczne ruiny',src:'assets/maps/ruins.png',sky:'#2a2040',ground:'#3a3550',decor:'#1c1830',tone:.3},
  castle:{name:'Zamek',src:'assets/maps/castle.png',sky:'#3a2a5a',ground:'#6a6070',decor:'#7a6a8a',tone:.6},
  stadium:{name:'Mroczny stadion',src:'assets/maps/stadium.png',sky:'#1a0e18',ground:'#1f4a2a',decor:'#2a2a30',tone:.2},
@@ -42,14 +42,14 @@ function getWave(n){
    Dodaj kolejny obiekt (map, foes, boss), aby dodać etap – fale zostaną wygenerowane automatycznie. */
 const CAMPAIGN=[
  {name:'Zielony las',map:'forest',foes:['slime','shroom'],boss:'slimeking'},
- {name:'Opuszczona wioska',map:'village',foes:['goblin','elf'],boss:'orc'},
+ {name:'Opuszczona wioska',map:'village',foes:['goblin','elf','dwarf'],boss:'orc'},
  {name:'Moczary',map:'swamp',foes:['drowned','mosquitos'],boss:'witch'},
  {name:'Tajga',map:'taiga',foes:['bear','beaver'],boss:'leshy'},
- {name:'Lodowe góry',map:'ice',foes:['wolf','goblin'],boss:'yeti'},
- {name:'Kryształowa jaskinia',map:'cave',foes:['spider','imp'],boss:'spiderqueen'},
+ {name:'Lodowe góry',map:'ice',foes:['wolf','goblin','snowman'],boss:'yeti'},
+ {name:'Kryształowa jaskinia',map:'cave',foes:['spider','imp','bat'],boss:'spiderqueen'},
  {name:'Pustynia',map:'desert',foes:['scorpion','mummy'],boss:'sphinx'},
- {name:'Stara elektrownia',map:'plant',foes:['drone','robot'],boss:'mech'},
- {name:'Lawowa otchłań',map:'lava',foes:['imp','lavagolem','skeleton'],boss:'demon'},
+ {name:'Stara elektrownia',map:'plant',foes:['drone','robot','fighter'],boss:'mech'},
+ {name:'Lawowa otchłań',map:'lava',foes:['imp','lavagolem','skeleton','basilisk'],boss:'demon'},
  {name:'Mroczny stadion',map:'stadium',foes:['kicker'],boss:'coach'},
 ];
 const MAX_FOES=4;                                   // tyle potworów mieści się na arenie

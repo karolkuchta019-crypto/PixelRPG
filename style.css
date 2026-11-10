@@ -53,18 +53,30 @@ button::before{content:"";position:absolute;left:6px;top:50%;width:22px;height:2
 #screen.worldmap{display:flex;flex-direction:column;align-items:center;padding:12px;background:rgba(15,11,26,.92);overflow:auto}
 #screen.worldmap h2{margin-bottom:4px}
 #screen.worldmap p{margin:0 0 8px;font-size:11px;opacity:.9}
-.wmap{position:relative;width:100%;max-width:640px;aspect-ratio:2/1;background:url(assets/ui/worldmap.png) center/cover,#1a1428;border:3px solid var(--gold);border-radius:4px;margin:4px 0 12px}
-.wmap-node{position:absolute;transform:translate(-50%,-50%);min-width:72px;max-width:100px;padding:6px 4px;font-size:10px;line-height:1.2;border:2px solid #f2c14e;background:#3a2a50;color:#f3e9d2;cursor:pointer;box-shadow:2px 2px #000;display:flex;flex-direction:column;align-items:center;gap:2px}
-.wmap-node .wn-num{font-weight:bold;color:#f2c14e;font-size:12px}
-.wmap-node .wn-name{font-size:9px;text-align:center}
-.wmap-node .wn-tag{font-size:10px}
-.wmap-node.done{border-color:#4ad66a}
-.wmap-node.locked{opacity:.45;cursor:not-allowed;filter:grayscale(.6);border-color:#666}
-.wmap-node:not(.locked):hover{transform:translate(-50%,-50%) scale(1.08);z-index:2}
-.wmap-path{position:absolute;height:3px;background:#4a3a28;transform-origin:0 50%;pointer-events:none;opacity:.5}
-.wmap-path.open{background:#f2c14e;opacity:.85}
+.wm-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:42px 32px;width:100%;max-width:900px;padding:20px 24px;margin:4px 0 8px;background:radial-gradient(ellipse at center,#3a2c58 0,#211835 75%);border:3px solid var(--gold);box-shadow:inset 0 0 0 2px #000,0 0 30px #000a}
+.wm-cell{position:relative;min-width:0}
+#screen .wm-card{display:flex;flex-direction:column;align-items:stretch;gap:3px;min-width:0;width:100%;padding:0 0 6px;text-align:center;background:#2a2140;border:3px solid #000;outline:2px solid var(--gold-d);box-shadow:0 4px #0008;color:var(--txt);text-shadow:none;position:relative;overflow:hidden;transition:transform .12s}
+.wm-card::before{display:none!important}
+.wm-img{display:block;height:68px;background-size:cover;background-position:center;image-rendering:pixelated;border-bottom:3px solid #000}
+.wm-num{position:absolute;top:4px;left:4px;background:#000d;color:var(--gold);font-size:12px;padding:1px 6px;border:2px solid var(--gold)}
+.wm-name{min-height:27px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;color:var(--gold);padding:0 4px;line-height:1.2}
+.wm-boss{font-size:9px;opacity:.85;padding:0 4px;line-height:1.2}
+.wm-tag{font-size:9px;letter-spacing:.5px;opacity:.9}
+.wm-card.done{outline-color:#4ad66a}.wm-card.done .wm-tag{color:#7aff9a}
+.wm-card.here{outline-color:#4aa3ff;box-shadow:0 0 0 4px #4aa3ff55,0 4px #0008}.wm-card.here .wm-tag{color:#8ac8ff}
+.wm-card.locked{cursor:not-allowed;outline-color:#555}.wm-card.locked .wm-img{filter:grayscale(1) brightness(.35)}.wm-card.locked .wm-name{color:#999}
+.wm-card:not(.locked):not(.preview):hover{transform:translateY(-3px);outline-color:#fff}
+.wm-card.preview{cursor:default}
+.wm-link{position:absolute;pointer-events:none;color:#5a4a6a;background:currentColor}
+.wm-link.open{color:var(--gold)}
+.wm-link::after{content:"";position:absolute;border:7px solid transparent}
+.wm-link.r{left:100%;top:34px;width:32px;height:4px;margin-top:-2px}.wm-link.r::after{right:-2px;top:-5px;border-left:10px solid currentColor;border-right:0}
+.wm-link.l{right:100%;top:34px;width:32px;height:4px;margin-top:-2px}.wm-link.l::after{left:-2px;top:-5px;border-right:10px solid currentColor;border-left:0}
+.wm-link.d{top:100%;left:50%;width:4px;height:42px;margin-left:-2px}.wm-link.d::after{bottom:-2px;left:-5px;border-top:10px solid currentColor;border-bottom:0}
+.wm-info{min-height:34px;max-width:900px;font-size:11px;line-height:1.5;margin:0 0 8px;padding:6px 12px;background:#14101f;border:2px solid #3a2f58;width:100%;text-align:center}
 .wmap-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
 .wmap-actions button{min-width:160px}
+@media(max-width:720px){.wm-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.wm-cell{grid-column:auto!important;grid-row:auto!important}.wm-link{display:none}}
 
 /* ===== MENU TAB ===== */
 #screen.tabmenu{display:flex;flex-direction:column;align-items:center;gap:10px;padding:20px;background:rgba(15,11,26,.94)}

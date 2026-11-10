@@ -1,3 +1,6 @@
+Monster Waves 1.0.0 – nowości: patrz CHANGELOG.md (dialogi bossów, mapa świata z teleportem w menu Tab, nowi wrogowie, sędzia i szybkość piłkarzy, nietykalny i leczący się Trener).
+Uwaga: zbrojmistrz nie skupuje towaru – zostaje najlepszy kupiony przedmiot w slocie.
+
 Wklej zawartość tego folderu do pixel-rpg/ (nadpisz pliki JS i dodaj nowe grafiki).
 
 Nowe pliki graficzne:

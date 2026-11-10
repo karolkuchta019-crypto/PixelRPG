@@ -57,6 +57,22 @@ const Player = {
     return (it && it.sprite) || 'player';
   },
 
+  /* poziom przedmiotu w jego slocie (kolejność w GEAR = od najsłabszego) */
+  tier(it) { return GEAR.filter(x => x.slot === it.slot).findIndex(x => x.id === it.id); },
+
+  /* poziom aktualnie posiadanego przedmiotu w slocie (-1 = brak) */
+  ownedTier(slot) {
+    const d = this.d, sk = d.sk || {};
+    if (slot === 'ranged') return sk.xbow ? 1 : sk.bow ? 0 : -1;
+    const id = (d.gear || {})[slot];
+    const it = id && GEAR.find(x => x.id === id);
+    return it ? this.tier(it) : -1;
+  },
+
+  /* v1.0: brak sprzedaży – nowy przedmiot zastępuje stary (zostaje tylko najlepszy), starego nie da się odsprzedać ani cofnąć.
+     Nie można kupić przedmiotu słabszego lub równego posiadanemu. */
+  canBuy(it) { return this.tier(it) > this.ownedTier(it.slot); },
+
   equip(id) {
     const it = GEAR.find(x => x.id === id);
     if (!it) return false;
@@ -64,23 +80,14 @@ const Player = {
     d.gear = d.gear || { sword: null, armor: null, shield: null };
     d.sk = d.sk || {};
     const cost = it.cost;
+    if (!this.canBuy(it)) return false;
     if (!G.dev && d.pending < cost) return false;
-    /* broń dystansowa: odblokowuje umiejętność (łuk/kusza) */
-    if (it.slot === 'ranged' && it.skill) {
-      if (d.sk[it.skill]) return false;  // już posiadane
-      if (!G.dev) d.pending -= cost;
+    if (!G.dev) d.pending -= cost;
+    if (it.slot === 'ranged' && it.skill) {   // broń dystansowa: odblokowuje umiejętność (kusza zastępuje łuk)
       d.sk[it.skill] = 1;
-      /* kusza zastępuje łuk (lepsza) */
       if (it.skill === 'xbow') d.sk.bow = 1;
       return true;
     }
-    /* jeśli coś już założone w slocie – oddaj połowę kosztu starego */
-    const prevId = d.gear[it.slot];
-    if (prevId) {
-      const prev = GEAR.find(x => x.id === prevId);
-      if (prev && !G.dev) d.pending += Math.floor(prev.cost / 2);
-    }
-    if (!G.dev) d.pending -= cost;
     d.gear[it.slot] = id;
     return true;
   },

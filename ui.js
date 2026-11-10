@@ -65,7 +65,7 @@ const UI = {
 
   title() {
     Music.play(null);   // w menu cisza
-    this.screen('MONSTER WAVES',
+    this.screen('MONSTER WAVES  v' + VERSION,
       'Wybierz tryb. WASD / strzałki – ruch, Spacja – skok, M – muzyka, kliknij wroga, by go namierzyć.',
       [{ l: 'Kampania', f: () => this.campaign() },
        { l: 'Tryb nieskończony', f: () => this.endless() }]);
@@ -84,7 +84,9 @@ const UI = {
     this.worldMap({ start: 1 });
   },
 
-  /* --- MAPA ŚWIATA --- */
+  /* --- MAPA ŚWIATA (v1.0) ---
+     Siatka 5 kolumn x 2 rzędy "wężykiem" (1-5 w prawo, 6-10 w lewo) – kafelki nigdy na siebie nie nachodzą, a strzałki pokazują kolejność.
+     Każdy kafelek ma obrazek świata. W podglądzie z menu (Tab) kliknięcie odblokowanego etapu przenosi do niego. */
   worldMap(opts = {}) {
     const s = this.$('screen');
     s.innerHTML = '';
@@ -92,83 +94,86 @@ const UI = {
     s.classList.remove('hidden');
     const save = Save.get('campaign') || { cleared: 0 };
     const cleared = G.dev ? CAMPAIGN.length : (save.cleared || 0);
+    const canJump = !!opts.fromMenu && G.mode === 'campaign' && !!G.p && ['fight', 'clear'].includes(G.state) && !Combat.busy;
+    const here = (G.mode === 'campaign' && G.p && !opts.fromDeath) ? G.level : -1;
+
     const h = document.createElement('h2');
     h.textContent = opts.fromDeath ? 'Porażka – Mapa świata' : 'Mapa świata';
     s.append(h);
     const sub = document.createElement('p');
     sub.textContent = opts.fromDeath
-      ? 'Wybierz odblokowany etap, by spróbować ponownie. Zablokowane etapy są niedostępne.'
+      ? 'Wybierz odblokowany etap, by spróbować ponownie.'
       : opts.fromMenu
-        ? 'Podgląd mapy (Tab). Kliknij Zamknij, by wrócić.'
+        ? (canJump ? 'Kliknij odblokowany etap, aby się do niego przenieść (zaczniesz od 1. fali tego etapu).'
+                   : 'Podgląd mapy. Przenoszenie między etapami działa w trakcie kampanii (poza walką).')
         : 'Kliknij etap, aby wyruszyć. Niepokonane etapy są zablokowane.' + (G.dev ? ' [DEV: wszystko odblokowane]' : '');
     s.append(sub);
 
-    const map = document.createElement('div');
-    map.className = 'wmap';
-    /* pozycje kafelków (procentowo w obszarze mapy) – ścieżka lewo→prawo, lekko falująca */
-    const POS = [
-      [8, 28], [22, 42], [36, 30], [48, 48], [60, 32],
-      [70, 50], [78, 34], [86, 52], [90, 70], [78, 82]
-    ];
-    const COLORS = {
-      forest: '#3a8a3a', village: '#b87840', swamp: '#4a6a4a', taiga: '#2a5a3a',
-      ice: '#80b0d0', cave: '#4a3a6a', desert: '#d0a050', plant: '#5a5a6a',
-      lava: '#a03020', stadium: '#3a1a3a'
-    };
+    const info = document.createElement('div');
+    info.className = 'wm-info';
+    const defInfo = 'Najedź na etap, aby zobaczyć przeciwników.';
+    info.textContent = defInfo;
+
+    const COLS = 5, grid = document.createElement('div');
+    grid.className = 'wm-grid';
     CAMPAIGN.forEach((L, i) => {
+      const row = Math.floor(i / COLS), col = i % COLS;
+      const unlocked = i <= cleared || G.dev, done = i < cleared;
+      const cell = document.createElement('div');
+      cell.className = 'wm-cell';
+      cell.style.gridRow = row + 1;
+      cell.style.gridColumn = row % 2 === 0 ? col + 1 : COLS - col;
       const node = document.createElement('button');
-      const unlocked = i <= cleared || G.dev;
-      const done = i < cleared;
-      node.className = 'wmap-node' + (unlocked ? '' : ' locked') + (done ? ' done' : '');
-      const [px, py] = POS[i] || [10 + i * 9, 40];
-      node.style.left = px + '%';
-      node.style.top = py + '%';
-      node.style.background = COLORS[L.map] || '#5a4a6a';
-      node.innerHTML = `<span class="wn-num">${i + 1}</span><span class="wn-name">${L.name}</span>` +
-        (done ? '<span class="wn-tag">✓</span>' : unlocked ? '' : '<span class="wn-tag">🔒</span>');
-      if (unlocked && !opts.fromMenu) {
+      node.type = 'button';
+      node.className = 'wm-card' + (unlocked ? '' : ' locked') + (done ? ' done' : '') + (i === here ? ' here' : '') +
+        (opts.fromMenu && !canJump ? ' preview' : '');
+      const tag = i === here ? '● TU JESTEŚ' : done ? '✓ UKOŃCZONY' : unlocked ? '▶ DOSTĘPNY' : '🔒 ZABLOKOWANY';
+      node.innerHTML = `<span class="wm-img" style="background-image:url(${MAPS[L.map].src})"></span>` +
+        `<span class="wm-num">${i + 1}</span><span class="wm-name">${L.name}</span>` +
+        `<span class="wm-boss">Boss: ${ENEMY_DEFS[L.boss].name}</span><span class="wm-tag">${tag}</span>`;
+      const foes = L.foes.map(f => ENEMY_DEFS[f].name).join(', ');
+      const show = () => { info.textContent = `Etap ${i + 1}: ${L.name} — wrogowie: ${foes} · boss: ${ENEMY_DEFS[L.boss].name}`; };
+      node.onmouseenter = show; node.onfocus = show;
+      node.onmouseleave = () => { info.textContent = defInfo; };
+      if (unlocked && (!opts.fromMenu || canJump)) {
         node.onclick = () => {
+          if (opts.fromMenu) {
+            if (!confirm(`Przenieść się do etapu ${i + 1}: ${L.name}? Postęp w bieżącym etapie zostanie utracony.`)) return;
+            G.jumpToStage(i);
+            return;
+          }
           s.classList.add('hidden');
           if (opts.fromDeath) {
             /* przywróć stan z snapshota etapu lub zapisanej postaci */
             const snap = G.snap ? JSON.parse(G.snap) : (Save.get('campaign') || {}).p;
-            if (snap) Player.d = snap;
-            else Player.d = Player.base();
+            Player.d = snap || Player.base();
             Player.d.gear = Player.d.gear || { sword: null, armor: null, shield: null };
             Player.d.hp = Player.d.maxhp;
             G.mode = 'campaign';
-            G.level = i;
-            G.wave = 1;
-            G.waves = buildWaves(i);
+            G.level = i; G.wave = 1; G.waves = buildWaves(i);
             G.snap = JSON.stringify(Player.d);
             G.newRun();
           } else {
             G.startCampaign(i, true);
           }
         };
-      } else {
-        node.disabled = true;
+      } else if (!unlocked) {
+        node.setAttribute('aria-disabled', 'true');
       }
-      map.append(node);
-      /* ścieżka do następnego */
+      cell.append(node);
       if (i < CAMPAIGN.length - 1) {
-        const [nx, ny] = POS[i + 1] || [px + 10, py];
-        const path = document.createElement('div');
-        path.className = 'wmap-path' + (i < cleared || G.dev ? ' open' : '');
-        const x1 = px + 4, y1 = py + 3, x2 = nx + 4, y2 = ny + 3;
-        const len = Math.hypot(x2 - x1, y2 - y1);
-        const ang = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
-        path.style.left = x1 + '%';
-        path.style.top = y1 + '%';
-        path.style.width = len + '%';
-        path.style.transform = `rotate(${ang}deg)`;
-        map.append(path);
+        const nextRow = Math.floor((i + 1) / COLS);
+        const link = document.createElement('div');
+        link.className = 'wm-link ' + (nextRow !== row ? 'd' : row % 2 === 0 ? 'r' : 'l') + (i < cleared || G.dev ? ' open' : '');
+        cell.append(link);
       }
+      grid.append(cell);
     });
-    s.append(map);
+    s.append(grid);
+    s.append(info);
 
-    const row = document.createElement('div');
-    row.className = 'wmap-actions';
+    const rowB = document.createElement('div');
+    rowB.className = 'wmap-actions';
     if (opts.fromDeath && opts.retryLevel != null && (opts.retryLevel <= cleared || G.dev)) {
       const retry = document.createElement('button');
       retry.textContent = 'Spróbuj ponownie (ten etap)';
@@ -177,25 +182,23 @@ const UI = {
         Player.d = G.snap ? JSON.parse(G.snap) : Player.base();
         Player.d.gear = Player.d.gear || { sword: null, armor: null, shield: null };
         Player.d.hp = Player.d.maxhp;
-        G.level = opts.retryLevel;
-        G.wave = 1;
-        G.waves = buildWaves(opts.retryLevel);
+        G.level = opts.retryLevel; G.wave = 1; G.waves = buildWaves(opts.retryLevel);
         G.snap = JSON.stringify(Player.d);
         G.newRun();
       };
-      row.append(retry);
+      rowB.append(retry);
     }
-    if (!opts.fromDeath) {
+    if (!opts.fromDeath && !opts.fromMenu) {
       const neu = document.createElement('button');
       neu.textContent = 'Nowa kampania';
       neu.onclick = () => { Save.clear('campaign'); this.worldMap({ start: 1 }); };
-      row.append(neu);
+      rowB.append(neu);
     }
     const back = document.createElement('button');
     back.textContent = opts.fromDeath ? 'Menu główne' : (opts.fromMenu ? 'Zamknij' : 'Wstecz');
     back.onclick = () => { if (opts.fromMenu) this.closeMenu(); else this.title(); };
-    row.append(back);
-    s.append(row);
+    rowB.append(back);
+    s.append(rowB);
   },
 
   /* --- MENU TAB --- */
@@ -368,6 +371,10 @@ const UI = {
       const it = GEAR.find(x => x.id === id);
       return it ? it.name : id;
     };
+    const note = document.createElement('p');
+    note.textContent = 'Zbrojmistrz nie skupuje towaru. Nowy przedmiot zastępuje stary – zostaje tylko najlepszy, jaki kupiłeś.';
+    note.style.cssText = 'font-size:11px;opacity:.8;margin:0';
+    s.append(note);
     const info = document.createElement('p');
     info.innerHTML = `Punkty: <b>${G.dev ? '∞' : d.pending}</b><br>Miecz: ${eqName('sword')} · Zbroja: ${eqName('armor')} · Tarcza: ${eqName('shield')}` +
       `<br>Dystans: ${d.sk && d.sk.xbow ? 'Kusza' : d.sk && d.sk.bow ? 'Łuk' : 'brak'}`;
@@ -395,11 +402,15 @@ const UI = {
       GEAR.filter(it => it.slot === sec.key).forEach(it => {
         const b = document.createElement('button');
         d.sk = d.sk || {};
-        const owned = it.skill ? !!d.sk[it.skill] : d.gear[it.slot] === it.id;
+        const own = Player.ownedTier(it.slot), tr = Player.tier(it);
+        const owned = tr === own;            // dokładnie ten przedmiot
+        const worse = tr < own;              // mamy już lepszy – słabszego nie kupimy
         b.textContent = owned
-          ? `${it.name}  ✓ ZAŁOŻONE`
-          : `${it.name}: ${it.desc}  [${it.cost} pkt]`;
-        b.disabled = owned || (!G.dev && d.pending < it.cost);
+          ? `${it.name}  ✓ POSIADANE`
+          : worse
+            ? `${it.name}  (masz lepszy)`
+            : `${it.name}: ${it.desc}  [${it.cost} pkt]`;
+        b.disabled = owned || worse || (!G.dev && d.pending < it.cost);
         if (owned) b.style.outline = '2px solid #7aff9a';
         b.onclick = () => {
           if (Player.equip(it.id)) {

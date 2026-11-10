@@ -56,7 +56,7 @@ const Story={
   c.carry=[p,v];c.blink();c.shake=8;
   h.pose='attack';await c.walk(h,300,205,500);h.pose='';
   await c.say('Mroczny Trener','Za wolno, rycerzu! Mecz rozstrzyga się w pierwszej minucie.');
- (500);v.face=1;v.anim='run';
+  await c.wait(500);v.face=1;v.anim='run';
   await Promise.all([c.walk(v,820,205,2200),c.walk(h,480,205,1600)]);
   v.anim='';h.walk=0;
   await c.say('Bohater','Księżniczko! Dorwę go, choćby na końcu świata!');

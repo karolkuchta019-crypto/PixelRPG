@@ -20,15 +20,15 @@ const ASSETS={
  spider:{src:'assets/enemies/spider',fw:32,fh:32,color:'#4a2a6a'},
  drone:{src:'assets/enemies/drone',fw:32,fh:32,color:'#8a96a8'},
  robot:{src:'assets/enemies/robot',fw:32,fh:32,color:'#7a7a88'},
- drowned:{src:'assets/enemies/drowned',fw:32,fh:32,color:'#5a8a78'},      // moczary: utopiec z trójzębem
+ drowned:{src:'assets/enemies/drowned',fw:32,fh:32,color:'#5a8a78',extra:['throw'],muz:{trident:10}},      // moczary: utopiec z trójzębem
  mosquitos:{src:'assets/enemies/mosquitos',fw:32,fh:32,color:'#3a3a44'}, // moczary: chmara komarów
  witch:{src:'assets/enemies/witch',fw:48,fh:48,color:'#5a2a7a'},           // boss moczarów: wiedźma na miotle
  bear:{src:'assets/enemies/bear',fw:32,fh:32,color:'#6a3a1a'},             // tajga: niedźwiedź
  beaver:{src:'assets/enemies/beaver',fw:32,fh:32,color:'#8a6a3a'},         // tajga: bóbr
- leshy:{src:'assets/enemies/leshy',fw:48,fh:48,color:'#3a5a2a'},           // boss tajgi: leszy
+ leshy:{src:'assets/enemies/leshy',fw:64,fh:64,color:'#3a5a2a'},           // boss tajgi: leszy
  scorpion:{src:'assets/enemies/scorpion',fw:32,fh:32,color:'#8a5a1a'},     // pustynia: skorpion
  mummy:{src:'assets/enemies/mummy',fw:32,fh:32,color:'#d8d0b0'},           // pustynia: mumia
- sphinx:{src:'assets/enemies/sphinx',fw:48,fh:48,color:'#c8a050'},         // boss pustyni: sfinks
+ sphinx:{src:'assets/enemies/sphinx',fw:64,fh:64,color:'#c8a050'},         // boss pustyni: sfinks
  yeti:{src:'assets/enemies/yeti',fw:48,fh:48,color:'#e8f0ff'},               // boss lodowych gór
  spiderqueen:{src:'assets/enemies/spiderqueen',fw:48,fh:48,color:'#4a2a6a'}, // boss jaskini
  mech:{src:'assets/enemies/mech',fw:48,fh:48,color:'#6a6a78'},               // boss elektrowni
@@ -38,6 +38,12 @@ const ASSETS={
  anvil:{src:'assets/items/anvil',fw:64,fh:48,color:'#5a5a6a'},
  coach:{src:'assets/enemies/coach',fw:72,fh:56,ax:27,color:'#8a2030',extra:['run','shoot','throw','jump'],ms:{walk:90,run:70},muz:{bullet:31,bottle:17}},               // OSTATECZNY BOSS: Mroczny Trener
  kicker:{src:'assets/enemies/kicker',fw:32,fh:32,color:'#d64545'},
+ referee:{src:'assets/enemies/referee',fw:32,fh:32,color:'#2c2c38'},        // sędzia (supporter piłkarzy)
+ bat:{src:'assets/enemies/bat',fw:32,fh:32,color:'#5a3f70'},                // jaskinia: nietoperz
+ snowman:{src:'assets/enemies/snowman',fw:32,fh:32,color:'#f3f8ff'},        // lodowe góry: bałwan
+ dwarf:{src:'assets/enemies/dwarf',fw:32,fh:32,color:'#d6652a'},            // opuszczona wioska: krasnolud
+ basilisk:{src:'assets/enemies/basilisk',fw:32,fh:32,color:'#5fa84a',muz:{gaze:8}},   // otchłań: bazyliszek
+ fighter:{src:'assets/enemies/fighter',fw:32,fh:32,color:'#5a6474',muz:{laser:11}},   // elektrownia: myśliwiec laserowy
  princess:{src:'assets/player/princess',fw:32,fh:32,color:'#e060a0'},
  comp_squire:{src:'assets/player/comp_squire',fw:32,fh:32,color:'#8a5a2a'},
  comp_archer:{src:'assets/player/comp_archer',fw:32,fh:32,color:'#2a7a4a'},
@@ -45,7 +51,7 @@ const ASSETS={
  orc:{src:'assets/enemies/orc',fw:48,fh:48,color:'#5a8a4a'},               // boss etapu 2
  demon:{src:'assets/enemies/demon',fw:48,fh:48,color:'#a02828'},           // boss etapu 3
 };
-const EFFECTS={sword_wood:'assets/items/sword_wood.png',sword_iron:'assets/items/sword_iron.png',sword_steel:'assets/items/sword_steel.png',sword_myth:'assets/items/sword_myth.png',sword_wood_attack:'assets/items/sword_wood_attack.png',sword_iron_attack:'assets/items/sword_iron_attack.png',sword_steel_attack:'assets/items/sword_steel_attack.png',sword_myth_attack:'assets/items/sword_myth_attack.png',shield_wood:'assets/items/shield_wood.png',shield_iron:'assets/items/shield_iron.png',shield_steel:'assets/items/shield_steel.png',shield_myth:'assets/items/shield_myth.png',sword_icon:'assets/items/sword_icon.png',shield_icon:'assets/items/shield_icon.png',armor_icon:'assets/items/armor_icon.png',bottle:'assets/effects/bottle.png',bottleproj:'assets/effects/bottle_proj.png',poison:'assets/effects/poison.png',sun_alt:'assets/effects/sun_alt.png',burn:'assets/effects/burn.png',freeze:'assets/effects/freeze.png',sand:'assets/effects/sand.png',hit:'assets/effects/hit.png',crit:'assets/effects/crit.png'}; // paski klatek 32x32 (opcjonalne)
+const EFFECTS={sword_wood:'assets/items/sword_wood.png',sword_iron:'assets/items/sword_iron.png',sword_steel:'assets/items/sword_steel.png',sword_myth:'assets/items/sword_myth.png',sword_wood_attack:'assets/items/sword_wood_attack.png',sword_iron_attack:'assets/items/sword_iron_attack.png',sword_steel_attack:'assets/items/sword_steel_attack.png',sword_myth_attack:'assets/items/sword_myth_attack.png',shield_wood:'assets/items/shield_wood.png',shield_iron:'assets/items/shield_iron.png',shield_steel:'assets/items/shield_steel.png',shield_myth:'assets/items/shield_myth.png',sword_icon:'assets/items/sword_icon.png',shield_icon:'assets/items/shield_icon.png',armor_icon:'assets/items/armor_icon.png',bottle:'assets/effects/bottle.png',bottleproj:'assets/effects/bottle_proj.png',haste:'assets/effects/haste.png',stone:'assets/effects/stone.png',poison:'assets/effects/poison.png',sun_alt:'assets/effects/sun_alt.png',burn:'assets/effects/burn.png',freeze:'assets/effects/freeze.png',sand:'assets/effects/sand.png',hit:'assets/effects/hit.png',crit:'assets/effects/crit.png'}; // paski klatek 32x32 (opcjonalne)
 const Assets={img:{},sheets:{},fx:{},maps:{},
  _load(src,fb){return new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(fb);i.src=src;});},
  _ph(a){const c=document.createElement('canvas');c.width=a.fw;c.height=a.fh;const x=c.getContext('2d');

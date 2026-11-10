@@ -89,3 +89,12 @@ Włączasz/wyłączasz w trakcie gry: kod Konami (↑ ↑ ↓ ↓ ← → ← �
 - Gdy bohater ma założony miecz, ostrze obraca się wokół dłoni: zamach do tyłu -> szybkie cięcie łukiem -> powrót. Za ostrzem ciągnie się smuga (kolor zależy od miecza), a trafienie przypada na środek cięcia.
 - Cios krytyczny = większy zamach i złota, szersza smuga. Ślad cięcia w miejscu trafienia to teraz smukły półksiężyc.
 - Kod: `swingBlade` / `swingAng` w game.js, start animacji w `Combat.strike` (combat.js).
+
+## Wersja 1.0.0
+Pełna lista zmian w CHANGELOG.md. Najważniejsze:
+- Dialogi bossów (dymki), brak sprzedaży ekwipunku (zostaje najlepszy przedmiot), nowa mapa świata z teleportem z menu (Tab).
+- Przerysowane tła i potwory; nowi wrogowie: nietoperz, bałwan, krasnolud, bazyliszek (kamień), myśliwiec laserowy; utopiec rzuca trójzębem.
+- Finałowy boss: sędzia + mocniejsi piłkarze (szybkość = but), nietykalność podczas przywołania, leczenie.
+- Grafiki: `cd tools && python3 generate_v1.py` (Pillow + numpy). Bohater/ekwipunek/Trener: `tools/legacy/generate_assets_v9.py`.
+- Nowy wróg: wpis w `ENEMY_DEFS` (enemies.js), `ASSETS` (assets.js), pliki w assets/enemies/; dialogi bossa: `DLG`.
+- Dodatkowe animacje (np. `drowned_throw.png`): pole `extra` w ASSETS; efekt rzutu: `rng:'trident'|'laser'|'snowball'` w `behave`.
