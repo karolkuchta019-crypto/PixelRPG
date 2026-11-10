@@ -19,7 +19,7 @@ const ENEMY_DEFS={
  beaver:{name:'Bóbr',hp:38,atk:11,def:2,dodge:.15,crit:.1,xp:22,scale:2.6,behave:()=>Math.random()<.35?[.7,.7]:[1]},
  scorpion:{name:'Skorpion',pois:.45,hp:32,atk:12,def:2,dodge:.18,crit:.1,xp:24,scale:2.6,behave:()=>Math.random()<.4?[.6,.6]:[1]},
  mummy:{name:'Mumia',hp:60,atk:13,def:4,dodge:.06,crit:.08,xp:32,scale:2.9,behave:e=>e.turn%3===0?[{m:1.6,say:'Mumia zaciska bandaże!'}]:[1]},
- kicker:{name:'Piłkarz',hp:34,atk:12,def:2,dodge:.15,crit:.12,xp:10,scale:2.5,behave:()=>Math.random()<.35?[.8,.8]:[1.1]},   // v1.0: mocniejszy; ze wsparciem sędziego (haste) atakuje pierwszy i mocniej
+ kicker:{name:'Piłkarz',hp:34,atk:12,def:2,dodge:.15,crit:.12,xp:10,scale:2.5,behave:()=>Math.random()<.35?[{m:.8,rng:'ball',magic:1},{m:.8,rng:'ball',magic:1}]:[{m:1.1,rng:'ball',magic:1}]},   // v1.1: KOPIE PIŁKĘ (animacja kopnięcia, piłka leci w bohatera); v1.0: mocniejszy; ze wsparciem sędziego (haste) atakuje pierwszy i mocniej
  referee:{name:'Sędzia',hp:46,atk:6,def:3,dodge:.08,crit:.05,xp:14,scale:2.5,support:1,behave:()=>[{buff:'haste',say:'Sędzia gwiżdże: „Gramy dalej, szybciej!”'}]},   // SUPPORTER: daje piłkarzom szybkość (but)
  bat:{name:'Nietoperz',hp:30,atk:10,def:1,dodge:.3,crit:.1,xp:20,scale:2.6,drain:.5,behave:()=>Math.random()<.4?[.6,.6]:[1]},   // wysysa życie (leczy się z obrażeń)
  snowman:{name:'Bałwan',hp:58,atk:11,def:3,dodge:.05,crit:.05,xp:30,scale:2.9,freeze:.3,behave:e=>e.turn%3===0?[{m:.9,rng:'snowball',magic:1,freeze:1,say:'Bałwan ciska lodową kulą – zamrożenie!'}]:[1]},
