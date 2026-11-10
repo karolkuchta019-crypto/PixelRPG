@@ -17,6 +17,7 @@ const UI = {
     this.$('hpbar').style.width = 100 * d.hp / d.maxhp + '%';
     const sk = d.sk || {};
     document.querySelector('[data-a=shoot]').classList.toggle('hidden', !(sk.bow || sk.xbow));
+    document.querySelector('[data-a=skipwave]').classList.toggle('hidden', !G.dev);   // v1.1: tryb dev – pomijanie fali
     const fb = document.querySelector('[data-a=fire]');
     fb.classList.toggle('hidden', !sk.fire);
     fb.textContent = Combat.fbCd > 0 ? `Kula ognia (${Combat.fbCd})` : 'Kula ognia';
@@ -26,7 +27,7 @@ const UI = {
     this.$('stats').textContent =
       `HP ${d.hp}/${d.maxhp}  ATK ${atk}${gAtk ? `(+${gAtk})` : ''}  DEF ${def}${gDef ? `(+${gDef})` : ''}  ` +
       `PUNKTY ${ptsLabel}  Eliksiry ${d.potions|0}  KOMPANI ${(d.comps || []).length}/3  ` +
-      `CRIT ${Math.round(d.crit * 100)}%  UNIK ${Math.round(d.dodge * 100)}%`;
+      `CRIT ${Math.round((d.crit + Player.luck()) * 100)}%  UNIK ${Math.round(d.dodge * 100)}%`;
   },
 
   lock(b) {
@@ -58,6 +59,7 @@ const UI = {
   },
 
   waveLabel() {
+    if (G.hub) return 'Chatka wiedźmy';
     return G.mode === 'campaign'
       ? `Etap ${G.level + 1}, fala ${G.wave}/${G.waves.length}`
       : 'Fala ' + G.wave;
@@ -68,7 +70,8 @@ const UI = {
     this.screen('MONSTER WAVES  v' + VERSION,
       'Wybierz tryb. WASD / strzałki – ruch, Spacja – skok, M – muzyka, kliknij wroga, by go namierzyć.',
       [{ l: 'Kampania', f: () => this.campaign() },
-       { l: 'Tryb nieskończony', f: () => this.endless() }]);
+       { l: 'Tryb nieskończony', f: () => this.endless() },
+       { l: 'Wczytaj grę (sloty)', f: () => this.slots('load', 'title') }]);
   },
 
   endless() {
@@ -130,7 +133,7 @@ const UI = {
       const tag = i === here ? '● TU JESTEŚ' : done ? '✓ UKOŃCZONY' : unlocked ? '▶ DOSTĘPNY' : '🔒 ZABLOKOWANY';
       node.innerHTML = `<span class="wm-img" style="background-image:url(${MAPS[L.map].src})"></span>` +
         `<span class="wm-num">${i + 1}</span><span class="wm-name">${L.name}</span>` +
-        `<span class="wm-boss">Boss: ${ENEMY_DEFS[L.boss].name}</span><span class="wm-tag">${tag}</span>`;
+        `<span class="wm-boss">Boss: ${ENEMY_DEFS[L.boss].name}${Player.d && Player.d.witch && L.boss === 'witch' ? ' · 🧙 sklep' : ''}</span><span class="wm-tag">${tag}</span>`;
       const foes = L.foes.map(f => ENEMY_DEFS[f].name).join(', ');
       const show = () => { info.textContent = `Etap ${i + 1}: ${L.name} — wrogowie: ${foes} · boss: ${ENEMY_DEFS[L.boss].name}`; };
       node.onmouseenter = show; node.onfocus = show;
@@ -138,6 +141,12 @@ const UI = {
       if (unlocked && (!opts.fromMenu || canJump)) {
         node.onclick = () => {
           if (opts.fromMenu) {
+            /* v1.1: pokonana wiedźma czeka na Moczarach – klik w bagna = wizyta w jej chatce (poza samymi Moczarami) */
+            if (Player.d && Player.d.witch && L.boss === 'witch' && G.level !== i &&
+                confirm('Odwiedzić Wiedźmę w chatce na Moczarach?\n\nOK – odwiedź ją (eliksiry i talizmany szczęścia, potem wrócisz tu, gdzie byłeś).\nAnuluj – pokaż inne opcje.')) {
+              G.visitWitch();
+              return;
+            }
             if (!confirm(`Przenieść się do etapu ${i + 1}: ${L.name}? Postęp w bieżącym etapie zostanie utracony.`)) return;
             G.jumpToStage(i);
             return;
@@ -230,6 +239,12 @@ const UI = {
       this.worldMap({ fromMenu: 1 });
     });
 
+    /* v1.1: zapis / odczyt (PostgreSQL, 3 sloty) i nowa gra */
+    mk('💾  Zapisz grę (3 sloty)', !Slots.canSave(), () => { this.menuOpen = false; this.slots('save', 'menu'); });
+    mk('📂  Wczytaj grę', !Slots.canLoad(), () => { this.menuOpen = false; this.slots('load', 'menu'); });
+    mk('⚔  Nowa kampania', false, () => this.newGame('campaign'));
+    mk('♾  Nowy tryb nieskończony', false, () => this.newGame('endless'));
+
     /* muzyka */
     const musicBox = document.createElement('div');
     musicBox.className = 'menu-block';
@@ -281,12 +296,94 @@ const UI = {
     }
   },
 
-  /* --- NAPISY KOŃCOWE --- */
+  /* --- v1.1: NOWA GRA z menu (Tab) --- */
+  newGame(kind) {
+    const txt = kind === 'campaign' ? 'Rozpocząć NOWĄ kampanię?' : 'Rozpocząć NOWY tryb nieskończony?';
+    if (!confirm(txt + '\nNiezapisany postęp zostanie utracony (zapisy w slotach zostają).')) return;
+    const s = this.$('screen');
+    s.classList.add('hidden'); s.innerHTML = ''; this.menuOpen = false;
+    G.nextBub(); G.hub = null; Combat.busy = false;
+    if (kind === 'endless') { G.startEndless(true); return; }
+    Save.clear('campaign');
+    G.p = null; G.actors = []; G.enemies = []; G.comps = []; G.npcs = []; G.state = 'title';
+    this.worldMap({ start: 1 });
+  },
+
+  /* --- v1.1: SLOTY ZAPISU (PostgreSQL przez serwer w server/). mode: 'save' | 'load'; from: 'menu' | 'title' --- */
+  slots(mode, from) {
+    const s = this.$('screen');
+    s.innerHTML = ''; s.className = 'slots'; s.classList.remove('hidden');
+    const h = document.createElement('h2');
+    h.textContent = mode === 'save' ? 'Zapisz grę' : 'Wczytaj grę';
+    s.append(h);
+    const msg = document.createElement('p');
+    msg.className = 'slot-msg';
+    msg.textContent = mode === 'save'
+      ? 'Wybierz slot (nadpisze poprzedni zapis). Zapisuje bieżącą kampanię albo tryb nieskończony.'
+      : 'Wybierz slot. Wczytanie zaczyna bieżącą falę od nowa (albo wraca do sklepów po wygranej fali).';
+    s.append(msg);
+    const list = document.createElement('div');
+    list.className = 'slot-list';
+    s.append(list);
+    const back = document.createElement('button');
+    back.textContent = 'Wstecz';
+    back.onclick = () => { if (from === 'title') this.title(); else this.toggleMenu(); };
+    s.append(back);
+
+    const say = (t, bad) => { msg.textContent = t; msg.style.color = bad ? '#ff7a7a' : ''; };
+    const render = async () => {
+      list.textContent = 'Łączenie z bazą…';
+      let rows;
+      try { rows = await Slots.list(); } catch (e) { list.textContent = ''; say(e.message, true); return; }
+      list.textContent = '';
+      for (let n = 1; n <= Slots.N; n++) {
+        const r = rows.find(x => x.slot === n);
+        const card = document.createElement('div');
+        card.className = 'slot-card' + (r ? '' : ' empty');
+        const t = document.createElement('div');
+        t.className = 'slot-title';
+        t.textContent = `Slot ${n} — ` + (r ? (r.mode === 'campaign' ? 'Kampania' : 'Tryb nieskończony') : 'pusty');
+        card.append(t);
+        if (r) {
+          const m = r.meta || {};
+          const d = document.createElement('div');
+          d.className = 'slot-info';
+          d.textContent = `${m.label || ''} · LVL ${m.level || '?'} · zabici: ${m.kills || 0} · ${new Date(r.updated_at).toLocaleString('pl-PL')}`;
+          card.append(d);
+        }
+        const row = document.createElement('div');
+        row.className = 'slot-btns';
+        const mk = (label, dis, fn) => { const b = document.createElement('button'); b.textContent = label; b.disabled = !!dis; b.onclick = fn; row.append(b); };
+        if (mode === 'save') {
+          mk(r ? 'Nadpisz' : 'Zapisz tutaj', !Slots.canSave(), async () => {
+            if (r && !confirm(`Nadpisać slot ${n}?`)) return;
+            try { await Slots.save(n); say(`Zapisano w slocie ${n}.`); render(); } catch (e) { say(e.message, true); }
+          });
+        } else {
+          mk('Wczytaj', !r || !(from === 'title' || Slots.canLoad()), async () => {
+            try { await Slots.load(n); } catch (e) { say(e.message, true); }
+          });
+        }
+        if (r) mk('Usuń', false, async () => {
+          if (!confirm(`Usunąć zapis ze slotu ${n}?`)) return;
+          try { await Slots.del(n); say(`Slot ${n} usunięty.`); render(); } catch (e) { say(e.message, true); }
+        });
+        card.append(row);
+        list.append(card);
+      }
+      if (mode === 'save' && !Slots.canSave()) say('Zapis jest możliwy w walce (gdy nic się nie animuje) lub po wygranej fali – nie w dialogach, sklepie i chatce wiedźmy.', true);
+    };
+    render();
+  },
+
+  /* --- NAPISY KOŃCOWE (v1.1: przewijane od dołu do góry jak na filmach) --- */
   credits() {
     const s = this.$('screen');
     s.innerHTML = '';
     s.className = 'credits';
     s.classList.remove('hidden');
+    const roll = document.createElement('div');
+    roll.className = 'credits-roll';
     const wrap = document.createElement('div');
     wrap.className = 'credits-scroll';
     wrap.innerHTML = `
@@ -302,12 +399,21 @@ const UI = {
       <p class="cr-sec">— MONSTER WAVES —</p>
       <p>Pixel RPG · Kampania · Bossowie · Mapa świata</p>
     `;
-    s.append(wrap);
+    roll.append(wrap);
+    s.append(roll);
     const b = document.createElement('button');
-    b.textContent = 'Menu główne';
-    b.style.marginTop = '16px';
-    b.onclick = () => { G.state = 'title'; this.title(); };
+    b.className = 'credits-btn';
+    b.textContent = 'Pomiń ▶▶';
+    let anim = null;
+    b.onclick = () => { if (anim) anim.cancel(); G.state = 'title'; this.title(); };
     s.append(b);
+    requestAnimationFrame(() => {
+      const H = roll.clientHeight, h = wrap.offsetHeight, speed = 0.045;   // px/ms (~45 px/s)
+      anim = wrap.animate(
+        [{ transform: `translate(-50%, ${H}px)` }, { transform: `translate(-50%, ${-h}px)` }],
+        { duration: (H + h) / speed, easing: 'linear', fill: 'forwards' });
+      anim.onfinish = () => { b.textContent = 'Menu główne'; };
+    });
   },
 
   /* --- sklep wieśniaka (umiejętności) – przed bossem --- */
@@ -326,7 +432,7 @@ const UI = {
     s.append(h);
     const p = document.createElement('p');
     p.textContent = 'Wymień punkty poziomu na umiejętności. Twoje punkty: ' + (G.dev ? '∞' : d.pending) +
-      '   Kompani: ' + (d.comps || []).length + '/3';
+      '   Kompani: ' + (d.comps || []).length + '/3' + (d.sk.fire ? '   Moc kuli ognia: ' + Player.fireDmg() : '');
     s.append(p);
     const g = document.createElement('div');
     g.className = 'trades';
@@ -335,15 +441,60 @@ const UI = {
       const own = d.sk[k.id] || 0, c = Player.cost(k);
       const b = document.createElement('button');
       const full = k.comp ? (d.comps || []).length >= 3 : own >= k.max;
-      b.textContent = `${k.name}: ${k.desc} [${full ? (k.comp ? 'DRUŻYNA PEŁNA' : 'MAX') : c + ' pkt'}]` +
+      const need = k.req && !d.sk[k.req];   // v1.1: np. moc kuli wymaga kuli ognia
+      b.textContent = `${k.name}: ${k.desc} [${need ? 'najpierw: Kula ognia' : full ? (k.comp ? 'DRUŻYNA PEŁNA' : 'MAX') : c + ' pkt'}]` +
         (!k.comp && own && k.max > 1 ? ' x' + own : '');
-      b.disabled = full || (!G.dev && d.pending < c);
+      b.disabled = full || need || (!G.dev && d.pending < c);
       b.onclick = () => { Player.buy(k.id); this.hud(); this.shop(done); };
       g.append(b);
     });
     const x = document.createElement('button');
     x.textContent = 'Idź dalej';
     x.onclick = () => { s.classList.add('hidden'); G.syncComps(); done(); };
+    s.append(x);
+  },
+
+  /* --- v1.1: sklep wiedźmy (eliksiry + talizmany szczęścia = szansa na cios krytyczny) --- */
+  witch(done) {
+    const d = Player.d, s = this.$('screen');
+    d.wi = d.wi || {};
+    s.innerHTML = '';
+    s.className = '';
+    s.classList.remove('hidden');
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = 96;
+    const cx = cv.getContext('2d');
+    cx.imageSmoothingEnabled = false;
+    Assets.draw(cx, 'witch', 48, 96, 2, 0);
+    s.append(cv);
+    const h = document.createElement('h2');
+    h.textContent = 'Wiedźma z Moczarów';
+    s.append(h);
+    const p = document.createElement('p');
+    p.innerHTML = `Punkty: <b>${G.dev ? '∞' : d.pending}</b> · Szczęście (szansa na krytyk): <b>${Math.round((d.crit + Player.luck()) * 100)}%</b> (w tym talizmany: +${Math.round(Player.luck() * 100)}%)`;
+    s.append(p);
+    [['potion', 'ELIKSIRY'], ['charm', 'TALIZMANY SZCZĘŚCIA']].forEach(([kind, label]) => {
+      const lab = document.createElement('div');
+      lab.textContent = label;
+      lab.style.cssText = 'text-align:center;font-weight:bold;color:#f2c14e;font-size:13px;margin:6px 0 4px;letter-spacing:1px;border-bottom:1px solid #5a4a20;padding-bottom:4px;width:100%;max-width:720px';
+      s.append(lab);
+      const g = document.createElement('div');
+      g.className = 'trades';
+      WITCH.filter(k => k.kind === kind).forEach(k => {
+        const own = d.wi[k.id] || 0, c = Player.wcost(k), full = own >= k.max;
+        const b = document.createElement('button');
+        b.textContent = `${k.name}: ${k.desc} [${full ? (k.max === 1 ? '✓ POSIADANE' : 'MAX') : c + ' pkt'}]` + (own && k.max > 1 ? ' x' + own : '');
+        b.disabled = full || (!G.dev && d.pending < c);
+        if (full && k.max === 1) b.style.outline = '2px solid #7aff9a';
+        b.onclick = () => { if (Player.buyWitch(k.id)) { this.hud(); this.witch(done); } };
+        g.append(b);
+      });
+      s.append(g);
+    });
+    const x = document.createElement('button');
+    x.textContent = 'Idź dalej';
+    x.style.marginTop = '12px';
+    x.onclick = () => { s.classList.add('hidden'); done(); };
     s.append(x);
   },
 
@@ -424,6 +575,29 @@ const UI = {
       wrap.append(grid);
       s.append(wrap);
     });
+
+    /* v1.1: skórzana zbroja dla giermka */
+    {
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'width:100%;max-width:720px;margin-top:10px';
+      const lab = document.createElement('div');
+      lab.textContent = 'GIERMEK  (zbroja kompana)';
+      lab.style.cssText = 'text-align:center;font-weight:bold;color:#f2c14e;font-size:13px;margin:6px 0 4px;letter-spacing:1px;border-bottom:1px solid #5a4a20;padding-bottom:4px';
+      wrap.append(lab);
+      const grid = document.createElement('div');
+      grid.className = 'trades';
+      const b = document.createElement('button');
+      b.textContent = d.sqArmor ? `${SQ_ARMOR.name}  ✓ POSIADANE` : `${SQ_ARMOR.name}: ${SQ_ARMOR.desc}  [${SQ_ARMOR.cost} pkt]`;
+      b.disabled = !!d.sqArmor || (!G.dev && d.pending < SQ_ARMOR.cost);
+      if (d.sqArmor) b.style.outline = '2px solid #7aff9a';
+      b.onclick = () => {
+        if (Player.buySqArmor()) {
+          G.comps.forEach(a => { if (a.s.t === 'squire') a.key = 'comp_squire_leather'; });
+          this.hud(); this.smith(done);
+        }
+      };
+      grid.append(b); wrap.append(grid); s.append(wrap);
+    }
 
     const x = document.createElement('button');
     x.textContent = 'Idź dalej';

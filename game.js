@@ -1,6 +1,7 @@
-const VERSION='1.0.0';
+const VERSION='1.1.0';
 const MERCHANT_LINES=['Witaj, wojowniku! Mam coś dla ciebie.','Droga daleka... zajrzyj do mojego straganu!','Za twoje punkty mam same cuda!','Hmm! Dobrze wyglądasz. Handlujemy?'];
 const SMITH_LINES=['Potrzebujesz solidnej stali?','Miecze, zbroje, tarcze – wybieraj!','Moja kuźnia nigdy nie stygnie.','Za punkty dam ci najlepszy ekwipunek.'];
+const WITCH_LINES=['Hehehe… pokonałeś mnie, ale kociołek wciąż bulgocze. Kupisz coś?','Eliksiry, talizmany… na szczęście nikt jeszcze nie narzekał.','Łapka królika? Czterolistna koniczyna? Wybieraj, rycerzu.','Bez urazy za tamtą walkę. Interes to interes!'];
 const KONAMI='arrowup,arrowup,arrowdown,arrowdown,arrowleft,arrowright,arrowleft,arrowright,b,a';
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const EASE={out:u=>1-Math.pow(1-u,3),in:u=>u*u*u,io:u=>u<.5?2*u*u:1-Math.pow(-2*u+2,2)/2};
@@ -11,7 +12,7 @@ const SWING_COL={sword_wood:'#e8d4a0',sword_iron:'#e6ecf8',sword_steel:'#cfe6ff'
 const COMP_OFF=[[-48,-26],[-48,28],[-92,2]];
 const tween=(o,p,ms,ez)=>new Promise(r=>{const f={},e=EASE[ez]||(u=>u);for(const k in p)f[k]=o[k];const t0=performance.now();
  (function s(t){const u=Math.min(1,(t-t0)/ms);for(const k in p)o[k]=f[k]+(p[k]-f[k])*e(u);u<1?requestAnimationFrame(s):r();})(t0);});
-const G={sunAlt:false,waves:[],top:[],comps:[],state:'title',mode:'endless',level:0,wave:1,p:null,actors:[],enemies:[],fx:[],keys:{},shake:0,fade:0,t:0,sel:null,xpWave:0,
+const G={sunAlt:false,npcs:[],hub:null,hubReturn:null,waves:[],top:[],comps:[],state:'title',mode:'endless',level:0,wave:1,p:null,actors:[],enemies:[],fx:[],keys:{},shake:0,fade:0,t:0,sel:null,xpWave:0,
  init(){this.cv=UI.$('cv');this.c=this.cv.getContext('2d');this.c.imageSmoothingEnabled=false;Music.init();
   addEventListener('keydown',e=>{this.keys[e.key.toLowerCase()]=1;if(e.key.toLowerCase()==='e')this.interact();if(e.key.toLowerCase()==='m'&&!e.repeat)Music.toggle();
    if(e.key==='Tab'&&!e.repeat){e.preventDefault();UI.toggleMenu();return;}
@@ -22,7 +23,7 @@ const G={sunAlt:false,waves:[],top:[],comps:[],state:'title',mode:'endless',leve
   this.cv.onclick=e=>{if(this.state==='cutscene')return Cut.next();if(this.bub)return this.skipBub();const r=this.cv.getBoundingClientRect(),x=(e.clientX-r.left)*640/r.width,y=(e.clientY-r.top)*320/r.height;
    if(this.state==='clear'&&x>380&&y<46)return this.advance(true);   // klik w strzałkę w rogu = natychmiastowe przejście
    const sn=(MAPS[this.cur().map]||{}).sun;if(sn&&(this.state==='fight'||this.state==='clear')&&Math.hypot(x-sn.x,y-sn.y)<sn.r+10){this.sunAlt=!this.sunAlt;this.burst(sn.x,sn.y,'#ffe070',24);return;}   // klik w słońce
-   if(this.state==='clear'&&this.merchant&&this.near()&&Math.abs(x-this.merchant.x)<90)return this.interact();
+   if(this.state==='clear'){const n=this.nearNpc();if(n&&Math.abs(x-n.x)<90)return this.interact(n);}   // v1.1: kilku NPC naraz
    if(!Combat.busy){this.sel=this.enemies.reduce((b,n)=>!b||Math.abs(n.x-x)<Math.abs(b.x-x)?n:b,null);
     if(this.invuln(this.sel)){this.text(this.sel,'NIETYKALNY!','#8ae0ff');UI.log('Mroczny Trener jest nietykalny – najpierw pokonaj piłkarzy i sędziego!','crit');}}};
   document.querySelectorAll('#actions button').forEach(b=>b.onclick=()=>Combat.act(b.dataset.a));
@@ -39,11 +40,11 @@ const G={sunAlt:false,waves:[],top:[],comps:[],state:'title',mode:'endless',leve
   if(i===0&&!(s&&s.cleared))await Story.intro();
   if(!skipMap){UI.worldMap({start:1,pick:i});return;}
   this.newRun();},
- newRun(){UI.$('log').innerHTML='';this.loadWave();},
+ newRun(){UI.$('log').innerHTML='';this.hub=null;this.loadWave();},
  cur(){if(this.mode==='campaign'){const L=CAMPAIGN[this.level];return{map:L.map,...this.waves[this.wave-1]};}return getWave(this.wave);},
  /* trudność: wolniej rośnie z numerem fali (etapy mają teraz więcej fal), mocniej z numerem etapu */
  diff(){return this.mode==='campaign'?Math.max(1,Math.round(this.level*1.2+this.wave*.5)):this.wave;},
- loadWave(travel,D){const w=this.cur();this.xpWave=0;this.sel=null;
+ loadWave(travel,D,quiet){const w=this.cur();this.xpWave=0;this.sel=null;
   if(!travel){Player.d.gear=Player.d.gear||{sword:null,armor:null,shield:null};this.p={key:Player.spriteKey(),name:'Bohater',x:110,y:215,ox:0,oy:0,alpha:1,flash:0,scale:3,face:1,ph:0,s:Player.d,vy:0,jumping:0};}
   if(!travel){
    /* kula ognia: odnawia się tylko przy nowym etapie (wave 1) lub walce z bossem – nie przy każdej fali */
@@ -52,7 +53,7 @@ const G={sunAlt:false,waves:[],top:[],comps:[],state:'title',mode:'endless',leve
   }
   this.enemies=w.e.map((t,i)=>makeEnemy(t,this.diff(),i,w.boss&&i===0));
   if(travel)this.enemies.forEach(e=>e.ox=D||640);   // wrogowie wjeżdżą razem z nową mapą
-  this.actors=[this.p,...this.comps,...this.enemies,...(travel&&this.merchant?[this.merchant]:[])];if(!travel){this.merchant=null;this.begin(w);}},
+  this.actors=[this.p,...this.comps,...this.enemies,...(travel?this.npcs:[])];if(!travel){this.npcs=[];if(!quiet)this.begin(w);}},
  begin(w){Music.play(w.map);Combat.busy=false;Combat.guard=false;
   UI.log(`--- ${UI.waveLabel()}: ${MAPS[w.map].name} ---`,'crit');
   if(w.boss){const b=this.enemies[0];UI.log('UWAGA! BOSS: '+b.name,'bad');this.shake=14;this.state='talk';UI.hud();UI.lock(true);this.bossIntro(b);}   // v1.0: boss najpierw obraża bohatera
@@ -72,7 +73,7 @@ const G={sunAlt:false,waves:[],top:[],comps:[],state:'title',mode:'endless',leve
   c.fillStyle='#a02828';c.fillText(a.name.toUpperCase(),bx+10,by+16);c.fillStyle='#14101f';lines.forEach((l,i)=>c.fillText(l,bx+10,by+32+i*15));
   c.fillStyle='#8a6a1c';c.textAlign='right';c.fillText('▼',bx+bw-6,by+bh-5);c.restore();},
  compPos(i,bx,by){const o=COMP_OFF[i];return{x:(bx||110)+o[0],y:(by||215)+o[1]};},
- makeComp(c,i){return{key:c.t==='archer'?'comp_archer':'comp_squire',name:c.name,...this.compPos(i,this.p.x,this.p.y),ox:0,oy:0,alpha:1,flash:0,scale:2.3,face:1,ph:i+1,ally:1,s:c};},
+ makeComp(c,i){return{key:c.t==='archer'?'comp_archer':(Player.d&&Player.d.sqArmor?'comp_squire_leather':'comp_squire'),name:c.name,...this.compPos(i,this.p.x,this.p.y),ox:0,oy:0,alpha:1,flash:0,scale:2.3,face:1,ph:i+1,ally:1,s:c};},
  /* Mroczny Trener jest nietykalny, dopóki żyją przywołani piłkarze lub sędzia */
  invuln(e){return !!e&&e.key==='coach'&&this.enemies.some(x=>x!==e&&x.minion&&x.s.hp>0);},
  target(){const ok=this.enemies.filter(e=>!this.invuln(e));return ok.includes(this.sel)?this.sel:ok[0];},
@@ -90,21 +91,22 @@ const G={sunAlt:false,waves:[],top:[],comps:[],state:'title',mode:'endless',leve
   const pts=this.cur().boss?3:1;d.pending+=pts;rw+=`, +${pts} pkt umiejętności`;
   (d.comps||[]).forEach(c=>c.hp=Math.min(c.maxhp,c.hp+Math.round(c.maxhp*.3)));[this.p,...this.comps].forEach(x=>{x.poison=x.burn=x.freeze=x.sand=null;});
   UI.log(rw,'good');UI.hud();if(this.mode==='endless')Save.set('endless',{p:d,w:this.wave+1});
+  {const wv=this.cur();if(this.mode==='campaign'&&wv.boss&&wv.e[0]==='witch'&&!d.witch){d.witch=1;UI.log('Wiedźma przeżyła i osiadła w chatce na Moczarach – możesz ją odwiedzić (mapa świata, Tab).','crit');}}   // v1.1
   if(this.mode==='campaign'&&this.level>=CAMPAIGN.length-1&&this.wave>=this.waves.length){this.saveC();await sleep(900);return Story.good();}
-  await sleep(600);this.state='clear';if(this.postBoss())this.spawnSmith();else if(this.preBoss())this.spawnMerchant();},
+  await sleep(600);this.state='clear';this.clearNpcs();},
  saveC(){const s=Save.get('campaign')||{cleared:0};Save.set('campaign',{p:Player.d,cleared:Math.min(CAMPAIGN.length,Math.max(s.cleared,this.level+1))});},
  /* gracz dochodzi do prawej krawędzi -> (sklep) -> płynne przejście na kolejną mapę */
- async advance(fast){if(this.state!=='clear')return;this.state='moving';
+ async advance(fast){if(this.state!=='clear')return;if(this.hub)return this.leaveHub();this.state='moving';
   const camp=this.mode==='campaign',end=camp&&this.wave>=this.waves.length;
   if(end&&this.level>=CAMPAIGN.length-1){this.saveC();return UI.screen('KAMPANIA UKOŃCZONA!','Pokonałeś wszystkich bossów. Gratulacje!',[{l:'Menu',f:()=>UI.title()}]);}
   await (fast?this.instant:this.travel).call(this,()=>{if(end){this.saveC();this.level++;this.wave=1;this.waves=buildWaves(this.level);Player.d.hp=Player.d.maxhp;this.snap=JSON.stringify(Player.d);}
    else{this.wave++;if(!camp)Save.set('endless',{p:Player.d,w:this.wave});}});},
- async instant(setup){await tween(this,{fade:1},220);setup();this.merchant=null;this.loadWave();this.banner={txt:MAPS[this.cur().map].name,t:0};await tween(this,{fade:0},260);},
+ async instant(setup){await tween(this,{fade:1},220);setup();this.npcs=[];this.loadWave();this.banner={txt:MAPS[this.cur().map].name,t:0};await tween(this,{fade:0},260);},
  async travel(setup){const from=this.cur().map;setup();const to=this.cur().map;Music.play(to);const path=[from,...route(from,to),to],segs=path.length-1,D=640*segs,T=1800*segs+600;
   this.bg={path,x:0};this.banner={txt:MAPS[to].name,t:0};this.loadWave(true,D);
-  const p=this.p,w=this.cur(),m=this.merchant;p.auto=1;p.face=1;
-  await Promise.all([tween(this.bg,{x:D},T,'io'),tween(p,{x:130,y:215},T,'io'),...this.comps.map((c,i)=>{c.walk=1;return tween(c,this.compPos(i,130,215),T,'io');}),...this.enemies.map(e=>tween(e,{ox:0},T,'io')),...(m?[tween(m,{ox:-D},T,'io')]:[])]);
-  this.bg=null;p.auto=0;this.comps.forEach(c=>c.walk=0);this.merchant=null;this.actors=this.actors.filter(a=>!a.npc);this.begin(w);},
+  const p=this.p,w=this.cur();p.auto=1;p.face=1;
+  await Promise.all([tween(this.bg,{x:D},T,'io'),tween(p,{x:130,y:215},T,'io'),...this.comps.map((c,i)=>{c.walk=1;return tween(c,this.compPos(i,130,215),T,'io');}),...this.enemies.map(e=>tween(e,{ox:0},T,'io')),...this.npcs.map(n=>tween(n,{ox:-D},T,'io'))]);
+  this.bg=null;p.auto=0;this.comps.forEach(c=>c.walk=0);this.npcs=[];this.actors=this.actors.filter(a=>!a.npc);this.begin(w);},
  drawMap(c,id,ox){const m=MAPS[id],im=Assets.maps[id];c.save();c.translate(ox,0);
   if(im)c.drawImage(im,0,0,640,320);else{c.fillStyle=m.sky;c.fillRect(0,0,640,170);c.fillStyle=m.ground;c.fillRect(0,170,640,150);
    c.fillStyle=m.decor;for(let i=0;i<9;i++)c.fillRect(i*80+20,150+(i*37%20),24,20+(i*13%25));}
@@ -128,41 +130,98 @@ const G={sunAlt:false,waves:[],top:[],comps:[],state:'title',mode:'endless',leve
  },
  /* Czy właśnie wygraliśmy bossa? */
  postBoss(){return !!this.cur().boss;},
- spawnMerchant(){
-  const m=this.merchant={npc:1,key:'merchant',x:500,y:240,ox:300,oy:0,
-   say:MERCHANT_LINES[Math.floor(Math.random()*MERCHANT_LINES.length)],kind:'merchant'};
-  this.actors.push(m);tween(m,{ox:0},1400);
+ /* v1.1: kilku NPC naraz. Tryb nieskończony: zbrojmistrz + handlarz obok siebie po KAŻDEJ fali.
+    Kampania: wieśniak przed bossem, zbrojmistrz po bossie (na Moczarach dodatkowo wiedźma – jeśli ją pokonano). */
+ spawnNpcs(kinds){const X=kinds.length>1?[395,555]:[500],
+   T={merchant:{key:'merchant',title:'Kupiec',lines:MERCHANT_LINES},smith:{key:'blacksmith',title:'Zbrojmistrz',lines:SMITH_LINES},witch:{key:'witch',title:'Wiedźma',lines:WITCH_LINES}};
+  this.npcs=kinds.map((k,i)=>({npc:1,key:T[k].key,kind:k,title:T[k].title,x:X[i],y:240,ox:300,oy:0,say:T[k].lines[Math.floor(Math.random()*T[k].lines.length)]}));
+  this.npcs.forEach(n=>{this.actors.push(n);tween(n,{ox:0},1400);});
  },
- spawnSmith(){
-  const m=this.merchant={npc:1,key:'blacksmith',x:500,y:240,ox:300,oy:0,
-   say:SMITH_LINES[Math.floor(Math.random()*SMITH_LINES.length)],kind:'smith'};
-  this.actors.push(m);tween(m,{ox:0},1400);
+ spawnMerchant(){this.spawnNpcs(['merchant']);},
+ spawnSmith(){this.spawnNpcs(['smith']);},
+ /* kto czeka po wygranej fali */
+ clearNpcs(){
+  if(this.mode==='endless')return this.spawnNpcs(['smith','merchant']);
+  if(this.postBoss())return this.spawnNpcs(this.witchHere()?['smith','witch']:['smith']);
+  if(this.preBoss())this.spawnNpcs(['merchant']);
  },
- near(){const m=this.merchant;return !!m&&m.ox<5&&Math.abs(this.p.x-m.x)<130;},
- interact(){
-  if(this.state!=='clear'||!this.near())return;
-  const kind=(this.merchant&&this.merchant.kind)||'merchant';
-  this.state='shop';
-  if(kind==='smith')UI.smith(()=>{this.state='clear';});
-  else UI.shop(()=>{this.state='clear';});
+ witchHere(){return this.mode==='campaign'&&!!Player.d.witch&&CAMPAIGN[this.level].boss==='witch';},
+ /* najbliższy NPC w zasięgu bohatera (null = żaden) */
+ nearNpc(){if(!this.p)return null;let b=null,bd=130;for(const n of this.npcs){if(n.ox>5)continue;const d=Math.abs(this.p.x-n.x);if(d<bd){bd=d;b=n;}}return b;},
+ interact(n){
+  if(this.state!=='clear')return;n=n||this.nearNpc();if(!n||n.ox>5)return;
+  this.state='shop';const back=()=>{this.state='clear';};
+  if(n.kind==='smith')UI.smith(back);else if(n.kind==='witch')UI.witch(back);else UI.shop(back);
  },
- async shoot(a,t,kind){const mz=(ASSETS[a.key].muz||{})[kind],ax=a.x+a.ox+Math.sign(t.x-a.x)*(mz?mz*a.scale:20),ay=a.y+a.oy-ASSETS[a.key].fh*a.scale*.5-(a.air?18:0),bx=t.x+t.ox,by=t.y+t.oy-ASSETS[t.key].fh*t.scale*.5;
+ /* ===== v1.1: stan gry do zapisu w slocie (PostgreSQL) i jego odtworzenie ===== */
+ snapshot(){const camp=this.mode==='campaign',rec={v:1,mode:this.mode,state:this.state==='clear'?'clear':'fight',wave:this.wave,fbCd:Combat.fbCd,player:Player.d};
+  if(camp){rec.level=this.level;rec.waves=this.waves;rec.snap=this.snap||null;rec.cleared=(Save.get('campaign')||{}).cleared||0;}
+  return rec;},
+ /* 'fight' = wczytanie zaczyna bieżącą falę od nowa (z zapisanym bohaterem); 'clear' = fala wygrana, wracasz do sklepów przed przejściem dalej */
+ restore(rec){const sc=UI.$('screen');sc.classList.add('hidden');sc.innerHTML='';UI.menuOpen=false;this.nextBub();
+  this.npcs=[];this.bg=null;this.banner=null;this.hub=null;this.proj=null;Combat.busy=false;Combat.guard=false;
+  const d=Player.d=rec.player;d.gear=d.gear||{sword:null,armor:null,shield:null};d.comps=d.comps||[];d.sk=d.sk||{};
+  this.mode=rec.mode;this.wave=rec.wave;this.level=rec.mode==='campaign'?rec.level:0;this.waves=rec.mode==='campaign'?rec.waves:[];this.snap=rec.snap||null;
+  if(rec.state==='clear')this.loadClear();else this.newRun();
+  Combat.fbCd=rec.fbCd||0;UI.hud();if(this.state==='fight'||this.state==='clear')UI.lock(false);},
+ /* arena po wygranej fali (bez wrogów) – ze sklepami */
+ loadClear(){UI.$('log').innerHTML='';this.loadWave(false,0,true);this.enemies=[];this.actors=[this.p,...this.comps];this.xpWave=0;
+  Music.play(this.cur().map);Combat.busy=false;Combat.guard=false;this.state='clear';
+  UI.log(`--- ${UI.waveLabel()}: ${MAPS[this.cur().map].name} (wczytano) ---`,'crit');UI.hud();UI.lock(false);this.clearNpcs();},
+ /* ===== v1.1: chatka wiedźmy – po jej pokonaniu zostaje NPC na Moczarach; wejście z mapy świata (Tab), gdy opuściłeś bagna ===== */
+ async visitWitch(){const keep=this.snapshot(),sc=UI.$('screen');sc.classList.add('hidden');sc.innerHTML='';UI.menuOpen=false;this.nextBub();this.state='moving';
+  await tween(this,{fade:1},220);
+  this.hubReturn=keep;this.mode='campaign';this.level=CAMPAIGN.findIndex(l=>l.boss==='witch');this.waves=[{e:[]}];this.wave=1;
+  this.loadWave(false,0,true);this.enemies=[];this.actors=[this.p,...this.comps];this.npcs=[];this.hub='witch';
+  Music.play('swamp');Combat.busy=false;this.state='clear';this.spawnNpcs(['witch']);
+  UI.log('--- Chatka wiedźmy na Moczarach ---','crit');UI.hud();UI.lock(false);this.banner={txt:MAPS.swamp.name,t:0};
+  await tween(this,{fade:0},260);},
+ async leaveHub(){this.state='moving';await tween(this,{fade:1},220);const r=this.hubReturn;this.hubReturn=null;this.restore(r);
+  this.banner={txt:CAMPAIGN[r.level].name,t:0};await tween(this,{fade:0},260);},
+ async shoot(a,t,kind){const ball=kind==='ball',dir=Math.sign(t.x-a.x)||1,mz=(ASSETS[a.key].muz||{})[kind],
+   ax=ball?a.x+a.ox+dir*8.5*a.scale:a.x+a.ox+Math.sign(t.x-a.x)*(mz?mz*a.scale:20),                                   // piłka leży tuż przy stopie piłkarza
+   ay=ball?a.y+a.oy-6*a.scale:a.y+a.oy-ASSETS[a.key].fh*a.scale*.5-(a.air?18:0),bx=t.x+t.ox,by=t.y+t.oy-ASSETS[t.key].fh*t.scale*.5;
   if((kind==='bottle'||kind==='trident')&&a.anim==='throw'){a.pose='attack';await sleep(330);}   // zamach, potem puszczenie butelki
-  this.proj={ax,ay,bx,by,u:0,kind};a.pose='attack';await tween(this.proj,{u:1},kind==='bottle'?550:kind==='trident'||kind==='snowball'?460:kind==='fire'?380:kind==='bullet'?200:kind==='laser'?170:280);this.proj=null;},
- drawProj(c){const p=this.proj;if(!p)return;const d=Math.sign(p.bx-p.ax)||1,x=p.ax+(p.bx-p.ax)*p.u,y=p.ay+(p.by-p.ay)*p.u-(({bottle:80,trident:34,snowball:56})[p.kind]||0)*Math.sin(Math.PI*p.u);
+  if(ball){this.proj={ax,ay,bx,by,u:0,kind};a.pose='attack';await sleep(190);}                    // v1.1: zamach nogą (animacja kopnięcia), kopnięcie w 2. klatce
+  this.proj={ax,ay,bx,by,u:0,kind};a.pose='attack';await tween(this.proj,{u:1},kind==='bottle'?550:kind==='ball'?430:kind==='trident'||kind==='snowball'?460:kind==='fire'?380:kind==='bullet'?200:kind==='laser'?170:280);this.proj=null;},
+ /* v1.1: JEDNA kula ognia przelatuje przez wszystkich wrogów (od najbliższego). onHit(wróg,i) odpala trafienie w chwili, gdy kula do niego doleci;
+    kula maleje z każdym trafieniem (tak samo jak obrażenia: 100% -> 50% -> 25% ...) i na końcu wylatuje poza arenę. */
+ async fireThrough(a,foes,onHit){
+  const mz=(ASSETS[a.key].muz||{}).fire,ax=a.x+a.ox+(mz?mz*a.scale:26),ay=a.y+a.oy-ASSETS[a.key].fh*a.scale*.5;
+  a.pose='attack';await sleep(230);   // rzut
+  const P=this.proj={ax,ay,bx:ax,by:ay,u:0,kind:'fire',k:1},hits=[];let cx=ax,cy=ay;
+  for(let i=0;i<foes.length;i++){const t=foes[i],tx=t.x+t.ox,ty=t.y+t.oy-ASSETS[t.key].fh*t.scale*.5;
+   Object.assign(P,{ax:cx,ay:cy,bx:tx,by:ty,u:0});await tween(P,{u:1},Math.max(140,Math.hypot(tx-cx,ty-cy)*1.3));
+   cx=tx;cy=ty;hits.push(onHit(t,i));P.k=Math.max(.55,P.k*.82);}
+  Object.assign(P,{ax:cx,ay:cy,bx:700,by:cy,u:0});await tween(P,{u:1},Math.max(160,(700-cx)*.9));   // wylot za ostatniego wroga
+  this.proj=null;a.pose='';await Promise.all(hits);},
+ drawProj(c){const p=this.proj;if(!p)return;const d=Math.sign(p.bx-p.ax)||1,x=p.ax+(p.bx-p.ax)*p.u,y=p.ay+(p.by-p.ay)*p.u-(({bottle:80,trident:34,snowball:56,ball:46})[p.kind]||0)*Math.sin(Math.PI*p.u);
   if(p.kind==='arrow'){c.fillStyle='#8a5a2a';c.fillRect(Math.min(x,x-16*d),y-1,16,2);c.fillStyle='#dfe6f0';c.fillRect(x-(d<0?0:4),y-2,4,4);}
   else if(p.kind==='trident'){const ang=Math.atan2(p.by-p.ay-34*Math.PI*Math.cos(Math.PI*p.u),p.bx-p.ax);c.save();c.translate(x,y);c.rotate(ang);c.scale(1.7,1.7);
    c.fillStyle='#5a4630';c.fillRect(-14,-1,22,2);c.fillStyle='#c8d4e0';c.fillRect(8,-4,2,8);c.fillRect(8,-4,7,1.5);c.fillRect(8,2.5,7,1.5);c.fillRect(8,-.8,9,1.6);c.restore();}
   else if(p.kind==='laser'){c.save();c.translate(x,y);c.rotate(Math.atan2(p.by-p.ay,p.bx-p.ax));c.fillStyle='rgba(255,60,60,.35)';c.fillRect(-16,-4,32,8);c.fillStyle='#ff4a4a';c.fillRect(-13,-1.6,26,3.2);c.fillStyle='#fff0f0';c.fillRect(-10,-.6,20,1.2);c.restore();}
   else if(p.kind==='snowball'){c.fillStyle='#9ad4f4';c.beginPath();c.arc(x,y,10,0,7);c.fill();c.fillStyle='#ffffff';c.beginPath();c.arc(x-2,y-2,8,0,7);c.fill();}
   else if(p.kind==='bullet'){c.fillStyle='#ffe070';for(let i=-1;i<=1;i++)c.fillRect(x-d*5*Math.abs(i),y+i*7*p.u,5,4);}
-  else if(p.kind==='fire'){for(let i=0;i<5;i++){c.globalAlpha=.5-i*.09;c.fillStyle=i%2?'#ffd060':'#ff7a20';c.beginPath();c.arc(x-d*i*9,y+Math.sin(i+p.u*20)*3,11-i*1.6,0,7);c.fill();}
-   c.globalAlpha=1;c.fillStyle='#ffe070';c.beginPath();c.arc(x,y,8,0,7);c.fill();c.fillStyle='#ff5a10';c.beginPath();c.arc(x,y,5,0,7);c.fill();}
+  else if(p.kind==='fire'){const k=p.k||1;   // k: kula maleje z każdym trafionym wrogiem
+   for(let i=0;i<5;i++){c.globalAlpha=.5-i*.09;c.fillStyle=i%2?'#ffd060':'#ff7a20';c.beginPath();c.arc(x-d*i*9*k,y+Math.sin(i+p.u*20)*3,(11-i*1.6)*k,0,7);c.fill();}
+   c.globalAlpha=1;c.fillStyle='#ffe070';c.beginPath();c.arc(x,y,8*k,0,7);c.fill();c.fillStyle='#ff5a10';c.beginPath();c.arc(x,y,5*k,0,7);c.fill();}
+  else if(p.kind==='ball'){c.save();c.translate(x,y);c.rotate(p.u*16*d);c.fillStyle='#14101f';c.beginPath();c.arc(0,0,8.5,0,7);c.fill();c.fillStyle='#f6f6f6';c.beginPath();c.arc(0,0,7,0,7);c.fill();   // piłka nożna
+   c.fillStyle='#2a2a38';c.beginPath();for(let i=0;i<5;i++){const q=i*Math.PI*2/5-Math.PI/2;c.lineTo(Math.cos(q)*3,Math.sin(q)*3);}c.closePath();c.fill();
+   for(let i=0;i<5;i++){const q=i*Math.PI*2/5-Math.PI/2;c.fillRect(Math.cos(q)*6-1,Math.sin(q)*6-1,2,2);}c.restore();}
   else if(Assets.fx.bottleproj){const im=Assets.fx.bottleproj;c.save();c.translate(x,y);c.scale(d,1);c.rotate(p.u*14);c.drawImage(im,-im.width,-im.height,im.width*2,im.height*2);c.restore();}
   else{c.save();c.translate(x,y);c.rotate(p.u*14);c.fillStyle='#3a9a5a';c.fillRect(-4,-8,8,15);c.fillStyle='#8ae0a0';c.fillRect(-2,-13,4,6);c.restore();}},
  drawNpc(a){const c=this.c,x=a.x+a.ox,y=a.y+a.oy,t=this.t;c.globalAlpha=1;c.fillStyle='rgba(0,0,0,.3)';c.beginPath();c.ellipse(x,y,70,9,0,0,7);c.fill();
   const isSmith=a.kind==='smith'||a.key==='blacksmith';
-  if(isSmith){
+  if(a.kind==='witch'){
+    /* v1.1: wiedźma lewituje nad kociołkiem (po pokonaniu osiadła w chatce na Moczarach) */
+    const cx=x+50;
+    c.fillStyle='#14101f';c.fillRect(cx-22,y-8,6,10);c.fillRect(cx+16,y-8,6,10);                 // nóżki kociołka
+    c.fillStyle='#2a2a36';c.beginPath();c.ellipse(cx,y-22,24,18,0,0,7);c.fill();                  // brzuch
+    c.fillStyle='#3a3a4a';c.fillRect(cx-26,y-40,52,6);                                            // rant
+    c.globalAlpha=.75+.2*Math.sin(t/260);c.fillStyle='#6aff6a';c.beginPath();c.ellipse(cx,y-40,22,4,0,0,7);c.fill();c.globalAlpha=1;   // wywar
+    for(let i=0;i<3;i++){const u=((t/900)+i/3)%1;c.fillStyle='#b8ffb8';c.fillRect(cx-12+i*12+Math.sin(t/200+i)*3,y-44-u*26,3,3);}      // bąbelki
+    Assets.draw(c,'witch',x-14,y-26+Math.sin(t/330)*3,2,t,-1);
+  }else if(isSmith){
     /* kowal za kowadłem – jak wieśniak za straganem */
     Assets.draw(c,'blacksmith',x,y-16+Math.sin(t/400)*1.5,2.6,t,-1);
     Assets.draw(c,'anvil',x,y,2.2,t,1);
@@ -170,15 +229,17 @@ const G={sunAlt:false,waves:[],top:[],comps:[],state:'title',mode:'endless',leve
     Assets.draw(c,'merchant',x,y-16+Math.sin(t/400)*1.5,2.6,t,-1);
     Assets.draw(c,'stall',x,y,2.6,t,1);
   }},
- drawBubble(c){const m=this.merchant;if(!m||m.ox>5||this.state==='moving'||this.state==='shop')return;
-  const txt=this.near()?'Chcesz zobaczyć towar? [E] lub klik':m.say;c.font='bold 12px "Courier New"';
-  const w=c.measureText(txt).width+16,x=Math.max(w/2+4,Math.min(636-w/2,m.x)),y=m.y-152;
-  c.fillStyle='#000';c.fillRect(x-w/2-2,y-2,w+4,28);c.fillStyle='#f3e9d2';c.fillRect(x-w/2,y,w,24);
-  c.fillStyle='#14101f';c.textAlign='center';c.fillText(txt,x,y+16);c.fillStyle='#f3e9d2';c.fillRect(m.x-4,y+24,8,6);},
+ drawBubble(c){if(this.state==='moving'||this.state==='shop'||!this.npcs.length)return;
+  const dual=this.npcs.length>1,nr=this.nearNpc();c.font='bold 12px "Courier New"';
+  for(const m of this.npcs){if(m.ox>5)continue;const isN=m===nr,
+    txt=dual?(isN?'[E] lub klik: '+m.title:m.title):(isN?'Chcesz zobaczyć towar? [E] lub klik':m.say);   // przy dwóch NPC krótkie podpisy, żeby się nie nakładały
+   const w=c.measureText(txt).width+16,x=Math.max(w/2+4,Math.min(636-w/2,m.x)),y=m.y-152;
+   c.fillStyle='#000';c.fillRect(x-w/2-2,y-2,w+4,28);c.fillStyle='#f3e9d2';c.fillRect(x-w/2,y,w,24);
+   c.fillStyle='#14101f';c.textAlign='center';c.fillText(txt,x,y+16);c.fillStyle='#f3e9d2';c.fillRect(m.x-4,y+24,8,6);}},
  /* v1.0: przeniesienie do odblokowanego etapu z podglądu mapy (Tab) */
  jumpToStage(i){const s=UI.$('screen');s.classList.add('hidden');s.innerHTML='';UI.menuOpen=false;this.nextBub();
   const d=Player.d;d.hp=d.maxhp;(d.comps||[]).forEach(c=>c.hp=c.maxhp);
-  this.mode='campaign';this.level=i;this.wave=1;this.waves=buildWaves(i);this.snap=JSON.stringify(d);this.merchant=null;this.bg=null;this.banner=null;Combat.busy=false;this.newRun();
+  this.mode='campaign';this.level=i;this.wave=1;this.waves=buildWaves(i);this.snap=JSON.stringify(d);this.npcs=[];this.bg=null;this.banner=null;Combat.busy=false;this.newRun();
   this.banner={txt:CAMPAIGN[i].name,t:0};},
  async lose(){this.state='over';Player.d.deaths=(Player.d.deaths||0)+1;
   if(this.mode==='campaign'&&this.level>=CAMPAIGN.length-1)await Story.bad();
@@ -215,7 +276,7 @@ const G={sunAlt:false,waves:[],top:[],comps:[],state:'title',mode:'endless',leve
     c.beginPath();c.arc(-16,0,R,-1.15,1.15);c.quadraticCurveTo(-16+R*(.9+.3*e),0,cx,-sy);c.closePath();c.fill();c.restore();}   // smukły półksiężyc, który gaśnie i rozszerza się
    else if(f.pt){c.fillStyle=f.c;c.fillRect(f.x,f.y,f.sz,f.sz);}
    else{c.font=`bold ${Math.round((f.big?26:18)*(f.life>.85?1+(f.life-.85)*5:1))}px "Courier New"`;c.textAlign='center';c.fillStyle='#000';c.fillText(f.txt,f.x+2,f.y+2);c.fillStyle=f.c;c.fillText(f.txt,f.x,f.y);}});
-  if(this.state==='clear'){c.globalAlpha=.6+.4*Math.sin(this.t/200);c.font='bold 16px "Courier New"';c.textAlign='right';c.fillStyle='#000';c.fillText('Idź w prawo ▶ (lub kliknij)',634,32);c.fillStyle='#f2c14e';c.fillText('Idź w prawo ▶ (lub kliknij)',632,30);c.globalAlpha=1;}
+  if(this.state==='clear'){c.globalAlpha=.6+.4*Math.sin(this.t/200);c.font='bold 16px "Courier New"';c.textAlign='right';c.fillStyle='#000';c.fillText((this.hub?'Wróć na szlak ▶ (lub kliknij)':'Idź w prawo ▶ (lub kliknij)'),634,32);c.fillStyle='#f2c14e';c.fillText((this.hub?'Wróć na szlak ▶ (lub kliknij)':'Idź w prawo ▶ (lub kliknij)'),632,30);c.globalAlpha=1;}
   if(this.banner){const b=this.banner;b.t++;const al=Math.min(1,b.t/25,(170-b.t)/30);if(al<=0)this.banner=null;else{c.globalAlpha=al;c.font='bold 22px "Courier New"';c.textAlign='center';c.fillStyle='#000';c.fillText(b.txt,322,72);c.fillStyle='#f2c14e';c.fillText(b.txt,320,70);c.globalAlpha=1;}}
   if(this.dev){c.font='bold 12px "Courier New"';c.textAlign='left';c.fillStyle='#000';c.fillText('DEV ∞HP',9,17);c.fillStyle='#7aff9a';c.fillText('DEV ∞HP',8,16);}
   c.restore();c.globalAlpha=1;if(this.fade>0){c.fillStyle=`rgba(0,0,0,${this.fade})`;c.fillRect(0,0,640,320);}},

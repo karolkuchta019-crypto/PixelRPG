@@ -1,5 +1,29 @@
 # Changelog – Monster Waves
 
+## [1.1.0] – 2026-11-10
+
+### Zapis w PostgreSQL (3 sloty)
+- Nowy serwer `server/` (Node + `pg`): API `/api/saves` + hosting gry. Tabela `saves` tworzy się sama (`server/schema.sql`).
+- **3 sloty** na kampanię albo tryb nieskończony. Menu **Tab**: *Zapisz grę*, *Wczytaj grę*, *Nowa kampania*, *Nowy tryb nieskończony*; „Wczytaj grę” jest też na ekranie tytułowym.
+- Zapis w walce = wczytanie zaczyna tę falę od nowa; zapis po wygranej fali = wracasz do sklepów. Zapisu nie ma w dialogach, sklepie i chatce wiedźmy.
+- Start: `cd server && npm install && npm start` → http://localhost:3000 (`DATABASE_URL`, domyślnie `postgres://postgres:postgres@localhost:5432/pixelrpg`).
+
+### Kula ognia
+- Kosztuje **10 pkt** (było 6) i ma **własną moc** (70, niezależną od ATK/miecza); ulepszasz ją osobno: *Moc kuli ognia* (+15, do 10×).
+- **Jedna** kula przelatuje przez wszystkich wrogów: 100% → 50% → 25%…, maleje z każdym trafieniem. Odnowa **5 tur**.
+
+### Sklepy i NPC
+- Kowal: **skórzana zbroja giermka** (3 pkt, +4 DEF każdemu giermkowi, nowy wygląd).
+- Tryb nieskończony: po **każdej** fali obok siebie zbrojmistrz i handlarz.
+- **Wiedźma** (kampania): po pokonaniu zostaje NPC na Moczarach (sklep tuż po bossie). Z mapy świata (Tab) klik w Moczary = wizyta w jej chatce, gdy jesteś gdzie indziej. Sprzedaje eliksiry i talizmany szczęścia (Łapka królika +5%, Koniczyna +8%, Podkowa +12% szansy na krytyk).
+
+### Inne
+- Tryb deweloperski: przycisk **Pomiń falę**.
+- Piłkarze **kopią piłkę** (animacja kopnięcia + lecąca piłka).
+- Napisy końcowe przewijają się od dołu jak w filmie.
+- Nowe grafiki: `comp_squire_leather*.png`, `kicker_kick.png`.
+
+---
 ## [1.0.0] – 2026-11-10  (pierwsze wydanie stabilne)
 
 ### Dialogi bossów

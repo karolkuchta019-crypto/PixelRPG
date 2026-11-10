@@ -86,9 +86,22 @@ button::before{content:"";position:absolute;left:6px;top:50%;width:22px;height:2
 .menu-block input[type=range]{width:140px;vertical-align:middle}
 
 /* ===== NAPISY KOŃCOWE ===== */
-#screen.credits{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:rgba(10,8,20,.95);text-align:center}
-.credits-scroll{max-width:480px;line-height:1.7;font-size:13px}
 .credits-scroll h2{font-size:28px;margin-bottom:8px}
 .cr-thanks{color:#f2c14e;font-size:16px;margin-bottom:20px}
 .cr-sec{color:#f2c14e;margin:18px 0 8px;letter-spacing:2px;font-size:12px}
 .credits-scroll a{color:#4aa3ff}
+
+/* ===== v1.1: sloty zapisu, przycisk DEV, napisy końcowe jak w filmie ===== */
+[data-a=skipwave]{padding-left:12px;grid-column:1/3}
+#screen.slots{display:flex;flex-direction:column;align-items:center;gap:10px;padding:20px;background:rgba(15,11,26,.95)}
+.slot-list{display:flex;flex-direction:column;gap:8px;width:100%;max-width:640px}
+.slot-card{background:#2a2140;border:2px solid #5a4a2a;padding:8px 12px;text-align:left}
+.slot-card.empty{opacity:.75}
+.slot-title{color:var(--gold);font-weight:bold;font-size:13px}
+.slot-info{font-size:11px;margin:4px 0 6px;line-height:1.4}
+.slot-btns{display:flex;gap:8px;flex-wrap:wrap}
+#screen .slot-btns button{min-width:120px;padding:6px 10px;font-size:11px}
+#screen.credits{display:block;padding:0;gap:0;overflow:hidden;background:#000}
+.credits-roll{position:absolute;inset:0;overflow:hidden}
+.credits-scroll{position:absolute;left:50%;top:0;width:min(480px,90%);transform:translate(-50%,2000px);text-align:center;line-height:1.7;font-size:13px}
+.credits-btn{position:absolute;right:14px;bottom:12px;z-index:2;min-width:140px!important;padding:6px 10px!important;font-size:11px}

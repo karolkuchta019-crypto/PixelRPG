@@ -4,13 +4,13 @@
    Opcje strike: rng ('arrow'|'bullet'|'bottle'|'fire'), pois, burn, magic, fire, say, nocrit. */
 const POISONABLE=['goblin','human','elf','animal','yeti'],NAMES={poison:'truciznę',burn:'podpalenie',freeze:'zamrożenie',sand:'piasek',stone:'zamianę w kamień'};
 const Combat={busy:false,guard:false,fbCd:0,
- roll(a,d,mult,acc,force,nocrit,target,actor){
+ roll(a,d,mult,acc,force,nocrit,target,actor,flat){
   /* efekt piasku na atakującym: obniża celność */
   if(actor&&actor.sand)acc*=.55;
   if(target&&target.freeze){/* zamrożony nie unika */}else if(Math.random()>acc)return{miss:1};
   else if(Math.random()<d.dodge)return{dodge:1};
-  const crit=!nocrit&&(force||Math.random()<a.crit);
-  const atk=(a===Player.d?Player.atk():a.atk),def=(d===Player.d?Player.def():d.def);return{crit,dmg:Math.max(1,Math.round(atk*mult*(crit?1.8:1)*(.9+Math.random()*.2)-def))};},
+  const crit=!nocrit&&(force||Math.random()<a.crit+(a===Player.d?Player.luck():0));   // v1.1: + szczęście z talizmanów wiedźmy
+  const atk=(flat!=null?flat:(a===Player.d?Player.atk():a.atk)),def=   /* flat = własna moc kuli ognia, bez ATK */(d===Player.d?Player.def():d.def);return{crit,dmg:Math.max(1,Math.round(atk*mult*(crit?1.8:1)*(.9+Math.random()*.2)-def))};},
  /* efekty: gracz i kompani = 'human'. Odporności wg tagów (enemies.js) */
  status(t,kind,src,fromFire=false){const tg=t.tags||['human'];
   if(kind==='sand'){t.sand={t:3};G.text(t,'PIASEK','#e8d090');UI.log(`${t.name} jest oślepiony piaskiem (niższa celność, 3 tury)!`,'bad');return;}
@@ -30,15 +30,15 @@ const Combat={busy:false,guard:false,fbCd:0,
   G.text(t,b?'PODPALONY':'TRUCIZNA',b?'#ff9a40':'#7aff6a');UI.log(`${t.name} ${b?'płonie':'zostaje zatruty'} (3 tury, ${dm} HP/turę)!`,'bad');},
  async strike(a,t,mult,acc,force,name,o={}){
   if(o.say)UI.log(o.say,'bad');
-  a.anim=o.rng==='bullet'?'shoot':(o.rng==='bottle'||o.rng==='trident')?'throw':'';   // wybór animacji ataku (jeśli postać ją ma)
+  a.anim=o.rng==='bullet'?'shoot':(o.rng==='bottle'||o.rng==='trident')?'throw':o.rng==='ball'?'kick':'';   // wybór animacji ataku (jeśli postać ją ma)
   const dir=Math.sign(t.x-a.x)||1,sk=Player.d.sk||{},df=a.def||{};
-  if(o.rng)await G.shoot(a,t,o.rng);else await G.dash(a,t);
-  a.pose='attack';
+  if(o.pass){/* v1.1: pocisk (kula ognia) leci osobno przez wszystkich wrogów – tu tylko trafienie */}else if(o.rng)await G.shoot(a,t,o.rng);else await G.dash(a,t);
+  if(!o.pass)a.pose='attack';
   if(!o.rng&&a===G.p&&Player.d.gear&&Player.d.gear.sword){a.sw={t0:G.t,dur:force?400:340,big:!!force};await sleep(force?170:150);}   // SWING: trafienie przypada na środek cięcia
   else await sleep(o.rng?60:90);
   let res=0;if(!o.magic){if(o.rng&&!t.air){mult*=.7;res=1;}else if(!o.rng&&t.air){mult*=.7;res=1;}}if(o.fire&&(t.tags||[]).includes('fire')){mult*=.5;res=1;}   // naziemni vs dystans, latający vs broń biała
   const one=G.dev&&(a===G.p||a.ally)&&!t.ally&&t!==G.p;   // tryb dev: zabicie jednym atakiem
-  const r=one?{dmg:t.s.hp,crit:1}:this.roll(a.s,t.s,mult,acc,force,o.nocrit,t,a);
+  const r=one?{dmg:t.s.hp,crit:1}:this.roll(a.s,t.s,mult,acc,force,o.nocrit,t,a,o.flat);
   if(r.miss){G.text(t,'PUDŁO','#ccc');UI.log(`${name} pudłuje.`);}
   else if(r.dodge){G.text(t,'UNIK','#9cf');UI.log(`${t.name} unika ataku!`);}
   else{if(t===G.p&&this.guard)r.dmg=Math.max(1,Math.round(r.dmg*.4));
@@ -54,7 +54,7 @@ const Combat={busy:false,guard:false,fbCd:0,
    if(df.drain&&a.s.hp>0){const v=Math.max(1,Math.round(r.dmg*df.drain));a.s.hp=Math.min(a.s.maxhp,a.s.hp+v);G.text(a,'+'+v,'#d890e8');UI.log(`${a.name} wysysa życie (+${v} HP).`,'bad');}
    if(t.s.hp>0)k.forEach(x=>this.status(t,x,a.s,!!o.fire));}
   if(G.dev&&t===G.p)t.s.hp=t.s.maxhp;
-  UI.hud();await sleep(150);a.pose='';a.anim='';a.sw=null;if(!o.rng)await G.back(a);
+  UI.hud();await sleep(150);if(!o.pass){a.pose='';a.anim='';a.sw=null;}if(!o.rng)await G.back(a);
   if(t.s.hp<=0)await this.kill(t);},
  async kill(t){UI.log(`${t.name} ginie.`,t===G.p?'bad':'good');G.burst(t.x,t.y-30,'#ff8040',30);
   /* v1.0: boss przed śmiercią życzy bohaterowi niepowodzeń */
@@ -102,7 +102,12 @@ const Combat={busy:false,guard:false,fbCd:0,
    a.s.hp=Math.max(0,a.s.hp-q.d);a.flash=.6;G.text(a,'-'+q.d,n==='burn'?'#ff9a40':'#7aff6a');UI.log(`${a.name} cierpi od ${n==='burn'?'ognia':'trucizny'} (-${q.d}).`,'bad');
    if(--q.t<=0)a[n]=null;if(G.dev&&a===G.p)a.s.hp=a.s.maxhp;UI.hud();await sleep(350);if(a.s.hp<=0){await this.kill(a);break;}}}},
  async thaw(a){const st=a.freeze.stone;UI.log(`${a.name} jest ${st?'skamieniały':'zamrożony'} i traci turę!`,'bad');G.text(a,st?'KAMIEŃ':'ZAMROŻONY',st?'#b8bcc8':'#8ae0ff');if(--a.freeze.t<=0)a.freeze=null;await sleep(500);},
+ /* v1.1 (tryb deweloperski): pomija bieżącą falę – wrogowie znikają, fala liczy się jako wygrana (nagrody, sklepy i fabuła działają normalnie) */
+ async skipWave(){if(!G.dev||this.busy||G.state!=='fight')return;this.busy=true;UI.lock(true);
+  UI.log('[DEV] Fala pominięta.','crit');G.enemies.forEach(e=>G.burst(e.x,e.y-30,'#f2c14e',14));
+  G.actors=G.actors.filter(a=>!G.enemies.includes(a));G.enemies=[];this.busy=false;return G.win();},
  async act(kind){
+  if(kind==='skipwave')return this.skipWave();
   if(this.busy||G.state!=='fight')return;
   const p=G.p,t=G.target(),sk=Player.d.sk||{};if(!t)return;
   if(!p.freeze){if(kind==='potion'&&Player.d.potions<1){UI.log('Brak eliksirów!');return;}if(kind==='shoot'&&!(sk.bow||sk.xbow))return;if(kind==='fire'&&(!sk.fire||this.fbCd>0))return;}
@@ -125,15 +130,11 @@ const Combat={busy:false,guard:false,fbCd:0,
        await this.strike(p,t,1,.9,false,'Bohater (2. cios)');
      }
    }
-   if(kind==='fire'){this.fbCd=3;  // odnowa po 3 turach
-    const foes=[...G.enemies].filter(e=>e.s.hp>0&&!G.invuln(e));
-    let mult=4.4;
-    for(let i=0;i<foes.length;i++){
-      const foe=foes[i];
-      await this.strike(p,foe,mult,.95,false,i?'Kula ognia':'Bohater (KULA OGNIA)',{rng:'fire',magic:1,fire:1,nocrit:1,burn:1});
-      mult*=.5;  // każdy kolejny przeciwnik – połowa obrażeń
-      if(Player.d.hp<=0)break;
-    }
+   if(kind==='fire'){this.fbCd=FIRE.cd;   // v1.1: odnowa 5 tur (FIRE w player.js)
+    const foes=[...G.enemies].filter(e=>e.s.hp>0&&!G.invuln(e)).sort((a,b)=>a.x-b.x);   // od najbliższego bohatera
+    if(foes.length){UI.log('Bohater rzuca KULĘ OGNIA – jedna kula przeleci przez wszystkich wrogów!','crit');
+     /* jedna kula; pierwszy wróg dostaje 100% mocy, każdy następny 50% poprzedniego (1, .5, .25, ...). Moc = Player.fireDmg() (bez ATK) */
+     await G.fireThrough(p,foes,(foe,i)=>this.strike(p,foe,Math.pow(.5,i),.95,false,i?'Kula ognia':'Bohater (KULA OGNIA)',{rng:'fire',magic:1,fire:1,nocrit:1,burn:1,pass:1,flat:Player.fireDmg()}));}
    }
    if(kind==='shoot')await this.strike(p,t,sk.xbow?1.6:1.1,.85,false,sk.xbow?'Bohater (kusza)':'Bohater (łuk)',{rng:'arrow'});
    if(kind==='defend'){this.guard=true;UI.log('Bohater przyjmuje postawę obronną.');G.burst(p.x,p.y-30,'#4aa3ff',12);await sleep(400);}

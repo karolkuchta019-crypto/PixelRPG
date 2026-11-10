@@ -2,6 +2,12 @@
    PLAYER.JS – bohater, umiejętności, ekwipunek, zapis, kompani
    ============================================================ */
 
+/* v1.1: KULA OGNIA ma własną moc – nie zależy od ATK (ani od miecza). Ulepszasz ją osobno u kupca ('Moc kuli ognia').
+   Jedna kula przelatuje przez wszystkich wrogów: pierwszy dostaje 100%, każdy następny 50% poprzedniego. */
+const FIRE = { base: 70, step: 15, cd: 5 };            // moc bazowa, +moc za ulepszenie, odnowa w turach
+/* v1.1: skórzana zbroja giermka (kowal) – +DEF dla każdego giermka, także późniejszego */
+const SQ_ARMOR = { id: 'sq_leather', name: 'Skórzana zbroja giermka', desc: '+4 DEF giermka (także przyszłego)', cost: 3, def: 4 };
+
 const Player = {
   d: null,
 
@@ -92,6 +98,43 @@ const Player = {
     return true;
   },
 
+  /* v1.1: moc kuli ognia = baza + ulepszenia (bez ATK) */
+  fireDmg() { return FIRE.base + FIRE.step * ((this.d.sk || {}).fireup || 0); },
+
+  /* v1.1: SZCZĘŚCIE = dodatkowa szansa na cios krytyczny z talizmanów wiedźmy */
+  luck() {
+    const wi = (this.d && this.d.wi) || {};
+    return WITCH.reduce((s, k) => s + (k.luck ? k.luck * (wi[k.id] || 0) : 0), 0);
+  },
+
+  wcost(k) {
+    return k.cost + (k.max > 1 ? Math.floor(((this.d.wi || {})[k.id] || 0) / 3) : 0);
+  },
+
+  /* sklep wiedźmy: punkty umiejętności -> eliksiry i talizmany */
+  buyWitch(id) {
+    const d = this.d, k = WITCH.find(x => x.id === id);
+    if (!k) return false;
+    d.wi = d.wi || {};
+    const c = this.wcost(k);
+    if ((d.wi[id] || 0) >= k.max || (!G.dev && d.pending < c)) return false;
+    if (!G.dev) d.pending -= c;
+    d.wi[id] = (d.wi[id] || 0) + 1;
+    if (k.f) k.f(d);
+    return true;
+  },
+
+  /* kowal: zbroja dla giermka (jednorazowo) */
+  buySqArmor() {
+    const d = this.d;
+    if (d.sqArmor) return false;
+    if (!G.dev && d.pending < SQ_ARMOR.cost) return false;
+    if (!G.dev) d.pending -= SQ_ARMOR.cost;
+    d.sqArmor = 1;
+    (d.comps || []).forEach(k => { if (k.t === 'squire') k.def += SQ_ARMOR.def; });
+    return true;
+  },
+
   addComp(d, t) {
     const B = COMPS[t];
     d.comps = d.comps || [];
@@ -99,7 +142,7 @@ const Player = {
     d.comps.push({
       t, name: B.name, hp, maxhp: hp,
       atk: Math.max(4, Math.round(d.atk * B.atk)),
-      def: Math.round(d.def * B.def),
+      def: Math.round(d.def * B.def) + (t === 'squire' && d.sqArmor ? SQ_ARMOR.def : 0),
       crit: B.crit, dodge: B.dodge
     });
   },
@@ -114,7 +157,7 @@ const Player = {
     const c = this.cost(k);
     d.sk = d.sk || {};
     d.comps = d.comps || [];
-    if ((!G.dev && d.pending < c) || (d.sk[id] || 0) >= k.max || (k.comp && d.comps.length >= 3))
+    if ((!G.dev && d.pending < c) || (d.sk[id] || 0) >= k.max || (k.comp && d.comps.length >= 3) || (k.req && !d.sk[k.req]))
       return false;
     if (!G.dev) d.pending -= c;
     d.sk[id] = (d.sk[id] || 0) + 1;
@@ -137,7 +180,8 @@ const SKILLS = [
   { id: 'flame',  name: 'Płomienne ostrze',     desc: 'podpalenie 35% (oprócz ognistych)', cost: 3, max: 1, f: () => {} },
   { id: 'frost',  name: 'Mroźne ostrze',        desc: 'zamrożenie 30% (oprócz zimowych)', cost: 3, max: 1, f: () => {} },
   { id: 'resist', name: 'Odporność na efekty',  desc: '-25% szans na truciznę/ogień/zamrożenie', cost: 2, max: 3, f: () => {} },
-  { id: 'fire',   name: 'Kula ognia',           desc: 'super atak co 3 tury (x4.4 + podpalenie)', cost: 6, max: 1, f: () => {} },
+  { id: 'fire',   name: 'Kula ognia',           desc: `jedna kula przez wszystkich wrogów (100%, 50%, 25%…), moc ${FIRE.base} niezależna od ATK, podpalenie, odnowa ${FIRE.cd} tur`, cost: 10, max: 1, f: () => {} },
+  { id: 'fireup', name: 'Moc kuli ognia',       desc: `+${FIRE.step} mocy kuli ognia (osobno od ATK)`, cost: 2, max: 10, req: 'fire', f: () => {} },
   { id: 'double', name: 'Podwójne uderzenie',   desc: '25% szans na drugi cios przy ataku', cost: 4, max: 1, f: () => {} },
   { id: 'compS',  name: 'Kompan: Giermek',      desc: 'walczy u twego boku aż padnie',  cost: 5, max: 99, comp: 1, f: d => Player.addComp(d, 'squire') },
   { id: 'compA',  name: 'Kompan: Łuczniczka',   desc: 'strzela z dystansu aż padnie',   cost: 5, max: 99, comp: 1, f: d => Player.addComp(d, 'archer') },
@@ -167,6 +211,18 @@ const GEAR = [
   /* broń dystansowa – kupowana u zbrojmistrza, odblokowuje akcję Strzał */
   { id: 'bow',  slot: 'ranged', name: 'Łuk',   desc: 'Strzał z dystansu', skill: 'bow',  cost: 3 },
   { id: 'xbow', slot: 'ranged', name: 'Kusza', desc: 'mocniejszy Strzał (x1.6)', skill: 'xbow', cost: 6 },
+];
+
+/* ============================================================
+   WITCH – sklep wiedźmy z Moczarów (po jej pokonaniu w kampanii). Płacisz punktami umiejętności.
+   kind: 'potion' (eliksiry) | 'charm' (talizmany: luck = +szansa na cios krytyczny, sumują się)
+   ============================================================ */
+const WITCH = [
+  { id: 'w_potion',   kind: 'potion', name: 'Mikstura życia',         desc: '+3 eliksiry',               cost: 2, max: 99, f: d => d.potions += 3 },
+  { id: 'w_vit',      kind: 'potion', name: 'Wywar tężyzny',          desc: '+20 maks. HP',              cost: 3, max: 5,  f: d => { d.maxhp += 20; d.hp += 20; } },
+  { id: 'w_rabbit',   kind: 'charm',  name: 'Łapka królika',          desc: '+5% szczęścia (CRIT)',      cost: 3, max: 1,  luck: .05 },
+  { id: 'w_clover',   kind: 'charm',  name: 'Czterolistna koniczyna', desc: '+8% szczęścia (CRIT)',      cost: 5, max: 1,  luck: .08 },
+  { id: 'w_horseshoe',kind: 'charm',  name: 'Podkowa szczęścia',      desc: '+12% szczęścia (CRIT)',     cost: 8, max: 1,  luck: .12 },
 ];
 
 const Save = {
