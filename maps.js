@@ -14,7 +14,8 @@ const MAPS={
  plant:{amb:'spark',name:'Stara elektrownia',src:'assets/maps/plant.png',sky:'#2a2630',ground:'#3a3a40',decor:'#2a2a32',tone:.25,foes:['drone','robot','fighter'],boss:'mech'},
  hotshaft:{amb:'ember',name:'Gorący szyb',src:'assets/maps/hotshaft.png',sky:'#2a1010',ground:'#3a1c1a',decor:'#3a2420',tone:.15,link:1},
  lava:{amb:'ember',name:'Lawowa otchłań',src:'assets/maps/lava.png',sky:'#0a0303',ground:'#241010',decor:'#0e0505',tone:.1,foes:['imp','lavagolem','skeleton','basilisk'],boss:'demon'},
- ruins:{amb:'dust',name:'Mroczne ruiny',src:'assets/maps/ruins.png',sky:'#2a2040',ground:'#3a3550',decor:'#1c1830',tone:.3},
+ ruins:{amb:'dust',name:'Mroczne ruiny',src:'assets/maps/ruins.png',sky:'#2a2040',ground:'#3a3550',decor:'#1c1830',tone:.3,foes:['spider','bat'],boss:'bat'},
+ ocean:{amb:'glint',name:'Głębia oceanu',src:'assets/maps/ocean.png',sky:'#1c1828',ground:'#3a3448',decor:'#2a2438',tone:.3,foes:['swordfish'],boss:'swordfish'},
  castle:{name:'Zamek',src:'assets/maps/castle.png',sky:'#3a2a5a',ground:'#6a6070',decor:'#7a6a8a',tone:.6},
  stadium:{name:'Mroczny stadion',src:'assets/maps/stadium.png',sky:'#1a0e18',ground:'#1f4a2a',decor:'#2a2a30',tone:.2},
  volcano:{amb:'ember',name:'Kraina wulkanów',src:'assets/maps/volcano.png',sky:'#8a2a10',ground:'#3a2020',decor:'#2a1210',tone:.2},
@@ -23,7 +24,7 @@ const MAPS={
 const LINKS={'swamp>taiga':[],'taiga>ice':['pass'],'ice>cave':['cavemouth'],'cave>desert':[],'desert>plant':['tunnel'],'plant>lava':['hotshaft']};
 function route(a,b){if(a===b)return[];if(LINKS[a+'>'+b])return LINKS[a+'>'+b];
  return Math.abs(MAPS[a].tone-MAPS[b].tone)>.35&&!MAPS[a].link&&!MAPS[b].link?['tunnel']:[];}
-const PATH=['forest','village','swamp','taiga','ice','cave','desert','plant','lava'];   // kolejność światów w trybie nieskończonym
+const PATH=['forest','ocean','village','swamp','ruins','taiga','ice','cave','desert','plant','lava'];   // kolejność światów w trybie nieskończonym
 const WAVES=[
  {map:'forest',e:['slime']},
  {map:'forest',e:['slime','shroom']},
