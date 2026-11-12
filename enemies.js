@@ -26,6 +26,7 @@ const ENEMY_DEFS={
  dwarf:{name:'Krasnolud',hp:62,atk:13,def:6,dodge:.05,crit:.12,xp:30,scale:2.7,behave:e=>e.turn%3===0?[{m:1.8,say:'Krasnolud wali toporem z całej siły!'}]:[1]},
  basilisk:{name:'Bazyliszek',hp:66,atk:13,def:4,dodge:.08,crit:.1,xp:38,scale:3,stone:.1,behave:e=>e.turn%3===0?[{m:.6,stone:1,magic:1,say:'Bazyliszek spogląda w twoje oczy – kamienieje!'}]:[1]},   // spojrzenie: kamień na 2 tury (jak zamrożenie)
  fighter:{name:'Myśliwiec laserowy',hp:34,atk:13,def:3,dodge:.22,crit:.12,xp:30,scale:2.8,behave:()=>Math.random()<.4?[{m:.6,rng:'laser',magic:1,say:'Myśliwiec strzela seriami lasera!'},{m:.6,rng:'laser',magic:1}]:[{m:1.1,rng:'laser',magic:1,say:'Myśliwiec strzela laserem!'}]},
+ swordfish:{name:'Miecznik',hp:20,atk:15,def:2,dodge:.10,crit:.05,xp:40,scale:2.5,behave:()=>Math.random()<.5?[.6,.6,.6]:[.6,.6]},
  /* BOSSOWIE – po jednym na etap kampanii, agresywne wzorce ataków */
  slimeking:{name:'Król Slime',boss:1,hp:110,atk:12,def:3,dodge:.03,crit:.1,xp:80,scale:3,line:'„Blub… CAŁY LAS BĘDZIE SLIME!”',behave:e=>e.turn%3===0?[1.8]:[.8,.5]},
  orc:{name:'Orc Berserker',boss:1,hp:130,atk:14,def:4,dodge:.05,crit:.15,xp:120,scale:3,line:'„Ha! Słabiutki człowieczek… pokaż, na co cię stać!”',behave:e=>e.turn%2===0?[1.7]:[1]},
