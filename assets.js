@@ -44,7 +44,7 @@ const ASSETS={
  dwarf:{src:'assets/enemies/dwarf',fw:32,fh:32,color:'#d6652a'},            // opuszczona wioska: krasnolud
  basilisk:{src:'assets/enemies/basilisk',fw:32,fh:32,color:'#5fa84a',muz:{gaze:8}},   // otchłań: bazyliszek
  fighter:{src:'assets/enemies/fighter',fw:32,fh:32,color:'#5a6474',muz:{laser:11}},   // elektrownia: myśliwiec laserowy
- swordfish:{src:'assets/enemies/swordfish',fw:48,fh:48,color:'#e8f0ff'}, //ocean: miecznik
+ swordfish:{src:'assets/enemies/swordfish',fw:96,fh:48,color:'#e8f0ff'}, //ocean: miecznik
  princess:{src:'assets/player/princess',fw:32,fh:32,color:'#e060a0'},
  comp_squire:{src:'assets/player/comp_squire',fw:32,fh:32,color:'#8a5a2a'},
  comp_squire_leather:{src:'assets/player/comp_squire_leather',fw:32,fh:32,color:'#8a5a2a'},   // giermek w skórzanej zbroi (kowal)
