@@ -20,13 +20,13 @@ const Cut={bg:'castle',acts:[],box:null,waiter:null,skip:false,carry:null,shake:
   if(this.carry){const[p,v]=this.carry;p.x=v.x;p.y=v.y-92;p.sortY=v.y+1;p.face=v.face;p.rot=(v.face>0?-1:1)*(1.45+.1*Math.sin(G.t/70));}   // zarzucona na ramię, wierzga
   [...this.acts].sort((a,b)=>(a.sortY||a.y)-(b.sortY||b.y)).forEach(a=>G.drawActor(a));
   if(this.box){const b=this.box;c.fillStyle='#000';c.fillRect(20,240,600,72);c.fillStyle='#2a2140';c.fillRect(24,244,592,64);c.strokeStyle='#f2c14e';c.lineWidth=2;c.strokeRect(26,246,588,60);
-   c.textAlign='left';c.font='bold 13px "Courier New"';c.fillStyle='#f2c14e';c.fillText(b.who,36,263);c.font='13px "Courier New"';c.fillStyle='#f3e9d2';
-   let line='',y=280;for(const w of b.txt.split(' ')){if(c.measureText(line+w).width>560){c.fillText(line,36,y);y+=16;line='';}line+=w+' ';}c.fillText(line,36,y);
+   c.textAlign='left';c.font='bold 13px "Courier New"';c.fillStyle='#f2c14e';c.fillText(trn(b.who),36,263);c.font='13px "Courier New"';c.fillStyle='#f3e9d2';
+   let line='',y=280;for(const w of trn(b.txt).split(' ')){if(c.measureText(line+w).width>560){c.fillText(line,36,y);y+=16;line='';}line+=w+' ';}c.fillText(line,36,y);
    c.fillStyle='#f2c14e';c.textAlign='right';c.fillText('▼',608,302);}
   if(this.flash>0){c.fillStyle=`rgba(255,255,255,${this.flash})`;c.fillRect(0,0,640,320);}
   if(this.fadeA>0){c.fillStyle=`rgba(0,0,0,${this.fadeA})`;c.fillRect(0,0,640,320);}
-  if(this.title){c.textAlign='center';c.font=`bold ${this.heart?44:22}px "Courier New"`;const y=this.heart?250:150;c.fillStyle='#000';c.fillText(this.title,322,y+2);c.fillStyle='#f2c14e';c.fillText(this.title,320,y);
-   if(this.sub){c.font='14px "Courier New"';c.fillStyle='#f3e9d2';c.fillText(this.sub,320,y+34);}}
+  if(this.title){const ti=trn(this.title),su=trn(this.sub);c.textAlign='center';c.font=`bold ${this.heart?44:22}px "Courier New"`;const y=this.heart?250:150;c.fillStyle='#000';c.fillText(ti,322,y+2);c.fillStyle='#f2c14e';c.fillText(ti,320,y);
+   if(this.sub){c.font='14px "Courier New"';c.fillStyle='#f3e9d2';c.fillText(su,320,y+34);}}
   c.restore();}
 };
 const Story={

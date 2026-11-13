@@ -1,33 +1,39 @@
+/* v1.1.1: etykiety przycisków akcji (tłumaczone przy każdym odświeżeniu HUD) */
+const ACT_LABELS = { attack: 'Atak', crit: 'Cios krytyczny', defend: 'Obrona', potion: 'Eliksir', shoot: 'Strzał', fire: 'Kula ognia', skipwave: 'Pomiń falę (DEV)', toboss: 'Do bossa (DEV)' };
+
 const UI = {
   $: id => document.getElementById(id),
 
-  log(t, c = '') {
+  /* raw = tekst już przetłumaczony (np. dymek z imieniem) – nie tłumacz drugi raz */
+  log(t, c = '', raw = false) {
     const l = this.$('log'), p = document.createElement('p');
-    p.textContent = t; p.className = c;
+    p.textContent = raw ? t : trn(t); p.className = c;
     l.prepend(p);
     while (l.children.length > 40) l.lastChild.remove();
   },
 
   hud() {
     const d = Player.d, m = MAPS[G.cur().map];
-    this.$('wave').textContent = this.waveLabel();
-    this.$('mapname').textContent = m.name;
+    this.$('wave').textContent = trn(this.waveLabel());
+    this.$('mapname').textContent = trn(m.name);
     this.$('lvl').textContent = 'LVL ' + d.level;
     this.$('xpbar').style.width = 100 * d.xp / Player.xpNext() + '%';
     this.$('hpbar').style.width = 100 * d.hp / d.maxhp + '%';
     const sk = d.sk || {};
     document.querySelector('[data-a=shoot]').classList.toggle('hidden', !(sk.bow || sk.xbow));
     document.querySelector('[data-a=skipwave]').classList.toggle('hidden', !G.dev);   // v1.1: tryb dev – pomijanie fali
+    document.querySelector('[data-a=toboss]').classList.toggle('hidden', !G.dev);     // v1.1.1: tryb dev – skok do bossa
     const fb = document.querySelector('[data-a=fire]');
     fb.classList.toggle('hidden', !sk.fire);
-    fb.textContent = Combat.fbCd > 0 ? `Kula ognia (${Combat.fbCd})` : 'Kula ognia';
+    document.querySelectorAll('#actions button').forEach(b => { const L = ACT_LABELS[b.dataset.a]; if (L && b.dataset.a !== 'fire') b.textContent = trn(L); });
+    fb.textContent = Combat.fbCd > 0 ? `${trn('Kula ognia')} (${Combat.fbCd})` : trn('Kula ognia');
     const atk = Player.atk(), def = Player.def();
     const gAtk = Player.gearBonus('atk'), gDef = Player.gearBonus('def');
     const ptsLabel = G.dev ? '∞' : String(d.pending|0);
     this.$('stats').textContent =
       `HP ${d.hp}/${d.maxhp}  ATK ${atk}${gAtk ? `(+${gAtk})` : ''}  DEF ${def}${gDef ? `(+${gDef})` : ''}  ` +
-      `PUNKTY ${ptsLabel}  Eliksiry ${d.potions|0}  KOMPANI ${(d.comps || []).length}/3  ` +
-      `CRIT ${Math.round((d.crit + Player.luck()) * 100)}%  UNIK ${Math.round(d.dodge * 100)}%`;
+      `${trn('PUNKTY')} ${ptsLabel}  ${trn('Eliksiry')} ${d.potions|0}  ${trn('KOMPANI')} ${(d.comps || []).length}/3  ` +
+      `CRIT ${Math.round((d.crit + Player.luck()) * 100)}%  ${trn('UNIK')} ${Math.round(d.dodge * 100)}%`;
   },
 
   lock(b) {
@@ -43,16 +49,16 @@ const UI = {
     s.innerHTML = '';
     s.className = cls || '';
     const h = document.createElement('h2');
-    h.textContent = title;
+    h.textContent = trn(title);
     s.append(h);
     if (text) {
       const p = document.createElement('p');
-      p.textContent = text;
+      p.textContent = trn(text);
       s.append(p);
     }
     btns.forEach(b => {
       const e = document.createElement('button');
-      e.textContent = b.l;
+      e.textContent = trn(b.l);
       e.onclick = () => { s.classList.add('hidden'); b.f(); };
       s.append(e);
     });
@@ -68,7 +74,7 @@ const UI = {
   title() {
     Music.play(null);   // w menu cisza
     this.screen('MONSTER WAVES  v' + VERSION,
-      'Wybierz tryb. WASD / strzałki – ruch, Spacja – skok, M – muzyka, kliknij wroga, by go namierzyć.',
+      'Wybierz tryb. WASD / strzałki – ruch, Spacja – skok, M – muzyka, Tab – ustawienia, kliknij wroga, by go namierzyć.',
       [{ l: 'Kampania', f: () => this.campaign() },
        { l: 'Tryb nieskończony', f: () => this.endless() },
        { l: 'Wczytaj grę (sloty)', f: () => this.slots('load', 'title') }]);
@@ -101,20 +107,20 @@ const UI = {
     const here = (G.mode === 'campaign' && G.p && !opts.fromDeath) ? G.level : -1;
 
     const h = document.createElement('h2');
-    h.textContent = opts.fromDeath ? 'Porażka – Mapa świata' : 'Mapa świata';
+    h.textContent = trn(opts.fromDeath ? 'Porażka – Mapa świata' : 'Mapa świata');
     s.append(h);
     const sub = document.createElement('p');
-    sub.textContent = opts.fromDeath
+    sub.textContent = trn(opts.fromDeath
       ? 'Wybierz odblokowany etap, by spróbować ponownie.'
       : opts.fromMenu
         ? (canJump ? 'Kliknij odblokowany etap, aby się do niego przenieść (zaczniesz od 1. fali tego etapu).'
                    : 'Podgląd mapy. Przenoszenie między etapami działa w trakcie kampanii (poza walką).')
-        : 'Kliknij etap, aby wyruszyć. Niepokonane etapy są zablokowane.' + (G.dev ? ' [DEV: wszystko odblokowane]' : '');
+        : 'Kliknij etap, aby wyruszyć. Niepokonane etapy są zablokowane.') + (!opts.fromDeath && !opts.fromMenu && G.dev ? trn(' [DEV: wszystko odblokowane]') : '');
     s.append(sub);
 
     const info = document.createElement('div');
     info.className = 'wm-info';
-    const defInfo = 'Najedź na etap, aby zobaczyć przeciwników.';
+    const defInfo = trn('Najedź na etap, aby zobaczyć przeciwników.');
     info.textContent = defInfo;
 
     const COLS = 5, grid = document.createElement('div');
@@ -130,12 +136,12 @@ const UI = {
       node.type = 'button';
       node.className = 'wm-card' + (unlocked ? '' : ' locked') + (done ? ' done' : '') + (i === here ? ' here' : '') +
         (opts.fromMenu && !canJump ? ' preview' : '');
-      const tag = i === here ? '● TU JESTEŚ' : done ? '✓ UKOŃCZONY' : unlocked ? '▶ DOSTĘPNY' : '🔒 ZABLOKOWANY';
+      const tag = trn(i === here ? '● TU JESTEŚ' : done ? '✓ UKOŃCZONY' : unlocked ? '▶ DOSTĘPNY' : '🔒 ZABLOKOWANY');
       node.innerHTML = `<span class="wm-img" style="background-image:url(${MAPS[L.map].src})"></span>` +
-        `<span class="wm-num">${i + 1}</span><span class="wm-name">${L.name}</span>` +
-        `<span class="wm-boss">Boss: ${ENEMY_DEFS[L.boss].name}${Player.d && Player.d.witch && L.boss === 'witch' ? ' · 🧙 sklep' : ''}</span><span class="wm-tag">${tag}</span>`;
-      const foes = L.foes.map(f => ENEMY_DEFS[f].name).join(', ');
-      const show = () => { info.textContent = `Etap ${i + 1}: ${L.name} — wrogowie: ${foes} · boss: ${ENEMY_DEFS[L.boss].name}`; };
+        `<span class="wm-num">${i + 1}</span><span class="wm-name">${trn(L.name)}</span>` +
+        `<span class="wm-boss">${trn('Boss')}: ${trn(ENEMY_DEFS[L.boss].name)}${Player.d && Player.d.witch && L.boss === 'witch' ? trn(' · 🧙 sklep') : ''}</span><span class="wm-tag">${tag}</span>`;
+      const foes = [...new Set(L.foes)].map(f => trn(ENEMY_DEFS[f].name)).join(', ');
+      const show = () => { info.textContent = `${trn('Etap')} ${i + 1}: ${trn(L.name)} — ${trn('wrogowie')}: ${foes} · ${trn('boss')}: ${trn(ENEMY_DEFS[L.boss].name)}`; };
       node.onmouseenter = show; node.onfocus = show;
       node.onmouseleave = () => { info.textContent = defInfo; };
       if (unlocked && (!opts.fromMenu || canJump)) {
@@ -143,11 +149,11 @@ const UI = {
           if (opts.fromMenu) {
             /* v1.1: pokonana wiedźma czeka na Moczarach – klik w bagna = wizyta w jej chatce (poza samymi Moczarami) */
             if (Player.d && Player.d.witch && L.boss === 'witch' && G.level !== i &&
-                confirm('Odwiedzić Wiedźmę w chatce na Moczarach?\n\nOK – odwiedź ją (eliksiry i talizmany szczęścia, potem wrócisz tu, gdzie byłeś).\nAnuluj – pokaż inne opcje.')) {
+                confirm(trn('Odwiedzić Wiedźmę w chatce na Moczarach?\n\nOK – odwiedź ją (eliksiry i talizmany szczęścia, potem wrócisz tu, gdzie byłeś).\nAnuluj – pokaż inne opcje.'))) {
               G.visitWitch();
               return;
             }
-            if (!confirm(`Przenieść się do etapu ${i + 1}: ${L.name}? Postęp w bieżącym etapie zostanie utracony.`)) return;
+            if (!confirm(trn(`Przenieść się do etapu ${i + 1}: ${L.name}? Postęp w bieżącym etapie zostanie utracony.`))) return;
             G.jumpToStage(i);
             return;
           }
@@ -159,7 +165,7 @@ const UI = {
             Player.d.gear = Player.d.gear || { sword: null, armor: null, shield: null };
             Player.d.hp = Player.d.maxhp;
             G.mode = 'campaign';
-            G.level = i; G.wave = 1; G.waves = buildWaves(i);
+            G.level = i; G.wave = 1; G.waves = buildWaves(i); G.wave = G.stageStart();
             G.snap = JSON.stringify(Player.d);
             G.newRun();
           } else {
@@ -185,13 +191,13 @@ const UI = {
     rowB.className = 'wmap-actions';
     if (opts.fromDeath && opts.retryLevel != null && (opts.retryLevel <= cleared || G.dev)) {
       const retry = document.createElement('button');
-      retry.textContent = 'Spróbuj ponownie (ten etap)';
+      retry.textContent = trn('Spróbuj ponownie (ten etap)');
       retry.onclick = () => {
         s.classList.add('hidden');
         Player.d = G.snap ? JSON.parse(G.snap) : Player.base();
         Player.d.gear = Player.d.gear || { sword: null, armor: null, shield: null };
         Player.d.hp = Player.d.maxhp;
-        G.level = opts.retryLevel; G.wave = 1; G.waves = buildWaves(opts.retryLevel);
+        G.level = opts.retryLevel; G.wave = 1; G.waves = buildWaves(opts.retryLevel); G.wave = G.stageStart();
         G.snap = JSON.stringify(Player.d);
         G.newRun();
       };
@@ -199,12 +205,12 @@ const UI = {
     }
     if (!opts.fromDeath && !opts.fromMenu) {
       const neu = document.createElement('button');
-      neu.textContent = 'Nowa kampania';
+      neu.textContent = trn('Nowa kampania');
       neu.onclick = () => { Save.clear('campaign'); this.worldMap({ start: 1 }); };
       rowB.append(neu);
     }
     const back = document.createElement('button');
-    back.textContent = opts.fromDeath ? 'Menu główne' : (opts.fromMenu ? 'Zamknij' : 'Wstecz');
+    back.textContent = trn(opts.fromDeath ? 'Menu główne' : (opts.fromMenu ? 'Zamknij' : 'Wstecz'));
     back.onclick = () => { if (opts.fromMenu) this.closeMenu(); else this.title(); };
     rowB.append(back);
     s.append(rowB);
@@ -223,12 +229,12 @@ const UI = {
     s.className = 'tabmenu';
     s.classList.remove('hidden');
     const h = document.createElement('h2');
-    h.textContent = 'Menu (Tab)';
+    h.textContent = trn('Menu (Tab)');
     s.append(h);
 
     const mk = (label, locked, fn) => {
       const b = document.createElement('button');
-      b.textContent = locked ? label + ' 🔒' : label;
+      b.textContent = locked ? trn(label) + ' 🔒' : trn(label);
       if (locked) { b.disabled = true; b.classList.add('locked-opt'); }
       else b.onclick = fn;
       s.append(b);
@@ -248,13 +254,13 @@ const UI = {
     /* muzyka */
     const musicBox = document.createElement('div');
     musicBox.className = 'menu-block';
-    musicBox.innerHTML = `<p><b>Muzyka</b>: ${Music.on ? 'włączona' : 'wyłączona'}</p>`;
+    musicBox.innerHTML = `<p><b>${trn('Muzyka')}</b>: ${trn(Music.on ? 'włączona' : 'wyłączona')}</p>`;
     const tog = document.createElement('button');
-    tog.textContent = Music.on ? 'Wyłącz muzykę' : 'Włącz muzykę';
-    tog.onclick = () => { Music.toggle(); tog.textContent = Music.on ? 'Wyłącz muzykę' : 'Włącz muzykę'; };
+    tog.textContent = trn(Music.on ? 'Wyłącz muzykę' : 'Włącz muzykę');
+    tog.onclick = () => { Music.toggle(); tog.textContent = trn(Music.on ? 'Wyłącz muzykę' : 'Włącz muzykę'); };
     musicBox.append(tog);
     const volL = document.createElement('label');
-    volL.textContent = ' Głośność: ';
+    volL.textContent = trn(' Głośność: ');
     const vol = document.createElement('input');
     vol.type = 'range'; vol.min = 0; vol.max = 100; vol.value = Math.round((Music.vol || 0.5) * 100);
     vol.oninput = () => {
@@ -269,16 +275,44 @@ const UI = {
     const d = Player.d || {};
     const stats = document.createElement('div');
     stats.className = 'menu-block';
-    stats.innerHTML = `<p><b>Statystyki gracza</b></p>
-      <p>Poziom: ${d.level || 1} &nbsp;|&nbsp; Zabici przeciwnicy: ${d.kills || 0}<br>
-      Liczba śmierci: ${d.deaths || 0} &nbsp;|&nbsp; Eliksiry: ${d.potions || 0}</p>`;
+    stats.innerHTML = `<p><b>${trn('Statystyki gracza')}</b></p>
+      <p>${trn('Poziom:')} ${d.level || 1} &nbsp;|&nbsp; ${trn('Zabici przeciwnicy:')} ${d.kills || 0}<br>
+      ${trn('Liczba śmierci:')} ${d.deaths || 0} &nbsp;|&nbsp; ${trn('Eliksiry:')} ${d.potions || 0}</p>`;
     s.append(stats);
+
+    /* v1.1.1: USTAWIENIA – język, ruch po kliknięciu, opcje trybu deweloperskiego */
+    const set = document.createElement('div');
+    set.className = 'menu-block';
+    set.innerHTML = `<p><b>${trn('Ustawienia')}</b></p><p>${trn('Język / Language')}:</p>`;
+    const lrow = document.createElement('div');
+    lrow.style.cssText = 'display:flex;gap:6px;justify-content:center;flex-wrap:wrap';
+    I18N.LANGS.forEach(([code, label]) => {
+      const lb = document.createElement('button');
+      lb.textContent = label; lb.style.minWidth = '0'; lb.style.flex = '1';
+      if (I18N.lang === code) lb.style.outline = '2px solid #7aff9a';
+      lb.onclick = () => { I18N.set(code); if (Player.d && G.p) this.hud(); this.menuOpen = false; this.toggleMenu(); };
+      lrow.append(lb);
+    });
+    set.append(lrow);
+    const cm = document.createElement('button');
+    cm.style.marginTop = '8px';
+    cm.textContent = `${trn('Ruch po kliknięciu (żółta otoczka)')}: ${trn(G.clickMove ? 'włączony' : 'wyłączony')}`;
+    cm.onclick = () => { G.setClickMove(!G.clickMove); this.menuOpen = false; this.toggleMenu(); };
+    set.append(cm);
+    if (G.dev) {
+      const db = document.createElement('button');
+      db.style.marginTop = '8px';
+      db.textContent = `${trn('Tryb deweloperski')} – ${trn('Etapy zaczynaj od bossa')}: ${trn(G.devBoss ? 'włączony' : 'wyłączony')}`;
+      db.onclick = () => { G.devBoss = !G.devBoss; this.menuOpen = false; this.toggleMenu(); };
+      set.append(db);
+    }
+    s.append(set);
 
     mk('⚙  Poziom trudności (wkrótce)', true, null);
     mk('🖼  Ustawienia graficzne (wkrótce)', true, null);
 
     const close = document.createElement('button');
-    close.textContent = 'Zamknij (Tab)';
+    close.textContent = trn('Zamknij (Tab)');
     close.onclick = () => this.closeMenu();
     s.append(close);
   },
@@ -299,7 +333,7 @@ const UI = {
   /* --- v1.1: NOWA GRA z menu (Tab) --- */
   newGame(kind) {
     const txt = kind === 'campaign' ? 'Rozpocząć NOWĄ kampanię?' : 'Rozpocząć NOWY tryb nieskończony?';
-    if (!confirm(txt + '\nNiezapisany postęp zostanie utracony (zapisy w slotach zostają).')) return;
+    if (!confirm(trn(txt) + trn('\nNiezapisany postęp zostanie utracony (zapisy w slotach zostają).'))) return;
     const s = this.$('screen');
     s.classList.add('hidden'); s.innerHTML = ''; this.menuOpen = false;
     G.nextBub(); G.hub = null; Combat.busy = false;
@@ -314,25 +348,25 @@ const UI = {
     const s = this.$('screen');
     s.innerHTML = ''; s.className = 'slots'; s.classList.remove('hidden');
     const h = document.createElement('h2');
-    h.textContent = mode === 'save' ? 'Zapisz grę' : 'Wczytaj grę';
+    h.textContent = trn(mode === 'save' ? 'Zapisz grę' : 'Wczytaj grę');
     s.append(h);
     const msg = document.createElement('p');
     msg.className = 'slot-msg';
-    msg.textContent = mode === 'save'
+    msg.textContent = trn(mode === 'save'
       ? 'Wybierz slot (nadpisze poprzedni zapis). Zapisuje bieżącą kampanię albo tryb nieskończony.'
-      : 'Wybierz slot. Wczytanie zaczyna bieżącą falę od nowa (albo wraca do sklepów po wygranej fali).';
+      : 'Wybierz slot. Wczytanie zaczyna bieżącą falę od nowa (albo wraca do sklepów po wygranej fali).');
     s.append(msg);
     const list = document.createElement('div');
     list.className = 'slot-list';
     s.append(list);
     const back = document.createElement('button');
-    back.textContent = 'Wstecz';
+    back.textContent = trn('Wstecz');
     back.onclick = () => { if (from === 'title') this.title(); else this.toggleMenu(); };
     s.append(back);
 
-    const say = (t, bad) => { msg.textContent = t; msg.style.color = bad ? '#ff7a7a' : ''; };
+    const say = (t, bad) => { msg.textContent = trn(t); msg.style.color = bad ? '#ff7a7a' : ''; };
     const render = async () => {
-      list.textContent = 'Łączenie z bazą…';
+      list.textContent = trn('Łączenie z bazą…');
       let rows;
       try { rows = await Slots.list(); } catch (e) { list.textContent = ''; say(e.message, true); return; }
       list.textContent = '';
@@ -342,30 +376,30 @@ const UI = {
         card.className = 'slot-card' + (r ? '' : ' empty');
         const t = document.createElement('div');
         t.className = 'slot-title';
-        t.textContent = `Slot ${n} — ` + (r ? (r.mode === 'campaign' ? 'Kampania' : 'Tryb nieskończony') : 'pusty');
+        t.textContent = `${trn('Slot')} ${n} — ` + trn(r ? (r.mode === 'campaign' ? 'Kampania' : 'Tryb nieskończony') : 'pusty');
         card.append(t);
         if (r) {
           const m = r.meta || {};
           const d = document.createElement('div');
           d.className = 'slot-info';
-          d.textContent = `${m.label || ''} · LVL ${m.level || '?'} · zabici: ${m.kills || 0} · ${new Date(r.updated_at).toLocaleString('pl-PL')}`;
+          d.textContent = `${Slots.label(r)} · LVL ${m.level || '?'} · ${trn('zabici')}: ${m.kills || 0} · ${new Date(r.updated_at).toLocaleString(I18N.locale())}`;
           card.append(d);
         }
         const row = document.createElement('div');
         row.className = 'slot-btns';
         const mk = (label, dis, fn) => { const b = document.createElement('button'); b.textContent = label; b.disabled = !!dis; b.onclick = fn; row.append(b); };
         if (mode === 'save') {
-          mk(r ? 'Nadpisz' : 'Zapisz tutaj', !Slots.canSave(), async () => {
-            if (r && !confirm(`Nadpisać slot ${n}?`)) return;
+          mk(trn(r ? 'Nadpisz' : 'Zapisz tutaj'), !Slots.canSave(), async () => {
+            if (r && !confirm(trn(`Nadpisać slot ${n}?`))) return;
             try { await Slots.save(n); say(`Zapisano w slocie ${n}.`); render(); } catch (e) { say(e.message, true); }
           });
         } else {
-          mk('Wczytaj', !r || !(from === 'title' || Slots.canLoad()), async () => {
+          mk(trn('Wczytaj'), !r || !(from === 'title' || Slots.canLoad()), async () => {
             try { await Slots.load(n); } catch (e) { say(e.message, true); }
           });
         }
-        if (r) mk('Usuń', false, async () => {
-          if (!confirm(`Usunąć zapis ze slotu ${n}?`)) return;
+        if (r) mk(trn('Usuń'), false, async () => {
+          if (!confirm(trn(`Usunąć zapis ze slotu ${n}?`))) return;
           try { await Slots.del(n); say(`Slot ${n} usunięty.`); render(); } catch (e) { say(e.message, true); }
         });
         card.append(row);
@@ -387,23 +421,23 @@ const UI = {
     const wrap = document.createElement('div');
     wrap.className = 'credits-scroll';
     wrap.innerHTML = `
-      <h2>THE END</h2>
-      <p class="cr-thanks">Dziękujemy za grę!</p>
-      <p class="cr-sec">— MUZYKA —</p>
+      <h2>${trn('THE END')}</h2>
+      <p class="cr-thanks">${trn('Dziękujemy za grę!')}</p>
+      <p class="cr-sec">${trn('— MUZYKA —')}</p>
       <p>Music track: <b>Colossal</b> by Aylex<br>
       Source: <a href="https://freetouse.com/music" target="_blank" rel="noopener">https://freetouse.com/music</a><br>
       No Copyright Background Music</p>
       <p>Music track: <b>Gameboy</b> by Walen<br>
       Source: <a href="https://freetouse.com/music" target="_blank" rel="noopener">https://freetouse.com/music</a><br>
       Royalty Free Music for Video (Safe)</p>
-      <p class="cr-sec">— MONSTER WAVES —</p>
-      <p>Pixel RPG · Kampania · Bossowie · Mapa świata</p>
+      <p class="cr-sec">${trn('— MONSTER WAVES —')}</p>
+      <p>${trn('Pixel RPG · Kampania · Bossowie · Mapa świata')}</p>
     `;
     roll.append(wrap);
     s.append(roll);
     const b = document.createElement('button');
     b.className = 'credits-btn';
-    b.textContent = 'Pomiń ▶▶';
+    b.textContent = trn('Pomiń ▶▶');
     let anim = null;
     b.onclick = () => { if (anim) anim.cancel(); G.state = 'title'; this.title(); };
     s.append(b);
@@ -412,7 +446,7 @@ const UI = {
       anim = wrap.animate(
         [{ transform: `translate(-50%, ${H}px)` }, { transform: `translate(-50%, ${-h}px)` }],
         { duration: (H + h) / speed, easing: 'linear', fill: 'forwards' });
-      anim.onfinish = () => { b.textContent = 'Menu główne'; };
+      anim.onfinish = () => { b.textContent = trn('Menu główne'); };
     });
   },
 
@@ -428,11 +462,11 @@ const UI = {
     im.onerror = () => im.remove();
     s.append(im);
     const h = document.createElement('h2');
-    h.textContent = 'Wędrowny Kupiec';
+    h.textContent = trn('Wędrowny Kupiec');
     s.append(h);
     const p = document.createElement('p');
-    p.textContent = 'Wymień punkty poziomu na umiejętności. Twoje punkty: ' + (G.dev ? '∞' : d.pending) +
-      '   Kompani: ' + (d.comps || []).length + '/3' + (d.sk.fire ? '   Moc kuli ognia: ' + Player.fireDmg() : '');
+    p.textContent = trn('Wymień punkty poziomu na umiejętności. Twoje punkty: ') + (G.dev ? '∞' : d.pending) +
+      '   ' + trn('Kompani:') + ' ' + (d.comps || []).length + '/3' + (d.sk.fire ? '   ' + trn('Moc kuli ognia:') + ' ' + Player.fireDmg() : '');
     s.append(p);
     const g = document.createElement('div');
     g.className = 'trades';
@@ -442,14 +476,14 @@ const UI = {
       const b = document.createElement('button');
       const full = k.comp ? (d.comps || []).length >= 3 : own >= k.max;
       const need = k.req && !d.sk[k.req];   // v1.1: np. moc kuli wymaga kuli ognia
-      b.textContent = `${k.name}: ${k.desc} [${need ? 'najpierw: Kula ognia' : full ? (k.comp ? 'DRUŻYNA PEŁNA' : 'MAX') : c + ' pkt'}]` +
+      b.textContent = `${trn(k.name)}: ${trn(k.desc)} [${need ? trn('najpierw: Kula ognia') : full ? trn(k.comp ? 'DRUŻYNA PEŁNA' : 'MAX') : c + ' ' + trn('pkt')}]` +
         (!k.comp && own && k.max > 1 ? ' x' + own : '');
       b.disabled = full || need || (!G.dev && d.pending < c);
       b.onclick = () => { Player.buy(k.id); this.hud(); this.shop(done); };
       g.append(b);
     });
     const x = document.createElement('button');
-    x.textContent = 'Idź dalej';
+    x.textContent = trn('Idź dalej');
     x.onclick = () => { s.classList.add('hidden'); G.syncComps(); done(); };
     s.append(x);
   },
@@ -468,14 +502,14 @@ const UI = {
     Assets.draw(cx, 'witch', 48, 96, 2, 0);
     s.append(cv);
     const h = document.createElement('h2');
-    h.textContent = 'Wiedźma z Moczarów';
+    h.textContent = trn('Wiedźma z Moczarów');
     s.append(h);
     const p = document.createElement('p');
-    p.innerHTML = `Punkty: <b>${G.dev ? '∞' : d.pending}</b> · Szczęście (szansa na krytyk): <b>${Math.round((d.crit + Player.luck()) * 100)}%</b> (w tym talizmany: +${Math.round(Player.luck() * 100)}%)`;
+    p.innerHTML = `${trn('Punkty:')} <b>${G.dev ? '∞' : d.pending}</b> · ${trn('Szczęście (szansa na krytyk):')} <b>${Math.round((d.crit + Player.luck()) * 100)}%</b> (${trn('w tym talizmany')}: +${Math.round(Player.luck() * 100)}%)`;
     s.append(p);
     [['potion', 'ELIKSIRY'], ['charm', 'TALIZMANY SZCZĘŚCIA']].forEach(([kind, label]) => {
       const lab = document.createElement('div');
-      lab.textContent = label;
+      lab.textContent = trn(label);
       lab.style.cssText = 'text-align:center;font-weight:bold;color:#f2c14e;font-size:13px;margin:6px 0 4px;letter-spacing:1px;border-bottom:1px solid #5a4a20;padding-bottom:4px;width:100%;max-width:720px';
       s.append(lab);
       const g = document.createElement('div');
@@ -483,7 +517,7 @@ const UI = {
       WITCH.filter(k => k.kind === kind).forEach(k => {
         const own = d.wi[k.id] || 0, c = Player.wcost(k), full = own >= k.max;
         const b = document.createElement('button');
-        b.textContent = `${k.name}: ${k.desc} [${full ? (k.max === 1 ? '✓ POSIADANE' : 'MAX') : c + ' pkt'}]` + (own && k.max > 1 ? ' x' + own : '');
+        b.textContent = `${trn(k.name)}: ${trn(k.desc)} [${full ? trn(k.max === 1 ? '✓ POSIADANE' : 'MAX') : c + ' ' + trn('pkt')}]` + (own && k.max > 1 ? ' x' + own : '');
         b.disabled = full || (!G.dev && d.pending < c);
         if (full && k.max === 1) b.style.outline = '2px solid #7aff9a';
         b.onclick = () => { if (Player.buyWitch(k.id)) { this.hud(); this.witch(done); } };
@@ -492,7 +526,7 @@ const UI = {
       s.append(g);
     });
     const x = document.createElement('button');
-    x.textContent = 'Idź dalej';
+    x.textContent = trn('Idź dalej');
     x.style.marginTop = '12px';
     x.onclick = () => { s.classList.add('hidden'); done(); };
     s.append(x);
@@ -513,22 +547,22 @@ const UI = {
     s.append(im);
 
     const h = document.createElement('h2');
-    h.textContent = 'Zbrojmistrz';
+    h.textContent = trn('Zbrojmistrz');
     s.append(h);
 
     const eqName = (slot) => {
       const id = d.gear[slot];
-      if (!id) return 'brak';
+      if (!id) return trn('brak');
       const it = GEAR.find(x => x.id === id);
-      return it ? it.name : id;
+      return it ? trn(it.name) : id;
     };
     const note = document.createElement('p');
-    note.textContent = 'Zbrojmistrz nie skupuje towaru. Nowy przedmiot zastępuje stary – zostaje tylko najlepszy, jaki kupiłeś.';
+    note.textContent = trn('Zbrojmistrz nie skupuje towaru. Nowy przedmiot zastępuje stary – zostaje tylko najlepszy, jaki kupiłeś.');
     note.style.cssText = 'font-size:11px;opacity:.8;margin:0';
     s.append(note);
     const info = document.createElement('p');
-    info.innerHTML = `Punkty: <b>${G.dev ? '∞' : d.pending}</b><br>Miecz: ${eqName('sword')} · Zbroja: ${eqName('armor')} · Tarcza: ${eqName('shield')}` +
-      `<br>Dystans: ${d.sk && d.sk.xbow ? 'Kusza' : d.sk && d.sk.bow ? 'Łuk' : 'brak'}`;
+    info.innerHTML = `${trn('Punkty:')} <b>${G.dev ? '∞' : d.pending}</b><br>${trn('Miecz:')} ${eqName('sword')} · ${trn('Zbroja:')} ${eqName('armor')} · ${trn('Tarcza:')} ${eqName('shield')}` +
+      `<br>${trn('Dystans:')} ${d.sk && d.sk.xbow ? trn('Kusza') : d.sk && d.sk.bow ? trn('Łuk') : trn('brak')}`;
     s.append(info);
 
     /* osobna sekcja na każdą kategorię – nagłówek pełnej szerokości + siatka przedmiotów */
@@ -544,7 +578,7 @@ const UI = {
       wrap.style.cssText = 'width:100%;max-width:720px;margin-top:10px';
 
       const lab = document.createElement('div');
-      lab.textContent = sec.label;
+      lab.textContent = trn(sec.label);
       lab.style.cssText = 'text-align:center;font-weight:bold;color:#f2c14e;font-size:13px;margin:6px 0 4px;letter-spacing:1px;border-bottom:1px solid #5a4a20;padding-bottom:4px';
       wrap.append(lab);
 
@@ -557,10 +591,10 @@ const UI = {
         const owned = tr === own;            // dokładnie ten przedmiot
         const worse = tr < own;              // mamy już lepszy – słabszego nie kupimy
         b.textContent = owned
-          ? `${it.name}  ✓ POSIADANE`
+          ? `${trn(it.name)}  ${trn('✓ POSIADANE')}`
           : worse
-            ? `${it.name}  (masz lepszy)`
-            : `${it.name}: ${it.desc}  [${it.cost} pkt]`;
+            ? `${trn(it.name)}  ${trn('(masz lepszy)')}`
+            : `${trn(it.name)}: ${trn(it.desc)}  [${it.cost} ${trn('pkt')}]`;
         b.disabled = owned || worse || (!G.dev && d.pending < it.cost);
         if (owned) b.style.outline = '2px solid #7aff9a';
         b.onclick = () => {
@@ -581,13 +615,13 @@ const UI = {
       const wrap = document.createElement('div');
       wrap.style.cssText = 'width:100%;max-width:720px;margin-top:10px';
       const lab = document.createElement('div');
-      lab.textContent = 'GIERMEK  (zbroja kompana)';
+      lab.textContent = trn('GIERMEK  (zbroja kompana)');
       lab.style.cssText = 'text-align:center;font-weight:bold;color:#f2c14e;font-size:13px;margin:6px 0 4px;letter-spacing:1px;border-bottom:1px solid #5a4a20;padding-bottom:4px';
       wrap.append(lab);
       const grid = document.createElement('div');
       grid.className = 'trades';
       const b = document.createElement('button');
-      b.textContent = d.sqArmor ? `${SQ_ARMOR.name}  ✓ POSIADANE` : `${SQ_ARMOR.name}: ${SQ_ARMOR.desc}  [${SQ_ARMOR.cost} pkt]`;
+      b.textContent = d.sqArmor ? `${trn(SQ_ARMOR.name)}  ${trn('✓ POSIADANE')}` : `${trn(SQ_ARMOR.name)}: ${trn(SQ_ARMOR.desc)}  [${SQ_ARMOR.cost} ${trn('pkt')}]`;
       b.disabled = !!d.sqArmor || (!G.dev && d.pending < SQ_ARMOR.cost);
       if (d.sqArmor) b.style.outline = '2px solid #7aff9a';
       b.onclick = () => {
@@ -600,7 +634,7 @@ const UI = {
     }
 
     const x = document.createElement('button');
-    x.textContent = 'Idź dalej';
+    x.textContent = trn('Idź dalej');
     x.style.marginTop = '12px';
     x.onclick = () => { s.classList.add('hidden'); if (G.p) G.p.key = Player.spriteKey(); done(); };
     s.append(x);

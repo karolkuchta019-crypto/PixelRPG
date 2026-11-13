@@ -92,7 +92,7 @@ button::before{content:"";position:absolute;left:6px;top:50%;width:22px;height:2
 .credits-scroll a{color:#4aa3ff}
 
 /* ===== v1.1: sloty zapisu, przycisk DEV, napisy końcowe jak w filmie ===== */
-[data-a=skipwave]{padding-left:12px;grid-column:1/3}
+[data-a=skipwave],[data-a=toboss]{padding-left:12px}
 #screen.slots{display:flex;flex-direction:column;align-items:center;gap:10px;padding:20px;background:rgba(15,11,26,.95)}
 .slot-list{display:flex;flex-direction:column;gap:8px;width:100%;max-width:640px}
 .slot-card{background:#2a2140;border:2px solid #5a4a2a;padding:8px 12px;text-align:left}

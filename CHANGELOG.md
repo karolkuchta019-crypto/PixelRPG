@@ -1,5 +1,26 @@
 # Changelog – Monster Waves
 
+## [1.1.1]
+
+### Przeciwnicy i etapy
+- **Sędzia** pojawia się też na wcześniejszych falach ostatniego etapu (najwyżej 1 na falę, nigdy sam); piłkarze dostają jego szybkość od początku fali.
+- Nowy przeciwnik na stadionie: **Kibic** – kij baseballowy, co 3. turę **rzuca racą** (animacja rzutu, lecąca raca, podpalenie).
+- Nowy przeciwnik na bagnach: **Zmutowany komar** – lata, zatruwa i wysysa życie.
+- **Stara elektrownia: wrogowie mają 1,4× HP, Mroczny stadion: 1,5× HP** (zwykli przeciwnicy; bossowie bez zmian). Stałe: `hpMul` w `maps.js`.
+- **Demon Lord (Lawowa otchłań) mocniejszy**: HP 150→240, ATK 15→19, DEF 5→7, nowy 4-turowy wzorzec z ogniem otchłani (podpalenie).
+
+### Ustawienia (Tab)
+- **Język**: polski / English / Español (zapamiętywany). Tłumaczone: menu, HUD, sklepy, przedmioty, nazwy wrogów i map, komunikaty walki, dymki bossów, fabuła, napisy końcowe.
+- **Ruch po kliknięciu** (domyślnie wyłączony): klik w ziemię = żółta otoczka i bohater idzie w to miejsce; klik we wroga nadal go namierza.
+- Tryb dev: przycisk **Do bossa** + opcja „Etapy zaczynaj od bossa”.
+
+### Inne
+- **Pustynia**: easteregg z głową w słońcu działa jak w lesie.
+- **Stoisko wiedźmy** narysowane od nowa (nowa grafika `witchstall.png`, bulgoczący kocioł, wiedźma lewituje nad ladą).
+- Nowe grafiki: `fan*.png`, `mutmosq*.png`, `witchstall.png` (generator: `tools/generate_v111.py`).
+
+---
+
 ## [1.1.0] – 2026-11-10
 
 ### Zapis w PostgreSQL (3 sloty)

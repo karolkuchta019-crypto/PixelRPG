@@ -39,12 +39,14 @@ const ASSETS={
  coach:{src:'assets/enemies/coach',fw:72,fh:56,ax:27,color:'#8a2030',extra:['run','shoot','throw','jump'],ms:{walk:90,run:70},muz:{bullet:31,bottle:17}},               // OSTATECZNY BOSS: Mroczny Trener
  kicker:{src:'assets/enemies/kicker',fw:32,fh:32,color:'#d64545',extra:['kick']},   // kick = animacja kopnięcia (piłkę rysuje gra)
  referee:{src:'assets/enemies/referee',fw:32,fh:32,color:'#2c2c38'},        // sędzia (supporter piłkarzy)
+ fan:{src:'assets/enemies/fan',fw:32,fh:32,color:'#d63a3a',extra:['throw'],muz:{flare:10}},   // v1.1.1 ostatni etap: kibic z kijem i racą
+ mutmosq:{src:'assets/enemies/mutmosq',fw:32,fh:32,color:'#5f9a3a'},   // v1.1.1 moczary: zmutowany komar
+ witchstall:{src:'assets/items/witchstall',fw:64,fh:48,color:'#5a2a7a'},   // v1.1.1: nowe stoisko wiedźmy
  bat:{src:'assets/enemies/bat',fw:32,fh:32,color:'#5a3f70'},                // jaskinia: nietoperz
  snowman:{src:'assets/enemies/snowman',fw:32,fh:32,color:'#f3f8ff'},        // lodowe góry: bałwan
  dwarf:{src:'assets/enemies/dwarf',fw:32,fh:32,color:'#d6652a'},            // opuszczona wioska: krasnolud
  basilisk:{src:'assets/enemies/basilisk',fw:32,fh:32,color:'#5fa84a',muz:{gaze:8}},   // otchłań: bazyliszek
  fighter:{src:'assets/enemies/fighter',fw:32,fh:32,color:'#5a6474',muz:{laser:11}},   // elektrownia: myśliwiec laserowy
- swordfish:{src:'assets/enemies/swordfish',fw:96,fh:48,color:'#e8f0ff'}, //ocean: miecznik
  princess:{src:'assets/player/princess',fw:32,fh:32,color:'#e060a0'},
  comp_squire:{src:'assets/player/comp_squire',fw:32,fh:32,color:'#8a5a2a'},
  comp_squire_leather:{src:'assets/player/comp_squire_leather',fw:32,fh:32,color:'#8a5a2a'},   // giermek w skórzanej zbroi (kowal)

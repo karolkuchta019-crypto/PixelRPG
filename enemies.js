@@ -26,11 +26,19 @@ const ENEMY_DEFS={
  dwarf:{name:'Krasnolud',hp:62,atk:13,def:6,dodge:.05,crit:.12,xp:30,scale:2.7,behave:e=>e.turn%3===0?[{m:1.8,say:'Krasnolud wali toporem z całej siły!'}]:[1]},
  basilisk:{name:'Bazyliszek',hp:66,atk:13,def:4,dodge:.08,crit:.1,xp:38,scale:3,stone:.1,behave:e=>e.turn%3===0?[{m:.6,stone:1,magic:1,say:'Bazyliszek spogląda w twoje oczy – kamienieje!'}]:[1]},   // spojrzenie: kamień na 2 tury (jak zamrożenie)
  fighter:{name:'Myśliwiec laserowy',hp:34,atk:13,def:3,dodge:.22,crit:.12,xp:30,scale:2.8,behave:()=>Math.random()<.4?[{m:.6,rng:'laser',magic:1,say:'Myśliwiec strzela seriami lasera!'},{m:.6,rng:'laser',magic:1}]:[{m:1.1,rng:'laser',magic:1,say:'Myśliwiec strzela laserem!'}]},
- swordfish:{name:'Miecznik',hp:20,atk:15,def:2,dodge:.10,crit:.05,xp:40,scale:2.5,behave:()=>Math.random()<.5?[.6,.6,.6]:[.6,.6]},
+ /* v1.1.1: KIBIC (ostatni etap) – kij baseballowy, co 3. tura RZUT RACĄ (animacja throw, podpalenie) */
+ fan:{name:'Kibic',hp:46,atk:13,def:3,dodge:.1,crit:.12,xp:24,scale:2.6,behave:e=>e.turn%3===0?[{m:1.2,rng:'flare',magic:1,burn:1,say:'Kibic rzuca racę!'}]:(Math.random()<.3?[{m:.6,say:'Kibic wali kijem baseballowym!'},.6]:[1.1])},
+ /* v1.1.1: ZMUTOWANY KOMAR (bagna) – lata, zatruwa i wysysa życie */
+ mutmosq:{name:'Zmutowany komar',pois:.5,drain:.4,hp:52,atk:14,def:2,dodge:.22,crit:.1,xp:30,scale:2.8,behave:e=>e.turn%3===0?[{m:1.7,pois:1,say:'Zmutowany komar wbija żądło i pije krew!'}]:(Math.random()<.4?[.7,.7]:[1])},
  /* BOSSOWIE – po jednym na etap kampanii, agresywne wzorce ataków */
  slimeking:{name:'Król Slime',boss:1,hp:110,atk:12,def:3,dodge:.03,crit:.1,xp:80,scale:3,line:'„Blub… CAŁY LAS BĘDZIE SLIME!”',behave:e=>e.turn%3===0?[1.8]:[.8,.5]},
  orc:{name:'Orc Berserker',boss:1,hp:130,atk:14,def:4,dodge:.05,crit:.15,xp:120,scale:3,line:'„Ha! Słabiutki człowieczek… pokaż, na co cię stać!”',behave:e=>e.turn%2===0?[1.7]:[1]},
- demon:{name:'Demon Lord',boss:1,hp:150,atk:15,def:5,dodge:.08,crit:.2,xp:200,scale:3,line:'„Płomienie otchłani pożrą twoją duszę!”',behave:e=>e.turn%3===0?[2.2]:[.7,.7,.7]},
+ demon:{name:'Demon Lord',boss:1,hp:240,atk:19,def:7,dodge:.08,crit:.2,xp:260,scale:3,line:'„Płomienie otchłani pożrą twoją duszę!”',   // v1.1.1: MOCNIEJSZY (było hp 150, atk 15, def 5) + nowy wzorzec z ogniem otchłani
+  behave:e=>{const t=e.turn%4;
+   if(t===1)return[{m:2.3,say:'Demon Lord uderza płonącym ostrzem!'}];
+   if(t===2)return[{m:.9,magic:1,burn:1,say:'Demon Lord zionie ogniem otchłani!'},.7];
+   if(t===3)return[.8,.8,.8,.6];
+   return[1.1];}},
  yeti:{name:'Yeti',boss:1,hp:150,atk:16,def:5,dodge:.05,crit:.15,xp:150,scale:3,line:'„RRAAAARGH! Nikt nie przeżywa w tych górach!”',behave:e=>e.turn%2===0?[1.8]:[1]},
  spiderqueen:{name:'Królowa Pająków',boss:1,pois:.6,hp:140,atk:14,def:4,dodge:.12,crit:.15,xp:170,scale:3,line:'„Wplącz się w moją sieć… na zawsze.”',behave:e=>e.turn%3===0?[.6,.6,.6,.6]:[1.1]},
  mech:{name:'Mechaniczny Kolos',boss:1,hp:190,atk:18,def:9,dodge:.02,crit:.1,xp:220,scale:3,line:'„SYSTEM: CEL WYKRYTY. PROTOKOŁ LIKWIDACJI.”',behave:e=>e.turn%3===0?[2.3]:[.9,.9]},
@@ -60,7 +68,8 @@ const ENEMY_DEFS={
 };
 function makeEnemy(type,wave,i,boss){   // v1.0
  const d=ENEMY_DEFS[type],k=wave-1,b=1;
- const hp=Math.round(d.hp*(1+.2*k)*b);
+ const hm=d.boss?1:(((MAPS[(G.cur()||{}).map])||{}).hpMul||1);   // v1.1.1: więcej HP zwykłych wrogów na elektrowni i stadionie
+ const hp=Math.round(d.hp*(1+.2*k)*b*hm);
  return{key:type,name:d.name,def:d,turn:1,tags:d.tags||[],air:(d.tags||[]).includes('air'),x:390+i*70,y:205+i*12,hx:0,ox:0,oy:0,alpha:1,flash:0,scale:d.scale,face:-1,ph:i,
   xp:Math.round(d.xp*(1+.1*k)),s:{hp,maxhp:hp,atk:Math.round(d.atk*(1+.15*k)*b),def:Math.round(d.def+k*.6),crit:d.crit,dodge:d.dodge}};
 }
@@ -69,7 +78,7 @@ function makeEnemy(type,wave,i,boss){   // v1.0
    'air' = lata (odporny na broń białą, x0.7); stworzenia naziemne są odporne na ataki dystansowe (x0.7). Orc liczony jako goblin. */
 const TAGS={slime:['slime'],goblin:['goblin'],skeleton:['undead'],shroom:['plant'],elf:['elf'],wolf:['animal'],spider:['animal'],drone:['machine','air'],robot:['machine'],
  imp:['fire','demon','air'],lavagolem:['fire','golem'],kicker:['human'],slimeking:['slime'],orc:['goblin'],yeti:['yeti','winter'],spiderqueen:['animal'],mech:['machine'],demon:['fire','demon','air'],coach:['human'],referee:['human'],bat:['animal','air'],snowman:['winter','snow'],dwarf:['human','dwarf'],basilisk:['animal','reptile'],fighter:['machine','air'],
- drowned:['undead','water'],mosquitos:['animal','air'],witch:['human','air'],
+ drowned:['undead','water'],mosquitos:['animal','air'],mutmosq:['animal','air'],fan:['human'],witch:['human','air'],
  bear:['animal'],beaver:['animal'],leshy:['plant','spirit'],scorpion:['animal'],mummy:['undead'],sphinx:['beast','spirit']};   // utopiec odporny na truciznę, komary i wiedźma latają (odporność na broń białą x0.7)
 for(const k in ENEMY_DEFS)ENEMY_DEFS[k].tags=TAGS[k]||[];
 Object.assign(ENEMY_DEFS.imp,{burn:.3});Object.assign(ENEMY_DEFS.lavagolem,{burn:.4});Object.assign(ENEMY_DEFS.demon,{burn:.4});Object.assign(ENEMY_DEFS.yeti,{freeze:.4});

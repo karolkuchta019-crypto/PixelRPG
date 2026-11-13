@@ -36,8 +36,18 @@ const Slots = {
     const d = rec.player, camp = rec.mode === 'campaign';
     return {
       label: (camp ? `Etap ${rec.level + 1}: ${CAMPAIGN[rec.level].name}, fala ${rec.wave}/${rec.waves.length}` : `Fala ${rec.wave}`) + (rec.state === 'clear' ? ' ✓' : ''),
+      stage: camp ? rec.level : null, wave: rec.wave, total: camp ? rec.waves.length : null, clear: rec.state === 'clear',   // v1.1.1: dane strukturalne – etykieta tłumaczona na bieżący język
       level: d.level, kills: d.kills || 0, deaths: d.deaths || 0
     };
+  },
+  /* etykieta slotu w aktualnym języku (stare zapisy bez pól strukturalnych: tłumaczy zapisany napis) */
+  label(r) {
+    const m = r.meta || {};
+    if (m.wave == null) return trn(m.label || '');
+    const mark = m.clear ? ' ✓' : '';
+    return m.stage != null && CAMPAIGN[m.stage]
+      ? trn(`Etap ${m.stage + 1}: ${CAMPAIGN[m.stage].name}, fala ${m.wave}/${m.total}${mark}`)
+      : trn(`Fala ${m.wave}${mark}`);
   },
   async save(n) {
     const rec = G.snapshot();

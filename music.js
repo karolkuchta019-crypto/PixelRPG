@@ -23,5 +23,5 @@ const Music={on:false,id:null,cur:null,cache:{},warned:{},vol:.5,
   else if(want&&want.bad&&!this.warned[this.id]){this.warned[this.id]=1;UI.log(`Brak pliku muzyki: ${this.file(this.id)}`);}},
  toggle(){this.on=!this.on;this.apply();this.sync();UI.log('Muzyka: '+(this.on?'włączona':'wyłączona')+' (M)','crit');},
  sync(){if(!this.btn)return;this.btn.classList.toggle('off',!this.on);this.btn.setAttribute('aria-pressed',this.on);
-  this.btn.title=this.on?'Muzyka włączona – kliknij lub naciśnij M, aby wyłączyć':'Muzyka wyłączona – kliknij lub naciśnij M, aby włączyć';}
+  this.btn.title=trn(this.on?'Muzyka włączona – kliknij lub naciśnij M, aby wyłączyć':'Muzyka wyłączona – kliknij lub naciśnij M, aby włączyć');this.btn.setAttribute('aria-label',trn('Muzyka')+' (M)');}
 };

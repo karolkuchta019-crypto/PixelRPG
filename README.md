@@ -98,3 +98,10 @@ Pełna lista zmian w CHANGELOG.md. Najważniejsze:
 - Grafiki: `cd tools && python3 generate_v1.py` (Pillow + numpy). Bohater/ekwipunek/Trener: `tools/legacy/generate_assets_v9.py`.
 - Nowy wróg: wpis w `ENEMY_DEFS` (enemies.js), `ASSETS` (assets.js), pliki w assets/enemies/; dialogi bossa: `DLG`.
 - Dodatkowe animacje (np. `drowned_throw.png`): pole `extra` w ASSETS; efekt rzutu: `rng:'trident'|'laser'|'snowball'` w `behave`.
+
+## Wersja 1.1.0 – zapis w PostgreSQL
+Grę uruchamiaj przez serwer (nie przez file://): `createdb pixelrpg && cd server && npm install && npm start`, potem http://localhost:3000.
+Zmienne: `DATABASE_URL`, `PORT` (patrz `server/.env.example`). Testy API: `cd server && npm test`. Pełna lista zmian: CHANGELOG.md.
+
+## Wersja 1.1.1
+Język zmieniasz w menu Tab → Ustawienia. Ruch po kliknięciu włączysz tam samo. Dopisywanie tłumaczeń: `i18n.js` (słownik `DICT` i wzorce `PAT`).

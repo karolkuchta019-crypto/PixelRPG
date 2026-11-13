@@ -30,7 +30,7 @@ const Combat={busy:false,guard:false,fbCd:0,
   G.text(t,b?'PODPALONY':'TRUCIZNA',b?'#ff9a40':'#7aff6a');UI.log(`${t.name} ${b?'płonie':'zostaje zatruty'} (3 tury, ${dm} HP/turę)!`,'bad');},
  async strike(a,t,mult,acc,force,name,o={}){
   if(o.say)UI.log(o.say,'bad');
-  a.anim=o.rng==='bullet'?'shoot':(o.rng==='bottle'||o.rng==='trident')?'throw':o.rng==='ball'?'kick':'';   // wybór animacji ataku (jeśli postać ją ma)
+  a.anim=o.rng==='bullet'?'shoot':(o.rng==='bottle'||o.rng==='trident'||o.rng==='flare')?'throw':o.rng==='ball'?'kick':'';   // wybór animacji ataku (jeśli postać ją ma)
   const dir=Math.sign(t.x-a.x)||1,sk=Player.d.sk||{},df=a.def||{};
   if(o.pass){/* v1.1: pocisk (kula ognia) leci osobno przez wszystkich wrogów – tu tylko trafienie */}else if(o.rng)await G.shoot(a,t,o.rng);else await G.dash(a,t);
   if(!o.pass)a.pose='attack';
@@ -44,7 +44,7 @@ const Combat={busy:false,guard:false,fbCd:0,
   else{if(t===G.p&&this.guard)r.dmg=Math.max(1,Math.round(r.dmg*.4));
    t.s.hp=Math.max(0,t.s.hp-r.dmg);t.flash=1;G.text(t,one?'ZABITY!':(r.crit?'KRYT! ':'')+r.dmg,r.crit?'#f2c14e':'#fff',r.crit);
    if(a===G.p&&sk.vamp){const v=Math.max(1,Math.round(r.dmg*.2));a.s.hp=Math.min(a.s.maxhp,a.s.hp+v);G.text(a,'+'+v,'#7aff9a');}
-   G.hitfx(t,o.rng==='bottle'&&Assets.fx.bottle?'bottle':r.crit?'crit':'hit');G.burst(t.x,t.y-30,o.rng==='bottle'?'#5ad07a':r.crit?'#f2c14e':'#fff',r.crit?24:10);if(r.crit)G.shake=10;
+   G.hitfx(t,o.rng==='bottle'&&Assets.fx.bottle?'bottle':r.crit?'crit':'hit');G.burst(t.x,t.y-30,o.rng==='bottle'?'#5ad07a':o.rng==='flare'?'#ff7a30':r.crit?'#f2c14e':'#fff',r.crit?24:10);if(r.crit)G.shake=10;
    if(!o.rng)G.slash(t,dir);await sleep(60);if(t.s.hp>0)G.knock(t,dir);   // hit-stop + odrzut
    UI.log(`${name} zadaje ${r.dmg} obrażeń${r.crit?' (KRYTYK!)':''}${res?' (odporność)':''}.`,r.crit?'crit':(t===G.p?'bad':''));
    const k=[];if(o.pois||(df.pois&&Math.random()<df.pois)||(a===G.p&&sk.venom&&Math.random()<.35))k.push('poison');
@@ -91,7 +91,7 @@ const Combat={busy:false,guard:false,fbCd:0,
    if(m.heal){await this.healSelf(e,m);continue;}
    if(m.buff){await this.whistle(e,m);continue;}
    const o=typeof m==='number'?{m}:m,pool=[G.p,...G.comps.filter(c=>c.s.hp>0)],tg=o.p?G.p:pool[Math.floor(Math.random()*pool.length)];   // wróg bije gracza albo kompana
-   await this.strike(e,tg,o.m*(e.haste?1.4:1),.9,false,e.name,{rng:o.rng,pois:o.pois,say:o.say,sand:o.sand,stone:o.stone,freeze:o.freeze,magic:o.magic});}
+   await this.strike(e,tg,o.m*(e.haste?1.4:1),.9,false,e.name,{rng:o.rng,pois:o.pois,say:o.say,sand:o.sand,stone:o.stone,freeze:o.freeze,magic:o.magic,burn:o.burn});}
   e.turn++;},
  async initiative(){for(const e of [...G.enemies]){if(!e.haste||e.s.hp<=0||Player.d.hp<=0)continue;
    UI.log(`${e.name} (szybkość) atakuje jako pierwszy!`,'bad');G.text(e,'PIERWSZY!','#ffd24a');await this.enemyAct(e);e.acted=1;}},
@@ -108,6 +108,7 @@ const Combat={busy:false,guard:false,fbCd:0,
   G.actors=G.actors.filter(a=>!G.enemies.includes(a));G.enemies=[];this.busy=false;return G.win();},
  async act(kind){
   if(kind==='skipwave')return this.skipWave();
+  if(kind==='toboss')return G.jumpToBoss();   // v1.1.1 (dev)
   if(this.busy||G.state!=='fight')return;
   const p=G.p,t=G.target(),sk=Player.d.sk||{};if(!t)return;
   if(!p.freeze){if(kind==='potion'&&Player.d.potions<1){UI.log('Brak eliksirów!');return;}if(kind==='shoot'&&!(sk.bow||sk.xbow))return;if(kind==='fire'&&(!sk.fire||this.fbCd>0))return;}
