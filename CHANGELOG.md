@@ -139,7 +139,7 @@
 
 ---
 
-## [8.3] – 2026-11-09
+## [9.0] – 2026-11-09
 
 ### Dodane
 - Etap **Tajga** (między Moczarami a Lodowymi górami): niedźwiedź brunatny, bóbr, boss Leszy (drapnięcie + ryk).
@@ -148,5 +148,5 @@
 
 ---
 
-## [8.2] – wcześniejsza wersja bazowa
+## [1 - 8.3] – wcześniejsza wersja bazowa
 - Kampania, tryb nieskończony, zbrojmistrz, kupiec, moczary, bossowie, muzyka, swing miecza.
