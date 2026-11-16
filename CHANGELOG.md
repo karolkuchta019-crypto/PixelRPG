@@ -1,5 +1,32 @@
 # Changelog – Monster Waves
 
+## [1.2.0]
+
+### Tryb nieskończony (bardziej grywalny)
+- Łagodny start: fale 1-2 to tylko jeden najsłabszy wróg mapy; liczba wrogów rośnie powoli (1 → 4).
+- Trudność rośnie wolniej niż dawniej (fala 10 ≈ 5, 20 ≈ 9,5, 30 ≈ 17,5; wcześniej: równa numerowi fali), a XP wrogów ma premię ×1,5.
+- Mapa zmienia się co 5 fal, a 5. fala każdej mapy to jej boss.
+- W statystykach (Tab → Menu) jest **najdalsza fala** w trybie nieskończonym.
+
+### Osiągnięcia (Tab → zakładka Osiągnięcia)
+10 osiągnięć w prostokątnych kafelkach jeden pod drugim (ikona + opis + stan); powiadomienie w rogu ekranu po odblokowaniu. Postęp zapisuje się w przeglądarce (`mw_prog`), osiągnięć nie przyznaje tryb deweloperski.
+
+### Nowi przeciwnicy
+Dmuchawiec (las), Zmutowany jeż i Drzewiec (tajga), Czarny kot (bagna), Rybik cukrowy (jaskinia), Zepsute zmutowane auto (stara elektrownia). **Z Yeti wychodzą pchły** (co 4. turę, po 2).
+
+### Nowe ulepszenia u handlarza (po pokonaniu Yeti)
+- **Atak pioruna – 18 pkt:** czarna chmura nadlatuje i razi wybranego wroga (50% jego maks. życia); raz na etap.
+- **Totem nieśmiertelności – 25 pkt:** zamiast śmierci odradzasz się z 50% HP (totem się zużywa, można kupić kolejny).
+
+### Inne
+- Zbroję dla giermka kupisz tylko, gdy masz giermka.
+- **Ustawienia graficzne** (Tab → Ustawienia): jakość Niska / Średnia / Wysoka.
+- Menu (Tab) ma zakładki: Menu | Ustawienia | Osiągnięcia.
+- Licznik śmierci przeżywa „Spróbuj ponownie”.
+- Nowe grafiki: 7 przeciwników, 10 ikon osiągnięć (generator: `tools/generate_v120.py`).
+
+---
+
 ## [1.1.1]
 
 ### Przeciwnicy i etapy
@@ -139,7 +166,7 @@
 
 ---
 
-## [9.0] – 2026-11-09
+## [8.3] – 2026-11-09
 
 ### Dodane
 - Etap **Tajga** (między Moczarami a Lodowymi górami): niedźwiedź brunatny, bóbr, boss Leszy (drapnięcie + ryk).
@@ -148,5 +175,5 @@
 
 ---
 
-## [1 - 8.3] – wcześniejsza wersja bazowa
+## [8.2] – wcześniejsza wersja bazowa
 - Kampania, tryb nieskończony, zbrojmistrz, kupiec, moczary, bossowie, muzyka, swing miecza.

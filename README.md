@@ -105,3 +105,6 @@ Zmienne: `DATABASE_URL`, `PORT` (patrz `server/.env.example`). Testy API: `cd se
 
 ## Wersja 1.1.1
 Język zmieniasz w menu Tab → Ustawienia. Ruch po kliknięciu włączysz tam samo. Dopisywanie tłumaczeń: `i18n.js` (słownik `DICT` i wzorce `PAT`).
+
+## Wersja 1.2.0
+Osiągnięcia, język, jakość grafiki i ruch po kliknięciu są w menu Tab (zakładki Menu / Ustawienia / Osiągnięcia). Postęp osiągnięć i rekord trybu nieskończonego zapisują się lokalnie w przeglądarce.
