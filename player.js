@@ -6,7 +6,7 @@
    Jedna kula przelatuje przez wszystkich wrogów: pierwszy dostaje 100%, każdy następny 50% poprzedniego. */
 const FIRE = { base: 70, step: 15, cd: 5 };            // moc bazowa, +moc za ulepszenie, odnowa w turach
 /* v1.1: skórzana zbroja giermka (kowal) – +DEF dla każdego giermka, także późniejszego */
-const SQ_ARMOR = { id: 'sq_leather', name: 'Skórzana zbroja giermka', desc: '+4 DEF giermka (także przyszłego)', cost: 3, def: 4 };
+const SQ_ARMOR = { id: 'sq_leather', name: 'Skórzana zbroja giermka', desc: '+4 DEF giermka', cost: 3, def: 4 };   // v1.2.0: do kupienia tylko, gdy masz giermka
 
 const Player = {
   d: null,
@@ -92,9 +92,11 @@ const Player = {
     if (it.slot === 'ranged' && it.skill) {   // broń dystansowa: odblokowuje umiejętność (kusza zastępuje łuk)
       d.sk[it.skill] = 1;
       if (it.skill === 'xbow') d.sk.bow = 1;
+      Prog.scan();
       return true;
     }
     d.gear[it.slot] = id;
+    Prog.scan();
     return true;
   },
 
@@ -121,17 +123,28 @@ const Player = {
     if (!G.dev) d.pending -= c;
     d.wi[id] = (d.wi[id] || 0) + 1;
     if (k.f) k.f(d);
+    Prog.scan();
     return true;
+  },
+
+  hasSquire() { return ((this.d && this.d.comps) || []).some(k => k.t === 'squire'); },
+
+  /* v1.2.0: czy bohater ma jakiekolwiek kupione ulepszenia (umiejętności, ekwipunek, wiedźma, zbroja giermka)? – osiągnięcie „Yeti bez ulepszeń” */
+  hasUpgrades() {
+    const d = this.d;
+    return Object.values(d.sk || {}).some(v => v > 0) || Object.values(d.gear || {}).some(Boolean) ||
+      Object.values(d.wi || {}).some(v => v > 0) || !!d.sqArmor || (d.comps || []).length > 0;
   },
 
   /* kowal: zbroja dla giermka (jednorazowo) */
   buySqArmor() {
     const d = this.d;
-    if (d.sqArmor) return false;
+    if (d.sqArmor || !this.hasSquire()) return false;
     if (!G.dev && d.pending < SQ_ARMOR.cost) return false;
     if (!G.dev) d.pending -= SQ_ARMOR.cost;
     d.sqArmor = 1;
     (d.comps || []).forEach(k => { if (k.t === 'squire') k.def += SQ_ARMOR.def; });
+    Prog.scan();
     return true;
   },
 
@@ -157,11 +170,12 @@ const Player = {
     const c = this.cost(k);
     d.sk = d.sk || {};
     d.comps = d.comps || [];
-    if ((!G.dev && d.pending < c) || (d.sk[id] || 0) >= k.max || (k.comp && d.comps.length >= 3) || (k.req && !d.sk[k.req]))
+    if ((!G.dev && d.pending < c) || (d.sk[id] || 0) >= k.max || (k.comp && d.comps.length >= 3) || (k.req && !d.sk[k.req]) || (k.need && !d[k.need]))
       return false;
     if (!G.dev) d.pending -= c;
     d.sk[id] = (d.sk[id] || 0) + 1;
     k.f(d);
+    Prog.scan();
     return true;
   }
 };
@@ -181,6 +195,9 @@ const SKILLS = [
   { id: 'frost',  name: 'Mroźne ostrze',        desc: 'zamrożenie 30% (oprócz zimowych)', cost: 3, max: 1, f: () => {} },
   { id: 'resist', name: 'Odporność na efekty',  desc: '-25% szans na truciznę/ogień/zamrożenie', cost: 2, max: 3, f: () => {} },
   { id: 'fire',   name: 'Kula ognia',           desc: `jedna kula przez wszystkich wrogów (100%, 50%, 25%…), moc ${FIRE.base} niezależna od ATK, podpalenie, odnowa ${FIRE.cd} tur`, cost: 10, max: 1, f: () => {} },
+  /* v1.2.0: ulepszenia odblokowane po pokonaniu Yeti (d.yetiDown) */
+  { id: 'thunder', name: 'Atak pioruna',          desc: 'czarna chmura razi wybranego wroga: 50% jego maks. życia; raz na etap', cost: 18, max: 1, need: 'yetiDown', f: () => {} },
+  { id: 'totem',   name: 'Totem nieśmiertelności', desc: 'po śmierci odradzasz się z 50% HP (zużywa się; można kupić ponownie)', cost: 25, max: 1, need: 'yetiDown', f: () => {} },
   { id: 'fireup', name: 'Moc kuli ognia',       desc: `+${FIRE.step} mocy kuli ognia (osobno od ATK)`, cost: 2, max: 10, req: 'fire', f: () => {} },
   { id: 'double', name: 'Podwójne uderzenie',   desc: '25% szans na drugi cios przy ataku', cost: 4, max: 1, f: () => {} },
   { id: 'compS',  name: 'Kompan: Giermek',      desc: 'walczy u twego boku aż padnie',  cost: 5, max: 99, comp: 1, f: d => Player.addComp(d, 'squire') },

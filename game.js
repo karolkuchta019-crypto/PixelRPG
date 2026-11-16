@@ -1,4 +1,4 @@
-const VERSION='1.1.1';
+const VERSION='1.2.0';
 const MERCHANT_LINES=['Witaj, wojowniku! Mam coś dla ciebie.','Droga daleka... zajrzyj do mojego straganu!','Za twoje punkty mam same cuda!','Hmm! Dobrze wyglądasz. Handlujemy?'];
 const SMITH_LINES=['Potrzebujesz solidnej stali?','Miecze, zbroje, tarcze – wybieraj!','Moja kuźnia nigdy nie stygnie.','Za punkty dam ci najlepszy ekwipunek.'];
 const WITCH_LINES=['Hehehe… pokonałeś mnie, ale kociołek wciąż bulgocze. Kupisz coś?','Eliksiry, talizmany… na szczęście nikt jeszcze nie narzekał.','Łapka królika? Czterolistna koniczyna? Wybieraj, rycerzu.','Bez urazy za tamtą walkę. Interes to interes!'];
@@ -12,8 +12,13 @@ const SWING_COL={sword_wood:'#e8d4a0',sword_iron:'#e6ecf8',sword_steel:'#cfe6ff'
 const COMP_OFF=[[-48,-26],[-48,28],[-92,2]];
 const tween=(o,p,ms,ez)=>new Promise(r=>{const f={},e=EASE[ez]||(u=>u);for(const k in p)f[k]=o[k];const t0=performance.now();
  (function s(t){const u=Math.min(1,(t-t0)/ms);for(const k in p)o[k]=f[k]+(p[k]-f[k])*e(u);u<1?requestAnimationFrame(s):r();})(t0);});
-const G={sunAlt:false,clickMove:false,devBoss:false,mark:null,npcs:[],hub:null,hubReturn:null,waves:[],top:[],comps:[],state:'title',mode:'endless',level:0,wave:1,p:null,actors:[],enemies:[],fx:[],keys:{},shake:0,fade:0,t:0,sel:null,xpWave:0,
+const G={quality:1,S:1,flash:0,cloud:null,fxTotem:null,sunAlt:false,clickMove:false,devBoss:false,mark:null,npcs:[],hub:null,hubReturn:null,waves:[],top:[],comps:[],state:'title',mode:'endless',level:0,wave:1,p:null,actors:[],enemies:[],fx:[],keys:{},shake:0,fade:0,t:0,sel:null,xpWave:0,
+ /* v1.2.0: JAKOŚĆ GRAFIKI 0=niska, 1=średnia, 2=wysoka. Wysoka: płótno 2x (ostrzejsze kształty i napisy), więcej cząsteczek i winieta. Niska: mniej efektów, rysowanie co drugą klatkę, mniejsze wstrząsy. */
+ setQuality(q,noSave){q=Math.max(0,Math.min(2,q|0));this.quality=q;this.S=q===2?2:1;
+  if(this.cv){this.cv.width=640*this.S;this.cv.height=320*this.S;this.c.imageSmoothingEnabled=false;}
+  try{if(!noSave)localStorage.setItem('mw_quality',String(q));}catch(e){}},
  init(){this.cv=UI.$('cv');this.c=this.cv.getContext('2d');this.c.imageSmoothingEnabled=false;Music.init();
+  {let q=1;try{const s=localStorage.getItem('mw_quality');if(s!==null)q=+s;}catch(e){}this.setQuality(q,true);}
   addEventListener('keydown',e=>{this.keys[e.key.toLowerCase()]=1;if(e.key.toLowerCase()==='e')this.interact();if(e.key.toLowerCase()==='m'&&!e.repeat)Music.toggle();
    if(e.key==='Tab'&&!e.repeat){e.preventDefault();UI.toggleMenu();return;}
    if(this.state==='cutscene'&&(e.key===' '||e.key==='Enter'))Cut.next();
@@ -60,7 +65,8 @@ const G={sunAlt:false,clickMove:false,devBoss:false,mark:null,npcs:[],hub:null,h
  newRun(){UI.$('log').innerHTML='';this.hub=null;this.loadWave();},
  cur(){if(this.mode==='campaign'){const L=CAMPAIGN[this.level];return{map:L.map,...this.waves[this.wave-1]};}return getWave(this.wave);},
  /* trudność: wolniej rośnie z numerem fali (etapy mają teraz więcej fal), mocniej z numerem etapu */
- diff(){return this.mode==='campaign'?Math.max(1,Math.round(this.level*1.2+this.wave*.5)):this.wave;},
+ /* v1.2.0: tryb nieskończony – łagodny start i powolny wzrost (dawniej 1:1 z numerem fali): fala 5 ≈ 2.8, fala 10 ≈ 5, fala 20 ≈ 9.5, fala 30 ≈ 17.5 */
+ diff(){return this.mode==='campaign'?Math.max(1,Math.round(this.level*1.2+this.wave*.5)):Math.max(1,1+(this.wave-1)*.45+Math.max(0,this.wave-20)*.35);},
  loadWave(travel,D,quiet){const w=this.cur();this.xpWave=0;this.sel=null;
   if(!travel){Player.d.gear=Player.d.gear||{sword:null,armor:null,shield:null};this.p={key:Player.spriteKey(),name:'Bohater',x:110,y:215,ox:0,oy:0,alpha:1,flash:0,scale:3,face:1,ph:0,s:Player.d,vy:0,jumping:0};}
   if(!travel){
@@ -71,7 +77,8 @@ const G={sunAlt:false,clickMove:false,devBoss:false,mark:null,npcs:[],hub:null,h
   this.enemies=w.e.map((t,i)=>makeEnemy(t,this.diff(),i,w.boss&&i===0));
   if(travel)this.enemies.forEach(e=>e.ox=D||640);   // wrogowie wjeżdżą razem z nową mapą
   this.actors=[this.p,...this.comps,...this.enemies,...(travel?this.npcs:[])];if(!travel){this.npcs=[];if(!quiet)this.begin(w);}},
- begin(w){Music.play(w.map);Combat.busy=false;Combat.guard=false;this.mark=null;Combat.refreshHaste(true);   // v1.1.1: sędzia obecny od początku fali daje piłkarzom szybkość
+ begin(w){Music.play(w.map);Combat.busy=false;Combat.guard=false;this.mark=null;Combat.refreshHaste(true);if(this.mode==='endless')Prog.reach(this.wave);   // v1.2.0: rekord fali + osiągnięcie
+    // v1.1.1: sędzia obecny od początku fali daje piłkarzom szybkość
  
   UI.log(`--- ${UI.waveLabel()}: ${MAPS[w.map].name} ---`,'crit');
   if(w.boss){const b=this.enemies[0];UI.log('UWAGA! BOSS: '+b.name,'bad');this.shake=14;this.state='talk';UI.hud();UI.lock(true);this.bossIntro(b);}   // v1.0: boss najpierw obraża bohatera
@@ -103,20 +110,21 @@ const G={sunAlt:false,clickMove:false,devBoss:false,mark:null,npcs:[],hub:null,h
    this.burst(a.x,a.y-20,'#fff',16);this.text(a,'DOŁĄCZA!','#f2c14e');tween(a,{alpha:1},700);});},
  text(a,txt,col,big){this.fx.push({txt:trn(txt),x:a.x+a.ox,y:a.y+a.oy-a.scale*32-10,c:col,life:1,big});},
  hitfx(a,k){this.fx.push({spr:k,x:a.x+a.ox,y:a.y+a.oy-a.scale*14,life:1});},
- burst(x,y,c,n){for(let i=0;i<n;i++)this.fx.push({x,y,vx:(Math.random()-.5)*6,vy:-Math.random()*5,life:1,c,sz:2+Math.random()*3,pt:1});},
+ burst(x,y,c,n){n=Math.ceil(n*[.35,1,1.5][this.quality]);for(let i=0;i<n;i++)this.fx.push({x,y,vx:(Math.random()-.5)*6,vy:-Math.random()*5,life:1,c,sz:2+Math.random()*3,pt:1});},
  async win(){this.state='won';UI.lock(true);const d=Player.d,heal=Math.round(d.maxhp*.3);d.hp=Math.min(d.maxhp,d.hp+heal);
   let rw=`Fala pokonana! +${this.xpWave} XP, +${heal} HP`;if(this.wave%2===0){d.potions++;rw+=', +1 eliksir';}
   const pts=this.cur().boss?3:1;d.pending+=pts;rw+=`, +${pts} pkt umiejętności`;
   (d.comps||[]).forEach(c=>c.hp=Math.min(c.maxhp,c.hp+Math.round(c.maxhp*.3)));[this.p,...this.comps].forEach(x=>{x.poison=x.burn=x.freeze=x.sand=null;});
   UI.log(rw,'good');UI.hud();if(this.mode==='endless')Save.set('endless',{p:d,w:this.wave+1});
   {const wv=this.cur();if(this.mode==='campaign'&&wv.boss&&wv.e[0]==='witch'&&!d.witch){d.witch=1;UI.log('Wiedźma przeżyła i osiadła w chatce na Moczarach – możesz ją odwiedzić (mapa świata, Tab).','crit');}}   // v1.1
-  if(this.mode==='campaign'&&this.level>=CAMPAIGN.length-1&&this.wave>=this.waves.length){this.saveC();await sleep(900);return Story.good();}
+  if(this.cur().boss)Prog.bossDown(this.cur().e[0]);   // v1.2.0: Król Slime / Yeti (odblokowuje ulepszenia u kupca)
+  if(this.mode==='campaign'&&this.level>=CAMPAIGN.length-1&&this.wave>=this.waves.length){this.saveC();Prog.won();await sleep(900);return Story.good();}
   await sleep(600);this.state='clear';this.clearNpcs();},
  saveC(){const s=Save.get('campaign')||{cleared:0};Save.set('campaign',{p:Player.d,cleared:Math.min(CAMPAIGN.length,Math.max(s.cleared,this.level+1))});},
  /* gracz dochodzi do prawej krawędzi -> (sklep) -> płynne przejście na kolejną mapę */
  async advance(fast){if(this.state!=='clear')return;if(this.hub)return this.leaveHub();this.state='moving';
   const camp=this.mode==='campaign',end=camp&&this.wave>=this.waves.length;
-  if(end&&this.level>=CAMPAIGN.length-1){this.saveC();return UI.screen('KAMPANIA UKOŃCZONA!','Pokonałeś wszystkich bossów. Gratulacje!',[{l:'Menu',f:()=>UI.title()}]);}
+  if(end&&this.level>=CAMPAIGN.length-1){this.saveC();Prog.won();return UI.screen('KAMPANIA UKOŃCZONA!','Pokonałeś wszystkich bossów. Gratulacje!',[{l:'Menu',f:()=>UI.title()}]);}
   await (fast?this.instant:this.travel).call(this,()=>{if(end){this.saveC();this.level++;this.wave=1;this.waves=buildWaves(this.level);this.wave=this.stageStart();Player.d.hp=Player.d.maxhp;this.snap=JSON.stringify(Player.d);}
    else{this.wave++;if(!camp)Save.set('endless',{p:Player.d,w:this.wave});}});},
  async instant(setup){await tween(this,{fade:1},220);setup();this.npcs=[];this.loadWave();this.banner={txt:MAPS[this.cur().map].name,t:0};await tween(this,{fade:0},260);},
@@ -181,7 +189,7 @@ const G={sunAlt:false,clickMove:false,devBoss:false,mark:null,npcs:[],hub:null,h
   const d=Player.d=rec.player;d.gear=d.gear||{sword:null,armor:null,shield:null};d.comps=d.comps||[];d.sk=d.sk||{};
   this.mode=rec.mode;this.wave=rec.wave;this.level=rec.mode==='campaign'?rec.level:0;this.waves=rec.mode==='campaign'?rec.waves:[];this.snap=rec.snap||null;
   if(rec.state==='clear')this.loadClear();else this.newRun();
-  Combat.fbCd=rec.fbCd||0;UI.hud();if(this.state==='fight'||this.state==='clear')UI.lock(false);},
+  Combat.fbCd=rec.fbCd||0;UI.hud();if(this.state==='fight'||this.state==='clear')UI.lock(false);Prog.scan();},
  /* arena po wygranej fali (bez wrogów) – ze sklepami */
  loadClear(){UI.$('log').innerHTML='';this.loadWave(false,0,true);this.enemies=[];this.actors=[this.p,...this.comps];this.xpWave=0;
   Music.play(this.cur().map);Combat.busy=false;Combat.guard=false;this.state='clear';
@@ -201,7 +209,7 @@ const G={sunAlt:false,clickMove:false,devBoss:false,mark:null,npcs:[],hub:null,h
    ay=ball?a.y+a.oy-6*a.scale:a.y+a.oy-ASSETS[a.key].fh*a.scale*.5-(a.air?18:0),bx=t.x+t.ox,by=t.y+t.oy-ASSETS[t.key].fh*t.scale*.5;
   if((kind==='bottle'||kind==='trident'||kind==='flare')&&a.anim==='throw'){a.pose='attack';await sleep(330);}   // zamach, potem puszczenie butelki
   if(ball){this.proj={ax,ay,bx,by,u:0,kind};a.pose='attack';await sleep(190);}                    // v1.1: zamach nogą (animacja kopnięcia), kopnięcie w 2. klatce
-  this.proj={ax,ay,bx,by,u:0,kind};a.pose='attack';await tween(this.proj,{u:1},kind==='bottle'?550:kind==='flare'?480:kind==='ball'?430:kind==='trident'||kind==='snowball'?460:kind==='fire'?380:kind==='bullet'?200:kind==='laser'?170:280);this.proj=null;},
+  this.proj={ax,ay,bx,by,u:0,kind};a.pose='attack';await tween(this.proj,{u:1},kind==='bottle'?550:kind==='spore'?420:kind==='flare'?480:kind==='ball'?430:kind==='trident'||kind==='snowball'?460:kind==='fire'?380:kind==='bullet'?200:kind==='laser'?170:280);this.proj=null;},
  /* v1.1: JEDNA kula ognia przelatuje przez wszystkich wrogów (od najbliższego). onHit(wróg,i) odpala trafienie w chwili, gdy kula do niego doleci;
     kula maleje z każdym trafieniem (tak samo jak obrażenia: 100% -> 50% -> 25% ...) i na końcu wylatuje poza arenę. */
  async fireThrough(a,foes,onHit){
@@ -221,11 +229,13 @@ const G={sunAlt:false,clickMove:false,devBoss:false,mark:null,npcs:[],hub:null,h
   else if(p.kind==='snowball'){c.fillStyle='#9ad4f4';c.beginPath();c.arc(x,y,10,0,7);c.fill();c.fillStyle='#ffffff';c.beginPath();c.arc(x-2,y-2,8,0,7);c.fill();}
   else if(p.kind==='bullet'){c.fillStyle='#ffe070';for(let i=-1;i<=1;i++)c.fillRect(x-d*5*Math.abs(i),y+i*7*p.u,5,4);}
   else if(p.kind==='fire'){const k=p.k||1;   // k: kula maleje z każdym trafionym wrogiem
-   for(let i=0;i<5;i++){c.globalAlpha=.5-i*.09;c.fillStyle=i%2?'#ffd060':'#ff7a20';c.beginPath();c.arc(x-d*i*9*k,y+Math.sin(i+p.u*20)*3,(11-i*1.6)*k,0,7);c.fill();}
+   for(let i=0;i<(this.quality?5:2);i++){c.globalAlpha=.5-i*.09;c.fillStyle=i%2?'#ffd060':'#ff7a20';c.beginPath();c.arc(x-d*i*9*k,y+Math.sin(i+p.u*20)*3,(11-i*1.6)*k,0,7);c.fill();}
    c.globalAlpha=1;c.fillStyle='#ffe070';c.beginPath();c.arc(x,y,8*k,0,7);c.fill();c.fillStyle='#ff5a10';c.beginPath();c.arc(x,y,5*k,0,7);c.fill();}
   else if(p.kind==='flare'){c.globalAlpha=.5;c.fillStyle='#ff7a20';c.beginPath();c.arc(x,y,13+Math.sin(p.u*40)*2,0,7);c.fill();c.globalAlpha=1;   // v1.1.1: raca kibica – wirująca, z poświatą i iskrami
    c.save();c.translate(x,y);c.rotate(p.u*18*d);c.fillStyle='#14101f';c.fillRect(-9,-3.5,18,7);c.fillStyle='#e03020';c.fillRect(-8,-2.5,16,5);c.fillStyle='#f2f2f2';c.fillRect(-3,-2.5,3,5);c.fillStyle='#ffe070';c.fillRect(8,-3,4,6);c.fillStyle='#fff6c0';c.fillRect(10,-1.5,3,3);c.restore();
    for(let i=0;i<4;i++){c.fillStyle=i%2?'#ffe070':'#ff5a10';c.fillRect(x-d*(6+i*5)+Math.sin(i*3+p.u*30)*2,y+Math.cos(i*2+p.u*25)*5,3,3);}}
+  else if(p.kind==='spore'){for(let i=0;i<7;i++){const q=p.u*18+i*2.1,sx=x-d*i*5+Math.sin(q)*3,sy=y+Math.cos(q*1.3)*4;   // v1.2.0: nasiona dmuchawca
+   c.globalAlpha=.9-i*.1;c.fillStyle='#f4f4ff';c.beginPath();c.arc(sx,sy,3.2-i*.2,0,7);c.fill();c.fillStyle='#c8c8dc';c.fillRect(sx-1,sy+3,2,3);}c.globalAlpha=1;}
   else if(p.kind==='ball'){c.save();c.translate(x,y);c.rotate(p.u*16*d);c.fillStyle='#14101f';c.beginPath();c.arc(0,0,8.5,0,7);c.fill();c.fillStyle='#f6f6f6';c.beginPath();c.arc(0,0,7,0,7);c.fill();   // piłka nożna
    c.fillStyle='#2a2a38';c.beginPath();for(let i=0;i<5;i++){const q=i*Math.PI*2/5-Math.PI/2;c.lineTo(Math.cos(q)*3,Math.sin(q)*3);}c.closePath();c.fill();
    for(let i=0;i<5;i++){const q=i*Math.PI*2/5-Math.PI/2;c.fillRect(Math.cos(q)*6-1,Math.sin(q)*6-1,2,2);}c.restore();}
@@ -260,7 +270,9 @@ const G={sunAlt:false,clickMove:false,devBoss:false,mark:null,npcs:[],hub:null,h
   const d=Player.d;d.hp=d.maxhp;(d.comps||[]).forEach(c=>c.hp=c.maxhp);
   this.mode='campaign';this.level=i;this.wave=1;this.waves=buildWaves(i);this.wave=this.stageStart();this.snap=JSON.stringify(d);this.npcs=[];this.bg=null;this.banner=null;Combat.busy=false;this.newRun();
   this.banner={txt:CAMPAIGN[i].name,t:0};},
- async lose(){this.state='over';Player.d.deaths=(Player.d.deaths||0)+1;
+ /* v1.2.0: licznik śmierci zapisany też w migawce etapu i autozapisie – „Spróbuj ponownie” nie kasuje śmierci (osiągnięcie „bez jednej rysy”) */
+ syncDeaths(){const n=Player.d.deaths;try{if(this.snap){const s=JSON.parse(this.snap);s.deaths=n;this.snap=JSON.stringify(s);}const sv=Save.get('campaign');if(sv&&sv.p){sv.p.deaths=n;Save.set('campaign',sv);}}catch(e){}},
+ async lose(){this.state='over';Player.d.deaths=(Player.d.deaths||0)+1;this.syncDeaths();
   if(this.mode==='campaign'&&this.level>=CAMPAIGN.length-1)await Story.bad();
   if(this.mode==='campaign'){
     /* po śmierci – mapa świata (cofnięcie do odblokowanych etapów) */
@@ -268,7 +280,7 @@ const G={sunAlt:false,clickMove:false,devBoss:false,mark:null,npcs:[],hub:null,h
   }
   Save.clear('endless');UI.screen('GAME OVER',`Pokonane fale: ${this.wave-1}. Poziom: ${Player.d.level}.`,
    [{l:'Zagraj ponownie',f:()=>this.startEndless(true)},{l:'Menu',f:()=>UI.title()}]);},
- loop(t){const dt=t-this.t;this.t=t;this.update();this.draw();requestAnimationFrame(x=>this.loop(x));},
+ loop(t){const dt=t-this.t;this.t=t;this.update();if(this.quality>0||((this.fr=(this.fr||0)+1)%2===0))this.draw();requestAnimationFrame(x=>this.loop(x));},
  toggleDev(){this.dev=!this.dev;if(Player.d&&this.p){Player.d.hp=Player.d.maxhp;UI.hud();}
   UI.log('Tryb deweloperski: '+(this.dev?'WŁĄCZONY (nieskończone HP)':'wyłączony'),'crit');},
  update(){const p=this.p;if(!p)return;if(this.dev)Player.d.hp=Player.d.maxhp;p.walk=p.auto?1:0;
@@ -287,18 +299,18 @@ const G={sunAlt:false,clickMove:false,devBoss:false,mark:null,npcs:[],hub:null,h
    if(clr&&p.x>=600)this.advance();}
   else if(p.dest){p.dest=null;this.mark=null;}
   const mid=this.bg?this.bg.path[Math.min(this.bg.path.length-1,Math.round(this.bg.x/640))]:this.cur().map,amb=MAPS[mid]&&AMB[MAPS[mid].amb];   // klimat mapy: liście, śnieg, iskry...
-  if(amb&&Math.random()<.35)this.fx.push({x:Math.random()*660,y:amb.y(),vx:amb.vx+(this.bg?-7:0),vy:amb.vy,g:0,dl:.006,life:1.2,c:amb.c,sz:amb.sz,pt:1});
+  if(amb&&Math.random()<.35*[0,1,1.6][this.quality])this.fx.push({x:Math.random()*660,y:amb.y(),vx:amb.vx+(this.bg?-7:0),vy:amb.vy,g:0,dl:.006,life:1.2,c:amb.c,sz:amb.sz,pt:1});
   for(const a of this.actors)if(a.burn&&Math.random()<.3)this.fx.push({x:a.x+a.ox+(Math.random()-.5)*20,y:a.y+a.oy-20-Math.random()*30,vx:0,vy:-1.5,life:.8,c:'#ff9a40',sz:3,pt:1});
   if(!Combat.busy&&(this.state==='fight'||this.state==='clear'))this.comps.forEach((c,i)=>{if(c.s.hp<=0||c.alpha<1)return;const o=COMP_OFF[i],tx=p.x+o[0],ty=p.y+o[1];c.x+=(tx-c.x)*.1;c.y+=(ty-c.y)*.1;c.walk=Math.hypot(tx-c.x,ty-c.y)>6?1:0;});
   this.fx=this.fx.filter(f=>{if(f.pt){f.x+=f.vx;f.y+=f.vy;f.vy+=f.g===undefined?.25:f.g;f.life-=f.dl||.025;}else if(f.spr||f.slash){f.life-=f.slash?.08:.05;}else{f.y-=.8;f.life-=.015;}return f.life>0;});},
- draw(){if(this.state==='cutscene')return Cut.draw(this.c);const c=this.c,w=this.cur(),m=MAPS[w.map];c.save();c.clearRect(0,0,640,320);this.top=[];
-  if(this.shake>0){c.translate((Math.random()-.5)*this.shake,(Math.random()-.5)*this.shake);this.shake*=.85;}
+ draw(){this.c.setTransform(this.S,0,0,this.S,0,0);if(this.state==='cutscene')return Cut.draw(this.c);const c=this.c,w=this.cur(),m=MAPS[w.map];c.save();c.clearRect(0,0,640,320);this.top=[];
+  if(this.shake>0){const sm=this.quality===0?.4:1;c.translate((Math.random()-.5)*this.shake*sm,(Math.random()-.5)*this.shake*sm);this.shake*=.85;}
   if(this.bg)this.drawTravel(c);else this.drawMap(c,w.map,0);
   if(this.mark){const m=this.mark,u=((this.t-m.t0)/700)%1;c.save();   // v1.1.1: żółta otoczka w miejscu, do którego idzie bohater
    c.fillStyle='rgba(242,193,78,.22)';c.beginPath();c.ellipse(m.x,m.y,14,5.5,0,0,7);c.fill();
    c.strokeStyle='#f2c14e';c.lineWidth=3;c.globalAlpha=.95;c.beginPath();c.ellipse(m.x,m.y,15,6,0,0,7);c.stroke();
    c.globalAlpha=.6*(1-u);c.lineWidth=2;c.beginPath();c.ellipse(m.x,m.y,15+u*14,6+u*5.5,0,0,7);c.stroke();c.restore();}
-  [...this.actors].sort((a,b)=>a.y-b.y).forEach(a=>this.drawActor(a));this.top.forEach(f=>f(c));this.drawBubble(c);this.drawProj(c);this.drawSpeech(c);
+  [...this.actors].sort((a,b)=>a.y-b.y).forEach(a=>this.drawActor(a));this.top.forEach(f=>f(c));this.drawCloud(c);this.drawTotem(c);this.drawBubble(c);this.drawProj(c);this.drawSpeech(c);
   this.fx.forEach(f=>{c.globalAlpha=Math.max(0,f.life);if(f.spr){const im=Assets.fx[f.spr];if(im){const n=Math.max(1,Math.floor(im.width/32));c.drawImage(im,Math.min(n-1,Math.floor((1-f.life)*n))*32,0,32,im.height,f.x-48,f.y-48,96,96);}}else if(f.slash){const e=1-f.life,R=34+e*14,cx=-16+R*Math.cos(1.15),sy=R*Math.sin(1.15);c.save();c.translate(f.x,f.y);c.scale(f.d,1);c.rotate(-.35);c.fillStyle='#fff';
     c.beginPath();c.arc(-16,0,R,-1.15,1.15);c.quadraticCurveTo(-16+R*(.9+.3*e),0,cx,-sy);c.closePath();c.fill();c.restore();}   // smukły półksiężyc, który gaśnie i rozszerza się
    else if(f.pt){c.fillStyle=f.c;c.fillRect(f.x,f.y,f.sz,f.sz);}
@@ -306,7 +318,36 @@ const G={sunAlt:false,clickMove:false,devBoss:false,mark:null,npcs:[],hub:null,h
   if(this.state==='clear'){c.globalAlpha=.6+.4*Math.sin(this.t/200);c.font='bold 16px "Courier New"';c.textAlign='right';c.fillStyle='#000';c.fillText(trn(this.hub?'Wróć na szlak ▶ (lub kliknij)':'Idź w prawo ▶ (lub kliknij)'),634,32);c.fillStyle='#f2c14e';c.fillText(trn(this.hub?'Wróć na szlak ▶ (lub kliknij)':'Idź w prawo ▶ (lub kliknij)'),632,30);c.globalAlpha=1;}
   if(this.banner){const b=this.banner;b.t++;const al=Math.min(1,b.t/25,(170-b.t)/30);if(al<=0)this.banner=null;else{c.globalAlpha=al;c.font='bold 22px "Courier New"';c.textAlign='center';c.fillStyle='#000';c.fillText(trn(b.txt),322,72);c.fillStyle='#f2c14e';c.fillText(trn(b.txt),320,70);c.globalAlpha=1;}}
   if(this.dev){c.font='bold 12px "Courier New"';c.textAlign='left';c.fillStyle='#000';c.fillText('DEV ∞HP',9,17);c.fillStyle='#7aff9a';c.fillText('DEV ∞HP',8,16);}
-  c.restore();c.globalAlpha=1;if(this.fade>0){c.fillStyle=`rgba(0,0,0,${this.fade})`;c.fillRect(0,0,640,320);}},
+  c.restore();c.globalAlpha=1;
+  if(this.quality===2)this.drawVignette(c);   // v1.2.0: wysoka jakość – delikatna winieta
+  if(this.flash>.02){c.fillStyle=`rgba(255,255,230,${this.flash*.7})`;c.fillRect(0,0,640,320);this.flash*=.82;}   // błysk pioruna
+  if(this.fade>0){c.fillStyle=`rgba(0,0,0,${this.fade})`;c.fillRect(0,0,640,320);}},
+ drawVignette(c){if(!this._vig||this._vigC!==c){const g=c.createRadialGradient(320,160,150,320,160,400);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.38)');this._vig=g;this._vigC=c;}c.fillStyle=this._vig;c.fillRect(0,0,640,320);},
+ /* ===== v1.2.0: ATAK PIORUNA – czarna chmura nadlatuje i razi wybranego wroga; dostępny raz na etap ===== */
+ stageKey(){return this.mode==='campaign'?'c'+this.level:'e'+Math.floor((this.wave-1)/5);},
+ thunderUsed(){return Player.d.thunderAt===this.stageKey();},
+ markThunder(){Player.d.thunderAt=this.stageKey();UI.hud();},
+ async thunderStrike(t,onHit){
+  const tx=t.x+t.ox,ty=t.y+t.oy-ASSETS[t.key].fh*t.scale*.5,C=this.cloud={x:-110,y:44,a:0,bolt:0,tx,ty};
+  await tween(C,{x:tx,a:1},750,'out');await sleep(260);   // chmura nadlatuje i ciemnieje
+  C.bolt=1;const hit=onHit();await sleep(320);C.bolt=0;   // piorun + trafienie
+  await tween(C,{x:740,a:0},600,'in');this.cloud=null;await hit;},
+ drawCloud(c){const C=this.cloud;if(!C)return;c.save();c.globalAlpha=Math.min(1,C.a);
+  const b=(dx,dy,rx,ry,col)=>{c.fillStyle=col;c.beginPath();c.ellipse(C.x+dx,C.y+dy,rx,ry,0,0,7);c.fill();};
+  b(0,8,62,18,'#0c0a12');b(-32,2,34,17,'#1a1826');b(28,0,38,19,'#1a1826');b(0,-8,32,17,'#262436');b(-10,6,44,12,'#14121c');
+  if(C.bolt||Math.sin(this.t/55)>.7){c.globalAlpha=C.bolt?.55:.22;b(-8,0,30,10,'#fff2a0');}
+  if(C.bolt){c.globalAlpha=1;let x=C.x,y=C.y+16;const n=7,dx=(C.tx-x)/n,dy=(C.ty-y)/n,pts=[[x,y]];
+   for(let i=1;i<n;i++)pts.push([x+dx*i+(Math.random()-.5)*26,y+dy*i]);pts.push([C.tx,C.ty]);
+   [[9,'rgba(255,240,120,.30)'],[4,'#ffe870'],[2,'#ffffff']].forEach(([w,col])=>{c.strokeStyle=col;c.lineWidth=w;c.beginPath();pts.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.stroke();});}
+  c.restore();},
+ /* ===== v1.2.0: TOTEM NIEŚMIERTELNOŚCI – złoty totem wznosi się nad bohaterem ===== */
+ totemFx(a){this.fxTotem={x:a.x+a.ox,y:a.y+a.oy,t0:this.t};},
+ drawTotem(c){const T=this.fxTotem;if(!T)return;const u=(this.t-T.t0)/1500;if(u>=1){this.fxTotem=null;return;}
+  const al=Math.min(1,u*5,(1-u)*3),rise=Math.min(1,u*2.2)*30,x=T.x,y=T.y-92+(30-rise);c.save();c.globalAlpha=al;
+  if(this.quality>0){const g=c.createRadialGradient(x,y,4,x,y,54);g.addColorStop(0,'rgba(255,220,100,.65)');g.addColorStop(1,'rgba(255,220,100,0)');c.fillStyle=g;c.fillRect(x-60,y-60,120,120);}
+  c.strokeStyle='#ffd24a';c.lineWidth=2;c.globalAlpha=al*(1-u);c.beginPath();c.ellipse(T.x,T.y,18+u*50,7+u*18,0,0,7);c.stroke();c.globalAlpha=al;
+  c.fillStyle='#14101f';c.fillRect(x-11,y-26,22,52);c.fillStyle='#8a6a20';c.fillRect(x-9,y-24,18,48);c.fillStyle='#f2c14e';c.fillRect(x-9,y-24,18,10);c.fillRect(x-9,y-2,18,8);c.fillRect(x-9,y+16,18,8);
+  c.fillStyle='#7affc0';c.fillRect(x-6,y-21,4,4);c.fillRect(x+2,y-21,4,4);c.fillStyle='#14101f';c.fillRect(x-4,y+1,8,3);c.fillRect(x-3,y-10,6,3);c.restore();},
  /* ===== SWING: ostrze obraca się wokół dłoni (zamach do tyłu -> szybkie cięcie łukiem -> powrót), a za nim ciągnie się smuga ===== */
  SW_HAND:[[24,10.5],[27,15],[24,14.5]],   // gdzie jest pięść w kolejnych klatkach ataku bohatera (px klatki 32x32)
  swingAng(u,big){const A0=-(big?105:80)*Math.PI/180,A1=(big?135:112)*Math.PI/180;   // kąt od pionu, w prawo = dodatni

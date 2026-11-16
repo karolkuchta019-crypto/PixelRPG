@@ -26,6 +26,21 @@ const ENEMY_DEFS={
  dwarf:{name:'Krasnolud',hp:62,atk:13,def:6,dodge:.05,crit:.12,xp:30,scale:2.7,behave:e=>e.turn%3===0?[{m:1.8,say:'Krasnolud wali toporem z całej siły!'}]:[1]},
  basilisk:{name:'Bazyliszek',hp:66,atk:13,def:4,dodge:.08,crit:.1,xp:38,scale:3,stone:.1,behave:e=>e.turn%3===0?[{m:.6,stone:1,magic:1,say:'Bazyliszek spogląda w twoje oczy – kamienieje!'}]:[1]},   // spojrzenie: kamień na 2 tury (jak zamrożenie)
  fighter:{name:'Myśliwiec laserowy',hp:34,atk:13,def:3,dodge:.22,crit:.12,xp:30,scale:2.8,behave:()=>Math.random()<.4?[{m:.6,rng:'laser',magic:1,say:'Myśliwiec strzela seriami lasera!'},{m:.6,rng:'laser',magic:1}]:[{m:1.1,rng:'laser',magic:1,say:'Myśliwiec strzela laserem!'}]},
+ /* ===== v1.2.0: NOWI PRZECIWNICY ===== */
+ /* PCHŁA – wychodzi z futra Yeti; szybka, unika, gryzie podwójnie */
+ flea:{name:'Pchła',hp:10,atk:5,def:0,dodge:.3,crit:.1,xp:3,scale:2.2,behave:()=>Math.random()<.5?[.6,.6]:[1]},
+ /* ZMUTOWANY JEŻ (tajga) – twarde kolce (DEF 7), co 3. turę trujące kolce */
+ hedgehog:{name:'Zmutowany jeż',pois:.35,hp:62,atk:12,def:7,dodge:.05,crit:.1,xp:26,scale:2.5,behave:e=>e.turn%3===0?[{m:1.5,pois:1,say:'Zmutowany jeż wypuszcza trujące kolce!'}]:[1]},
+ /* DMUCHAWIEC (las) – dmucha trującymi nasionami z dystansu */
+ dandelion:{name:'Dmuchawiec',pois:.3,hp:36,atk:9,def:1,dodge:.15,crit:.08,xp:14,scale:2.5,behave:e=>e.turn%2===0?[{m:1,rng:'spore',pois:1,magic:1,p:1,say:'Dmuchawiec dmucha trującymi nasionami!'}]:[.8]},
+ /* DRZEWIEC (tajga) – wolny, ale bardzo twardy; co 3. turę miażdży konarem */
+ treant:{name:'Drzewiec',hp:118,atk:16,def:9,dodge:0,crit:.08,xp:48,scale:2.9,behave:e=>e.turn%3===0?[{m:2,say:'Drzewiec miażdży konarem!'}]:[1]},
+ /* CZARNY KOT (bagna) – unikający i krytyczny, przynosi pecha */
+ blackcat:{name:'Czarny kot',hp:34,atk:11,def:1,dodge:.32,crit:.3,xp:22,scale:2.4,behave:()=>Math.random()<.4?[{m:.7,say:'Czarny kot przebiega ci drogę – pech!'},.7]:[1.1]},
+ /* RYBIK CUKROWY (jaskinia) – drobny, szybki, kąsa podwójnie */
+ silverfish:{name:'Rybik cukrowy',hp:24,atk:8,def:2,dodge:.25,crit:.08,xp:9,scale:2.6,behave:()=>Math.random()<.5?[.6,.6]:[1]},
+ /* ZEPSUTE ZMUTOWANE AUTO (stara elektrownia) – taranuje i dusi spalinami */
+ wreck:{name:'Zepsute zmutowane auto',pois:.3,hp:98,atk:16,def:8,dodge:0,crit:.1,xp:44,scale:2.7,behave:e=>e.turn%3===0?[{m:2.1,say:'Zepsute auto taranuje!'}]:(e.turn%3===2?[{m:.8,pois:1,say:'Zepsute auto dusi trującymi spalinami!'}]:[1])},
  /* v1.1.1: KIBIC (ostatni etap) – kij baseballowy, co 3. tura RZUT RACĄ (animacja throw, podpalenie) */
  fan:{name:'Kibic',hp:46,atk:13,def:3,dodge:.1,crit:.12,xp:24,scale:2.6,behave:e=>e.turn%3===0?[{m:1.2,rng:'flare',magic:1,burn:1,say:'Kibic rzuca racę!'}]:(Math.random()<.3?[{m:.6,say:'Kibic wali kijem baseballowym!'},.6]:[1.1])},
  /* v1.1.1: ZMUTOWANY KOMAR (bagna) – lata, zatruwa i wysysa życie */
@@ -39,7 +54,9 @@ const ENEMY_DEFS={
    if(t===2)return[{m:.9,magic:1,burn:1,say:'Demon Lord zionie ogniem otchłani!'},.7];
    if(t===3)return[.8,.8,.8,.6];
    return[1.1];}},
- yeti:{name:'Yeti',boss:1,hp:150,atk:16,def:5,dodge:.05,crit:.15,xp:150,scale:3,line:'„RRAAAARGH! Nikt nie przeżywa w tych górach!”',behave:e=>e.turn%2===0?[1.8]:[1]},
+ yeti:{name:'Yeti',boss:1,hp:150,atk:16,def:5,dodge:.05,crit:.15,xp:150,scale:3,line:'„RRAAAARGH! Nikt nie przeżywa w tych górach!”',behave:e=>{const t=e.turn%4;   // v1.2.0: co 4. turę z futra Yeti wyskakują PCHŁY
+  if(t===3)return G.enemies.length<4?[{summon:'flea',n:2,say:'Z futra Yeti wyskakują pchły!',txt:'PCHŁY!'}]:[1.2];
+  return t%2===0?[1.8]:[1];}},
  spiderqueen:{name:'Królowa Pająków',boss:1,pois:.6,hp:140,atk:14,def:4,dodge:.12,crit:.15,xp:170,scale:3,line:'„Wplącz się w moją sieć… na zawsze.”',behave:e=>e.turn%3===0?[.6,.6,.6,.6]:[1.1]},
  mech:{name:'Mechaniczny Kolos',boss:1,hp:190,atk:18,def:9,dodge:.02,crit:.1,xp:220,scale:3,line:'„SYSTEM: CEL WYKRYTY. PROTOKOŁ LIKWIDACJI.”',behave:e=>e.turn%3===0?[2.3]:[.9,.9]},
  /* BOSS MOCZARÓW: wiedźma na miotle – pikowanie, zatruta mikstura (butelka), przyzywanie komarów, klątwy */
@@ -71,14 +88,14 @@ function makeEnemy(type,wave,i,boss){   // v1.0
  const hm=d.boss?1:(((MAPS[(G.cur()||{}).map])||{}).hpMul||1);   // v1.1.1: więcej HP zwykłych wrogów na elektrowni i stadionie
  const hp=Math.round(d.hp*(1+.2*k)*b*hm);
  return{key:type,name:d.name,def:d,turn:1,tags:d.tags||[],air:(d.tags||[]).includes('air'),x:390+i*70,y:205+i*12,hx:0,ox:0,oy:0,alpha:1,flash:0,scale:d.scale,face:-1,ph:i,
-  xp:Math.round(d.xp*(1+.1*k)),s:{hp,maxhp:hp,atk:Math.round(d.atk*(1+.15*k)*b),def:Math.round(d.def+k*.6),crit:d.crit,dodge:d.dodge}};
+  xp:Math.round(d.xp*(1+.1*k)*(G.mode==='endless'?1.5:1)),s:{hp,maxhp:hp,atk:Math.round(d.atk*(1+.15*k)*b),def:Math.round(d.def+k*.6),crit:d.crit,dodge:d.dodge}};
 }
 
 /* TYPY: poison działa na goblin/human/elf/animal/yeti, burn na wszystkie bez 'fire', freeze na wszystkie bez 'winter'.
    'air' = lata (odporny na broń białą, x0.7); stworzenia naziemne są odporne na ataki dystansowe (x0.7). Orc liczony jako goblin. */
 const TAGS={slime:['slime'],goblin:['goblin'],skeleton:['undead'],shroom:['plant'],elf:['elf'],wolf:['animal'],spider:['animal'],drone:['machine','air'],robot:['machine'],
  imp:['fire','demon','air'],lavagolem:['fire','golem'],kicker:['human'],slimeking:['slime'],orc:['goblin'],yeti:['yeti','winter'],spiderqueen:['animal'],mech:['machine'],demon:['fire','demon','air'],coach:['human'],referee:['human'],bat:['animal','air'],snowman:['winter','snow'],dwarf:['human','dwarf'],basilisk:['animal','reptile'],fighter:['machine','air'],
- drowned:['undead','water'],mosquitos:['animal','air'],mutmosq:['animal','air'],fan:['human'],witch:['human','air'],
+ drowned:['undead','water'],mosquitos:['animal','air'],mutmosq:['animal','air'],fan:['human'],flea:['animal'],hedgehog:['animal'],dandelion:['plant'],treant:['plant'],blackcat:['animal'],silverfish:['animal'],wreck:['machine'],witch:['human','air'],
  bear:['animal'],beaver:['animal'],leshy:['plant','spirit'],scorpion:['animal'],mummy:['undead'],sphinx:['beast','spirit']};   // utopiec odporny na truciznę, komary i wiedźma latają (odporność na broń białą x0.7)
 for(const k in ENEMY_DEFS)ENEMY_DEFS[k].tags=TAGS[k]||[];
 Object.assign(ENEMY_DEFS.imp,{burn:.3});Object.assign(ENEMY_DEFS.lavagolem,{burn:.4});Object.assign(ENEMY_DEFS.demon,{burn:.4});Object.assign(ENEMY_DEFS.yeti,{freeze:.4});

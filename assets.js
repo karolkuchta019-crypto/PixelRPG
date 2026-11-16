@@ -39,6 +39,13 @@ const ASSETS={
  coach:{src:'assets/enemies/coach',fw:72,fh:56,ax:27,color:'#8a2030',extra:['run','shoot','throw','jump'],ms:{walk:90,run:70},muz:{bullet:31,bottle:17}},               // OSTATECZNY BOSS: Mroczny Trener
  kicker:{src:'assets/enemies/kicker',fw:32,fh:32,color:'#d64545',extra:['kick']},   // kick = animacja kopnięcia (piłkę rysuje gra)
  referee:{src:'assets/enemies/referee',fw:32,fh:32,color:'#2c2c38'},        // sędzia (supporter piłkarzy)
+ flea:{src:'assets/enemies/flea',fw:32,fh:32,color:'#7a3a1a'},   // v1.2.0 nowi wrogowie
+ hedgehog:{src:'assets/enemies/hedgehog',fw:32,fh:32,color:'#5a3a24'},
+ dandelion:{src:'assets/enemies/dandelion',fw:32,fh:32,color:'#e4e4f2'},
+ treant:{src:'assets/enemies/treant',fw:32,fh:32,color:'#3a8a2a'},
+ blackcat:{src:'assets/enemies/blackcat',fw:32,fh:32,color:'#1c1c28'},
+ silverfish:{src:'assets/enemies/silverfish',fw:32,fh:32,color:'#c4ccdc'},
+ wreck:{src:'assets/enemies/wreck',fw:32,fh:32,color:'#8a4a2a'},
  fan:{src:'assets/enemies/fan',fw:32,fh:32,color:'#d63a3a',extra:['throw'],muz:{flare:10}},   // v1.1.1 ostatni etap: kibic z kijem i racą
  mutmosq:{src:'assets/enemies/mutmosq',fw:32,fh:32,color:'#5f9a3a'},   // v1.1.1 moczary: zmutowany komar
  witchstall:{src:'assets/items/witchstall',fw:64,fh:48,color:'#5a2a7a'},   // v1.1.1: nowe stoisko wiedźmy

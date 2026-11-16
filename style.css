@@ -105,3 +105,22 @@ button::before{content:"";position:absolute;left:6px;top:50%;width:22px;height:2
 .credits-roll{position:absolute;inset:0;overflow:hidden}
 .credits-scroll{position:absolute;left:50%;top:0;width:min(480px,90%);transform:translate(-50%,2000px);text-align:center;line-height:1.7;font-size:13px}
 .credits-btn{position:absolute;right:14px;bottom:12px;z-index:2;min-width:140px!important;padding:6px 10px!important;font-size:11px}
+
+/* ===== v1.2.0: zakładki menu, osiągnięcia (prostokątne kafelki jeden pod drugim), powiadomienie, ustawienia graficzne ===== */
+.tabbar{display:flex;gap:6px;width:100%;max-width:620px;justify-content:center}
+#screen.tabmenu .tabbar button{min-width:0;flex:1;padding:8px 6px;font-size:12px;opacity:.65}
+#screen.tabmenu .tabbar button.active{opacity:1;outline:2px solid var(--gold);background:#3a2f58}
+.menu-block .small{font-size:11px;opacity:.85;margin-top:6px;line-height:1.4}
+.ach-head{font-size:13px;color:var(--gold);margin:2px 0}
+.ach-list{display:flex;flex-direction:column;gap:8px;width:100%;max-width:620px;max-height:200px;overflow-y:auto;padding-right:4px}
+.ach-tile{display:flex;align-items:center;gap:12px;background:#241c38;border:2px solid #3a3150;padding:8px 12px;text-align:left}
+.ach-tile img{width:64px;height:64px;flex:none;image-rendering:pixelated;filter:grayscale(1) brightness(.55);opacity:.7}
+.ach-tile.on{border-color:#c9a23a;background:#33290f55}
+.ach-tile.on img{filter:none;opacity:1}
+.ach-text{display:flex;flex-direction:column;gap:3px;font-size:12px;line-height:1.35}
+.ach-text b{color:#f2c14e;font-size:13px}
+.ach-text em{font-style:normal;font-size:11px;opacity:.8}
+.toast{position:fixed;top:14px;right:14px;z-index:50;display:flex;align-items:center;gap:10px;background:#1a1426;border:2px solid #f2c14e;padding:8px 14px;font-size:12px;line-height:1.4;animation:toast 4.8s forwards;box-shadow:0 4px 14px #000a}
+.toast img{width:48px;height:48px;image-rendering:pixelated}
+.toast b{color:#f2c14e}
+@keyframes toast{0%{transform:translateX(120%);opacity:0}8%{transform:none;opacity:1}88%{transform:none;opacity:1}100%{transform:translateX(120%);opacity:0}}

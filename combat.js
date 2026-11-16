@@ -56,7 +56,8 @@ const Combat={busy:false,guard:false,fbCd:0,
   if(G.dev&&t===G.p)t.s.hp=t.s.maxhp;
   UI.hud();await sleep(150);if(!o.pass){a.pose='';a.anim='';a.sw=null;}if(!o.rng)await G.back(a);
   if(t.s.hp<=0)await this.kill(t);},
- async kill(t){UI.log(`${t.name} ginie.`,t===G.p?'bad':'good');G.burst(t.x,t.y-30,'#ff8040',30);
+ async kill(t){if(t===G.p&&((Player.d.sk||{}).totem>0)&&!G.dev){await this.totem();return;}   // v1.2.0: totem zamiast śmierci
+  UI.log(`${t.name} ginie.`,t===G.p?'bad':'good');G.burst(t.x,t.y-30,'#ff8040',30);
   /* v1.0: boss przed śmiercią życzy bohaterowi niepowodzeń */
   const dd=t.def;if(t!==G.p&&!t.ally&&dd&&dd.boss&&dd.dlg&&dd.dlg.death){t.last=1;await G.say(t,dd.dlg.death);t.last=0;}
   /* poprawiona animacja śmierci: najpierw sheet death, potem fade */
@@ -70,7 +71,7 @@ const Combat={busy:false,guard:false,fbCd:0,
   if(t.ally){G.comps=G.comps.filter(c=>c!==t);Player.d.comps=Player.d.comps.filter(c=>c!==t.s);return;}   // kompan ginie na zawsze
   G.enemies=G.enemies.filter(e=>e!==t);this.refreshHaste();G.xpWave+=t.xp;Player.d.kills=(Player.d.kills||0)+1;
   if(Player.gainXp(t.xp))UI.log('AWANS na poziom '+Player.d.level+'! +1 punkt umiejętności (do wydania u kupca)','crit');UI.hud();},
- async summon(e,type,n){UI.log(`${e.name} przywołuje pomocników!`,'bad');G.text(e,'DO MNIE!','#f2c14e');e.anim='jump';e.pose='attack';
+ async summon(e,type,n,msg,txt){UI.log(msg||`${e.name} przywołuje pomocników!`,'bad');G.text(e,txt||'DO MNIE!','#f2c14e');e.anim='jump';e.pose='attack';
   const list=Array.isArray(type)?type:Array.from({length:n||2},()=>type);
   for(const ty of list){if(G.enemies.length>=4)break;const k=makeEnemy(ty,G.diff(),G.enemies.length);k.minion=1;k.alpha=0;k.ox=80;G.enemies.push(k);G.actors.push(k);G.burst(k.x,k.y-20,'#fff',10);await tween(k,{alpha:1,ox:0},400,'out');}
   e.pose='';e.anim='';this.refreshHaste(true);},
@@ -87,7 +88,7 @@ const Combat={busy:false,guard:false,fbCd:0,
  async enemyAct(e){if(e.s.hp<=0||Player.d.hp<=0)return;
   if(e.freeze){await this.thaw(e);return;}
   for(const m of e.def.behave(e)){if(Player.d.hp<=0)break;
-   if(m.summon){await this.summon(e,m.summon,m.n||2);continue;}
+   if(m.summon){await this.summon(e,m.summon,m.n||2,m.say,m.txt);continue;}
    if(m.heal){await this.healSelf(e,m);continue;}
    if(m.buff){await this.whistle(e,m);continue;}
    const o=typeof m==='number'?{m}:m,pool=[G.p,...G.comps.filter(c=>c.s.hp>0)],tg=o.p?G.p:pool[Math.floor(Math.random()*pool.length)];   // wróg bije gracza albo kompana
@@ -106,12 +107,20 @@ const Combat={busy:false,guard:false,fbCd:0,
  async skipWave(){if(!G.dev||this.busy||G.state!=='fight')return;this.busy=true;UI.lock(true);
   UI.log('[DEV] Fala pominięta.','crit');G.enemies.forEach(e=>G.burst(e.x,e.y-30,'#f2c14e',14));
   G.actors=G.actors.filter(a=>!G.enemies.includes(a));G.enemies=[];this.busy=false;return G.win();},
+ /* v1.2.0: PIORUN – zabiera 50% maks. życia celu; bez uników, pancerza i krytyków */
+ async thunderHit(t){const dmg=Math.max(1,Math.round(t.s.maxhp*.5));t.s.hp=Math.max(0,t.s.hp-dmg);
+  G.shake=18;G.flash=1;G.text(t,'-'+dmg,'#fff27a',1);t.flash=1;G.burst(t.x,t.y-30,'#fff27a',26);
+  UI.log(`Piorun razi ${t.name} i zadaje ${dmg} obrażeń (50% życia).`,'crit');UI.hud();
+  if(t.s.hp<=0)await this.kill(t);},
+ /* v1.2.0: TOTEM NIEŚMIERTELNOŚCI – zamiast śmierci bohater odradza się z 50% HP (totem się zużywa) */
+ async totem(){const d=Player.d,p=G.p;d.sk.totem--;d.hp=Math.max(1,Math.ceil(d.maxhp*.5));p.poison=p.burn=p.freeze=p.sand=null;p.pose='';p.anim='';p.alpha=1;p.rot=0;
+  UI.log('TOTEM NIEŚMIERTELNOŚCI! Bohater powstaje z martwych z 50% HP.','crit');G.text(p,'TOTEM!','#ffd24a',1);G.totemFx(p);UI.hud();await sleep(1100);},
  async act(kind){
   if(kind==='skipwave')return this.skipWave();
   if(kind==='toboss')return G.jumpToBoss();   // v1.1.1 (dev)
   if(this.busy||G.state!=='fight')return;
   const p=G.p,t=G.target(),sk=Player.d.sk||{};if(!t)return;
-  if(!p.freeze){if(kind==='potion'&&Player.d.potions<1){UI.log('Brak eliksirów!');return;}if(kind==='shoot'&&!(sk.bow||sk.xbow))return;if(kind==='fire'&&(!sk.fire||this.fbCd>0))return;}
+  if(!p.freeze){if(kind==='potion'&&Player.d.potions<1){UI.log('Brak eliksirów!');return;}if(kind==='shoot'&&!(sk.bow||sk.xbow))return;if(kind==='fire'&&(!sk.fire||this.fbCd>0))return;if(kind==='thunder'&&(!sk.thunder||G.thunderUsed()))return;}
   this.busy=true;UI.lock(true);this.guard=false;
   if(G.enemies.some(e=>e.haste&&e.s.hp>0)){await this.initiative();if(Player.d.hp<=0){this.busy=false;return G.lose();}}   // v1.0: szybcy atakują pierwsi
   if(p.freeze)await this.thaw(p);
@@ -137,6 +146,8 @@ const Combat={busy:false,guard:false,fbCd:0,
      /* jedna kula; pierwszy wróg dostaje 100% mocy, każdy następny 50% poprzedniego (1, .5, .25, ...). Moc = Player.fireDmg() (bez ATK) */
      await G.fireThrough(p,foes,(foe,i)=>this.strike(p,foe,Math.pow(.5,i),.95,false,i?'Kula ognia':'Bohater (KULA OGNIA)',{rng:'fire',magic:1,fire:1,nocrit:1,burn:1,pass:1,flat:Player.fireDmg()}));}
    }
+   if(kind==='thunder'){G.markThunder();UI.log('Nad areną gromadzi się czarna chmura…','crit');   // v1.2.0: raz na etap
+    await G.thunderStrike(t,()=>this.thunderHit(t));}
    if(kind==='shoot')await this.strike(p,t,sk.xbow?1.6:1.1,.85,false,sk.xbow?'Bohater (kusza)':'Bohater (łuk)',{rng:'arrow'});
    if(kind==='defend'){this.guard=true;UI.log('Bohater przyjmuje postawę obronną.');G.burst(p.x,p.y-30,'#4aa3ff',12);await sleep(400);}
    if(kind==='potion'){const d=Player.d,h=Math.min(40+(sk.herb?20:0),d.maxhp-d.hp);d.potions--;d.hp+=h;G.text(p,'+'+h,'#7aff9a');

@@ -1,5 +1,5 @@
 /* v1.1.1: etykiety przycisków akcji (tłumaczone przy każdym odświeżeniu HUD) */
-const ACT_LABELS = { attack: 'Atak', crit: 'Cios krytyczny', defend: 'Obrona', potion: 'Eliksir', shoot: 'Strzał', fire: 'Kula ognia', skipwave: 'Pomiń falę (DEV)', toboss: 'Do bossa (DEV)' };
+const ACT_LABELS = { attack: 'Atak', crit: 'Cios krytyczny', defend: 'Obrona', potion: 'Eliksir', shoot: 'Strzał', fire: 'Kula ognia', skipwave: 'Pomiń falę (DEV)', toboss: 'Do bossa (DEV)', thunder: 'Piorun' };
 
 const UI = {
   $: id => document.getElementById(id),
@@ -25,22 +25,26 @@ const UI = {
     document.querySelector('[data-a=toboss]').classList.toggle('hidden', !G.dev);     // v1.1.1: tryb dev – skok do bossa
     const fb = document.querySelector('[data-a=fire]');
     fb.classList.toggle('hidden', !sk.fire);
-    document.querySelectorAll('#actions button').forEach(b => { const L = ACT_LABELS[b.dataset.a]; if (L && b.dataset.a !== 'fire') b.textContent = trn(L); });
+    document.querySelectorAll('#actions button').forEach(b => { const L = ACT_LABELS[b.dataset.a]; if (L && b.dataset.a !== 'fire' && b.dataset.a !== 'thunder') b.textContent = trn(L); });
     fb.textContent = Combat.fbCd > 0 ? `${trn('Kula ognia')} (${Combat.fbCd})` : trn('Kula ognia');
+    const tb = document.querySelector('[data-a=thunder]');   // v1.2.0: atak pioruna (raz na etap)
+    tb.classList.toggle('hidden', !sk.thunder);
+    tb.textContent = G.thunderUsed() ? `${trn('Piorun')} (${trn('zużyty')})` : trn('Piorun');
     const atk = Player.atk(), def = Player.def();
     const gAtk = Player.gearBonus('atk'), gDef = Player.gearBonus('def');
     const ptsLabel = G.dev ? '∞' : String(d.pending|0);
     this.$('stats').textContent =
       `HP ${d.hp}/${d.maxhp}  ATK ${atk}${gAtk ? `(+${gAtk})` : ''}  DEF ${def}${gDef ? `(+${gDef})` : ''}  ` +
       `${trn('PUNKTY')} ${ptsLabel}  ${trn('Eliksiry')} ${d.potions|0}  ${trn('KOMPANI')} ${(d.comps || []).length}/3  ` +
-      `CRIT ${Math.round((d.crit + Player.luck()) * 100)}%  ${trn('UNIK')} ${Math.round(d.dodge * 100)}%`;
+      `CRIT ${Math.round((d.crit + Player.luck()) * 100)}%  ${trn('UNIK')} ${Math.round(d.dodge * 100)}%` + (sk.totem ? `  ${trn('TOTEM')} ✓` : '');
   },
 
   lock(b) {
     document.querySelectorAll('#actions button').forEach(x =>
       x.disabled = b ||
         (x.dataset.a === 'potion' && Player.d.potions < 1) ||
-        (x.dataset.a === 'fire' && Combat.fbCd > 0)
+        (x.dataset.a === 'fire' && Combat.fbCd > 0) ||
+        (x.dataset.a === 'thunder' && G.thunderUsed())
     );
   },
 
@@ -218,11 +222,28 @@ const UI = {
 
   /* --- MENU TAB --- */
   menuOpen: false,
-  toggleMenu() {
-    if (this.menuOpen) { this.closeMenu(); return; }
-    if (['title', 'cutscene'].includes(G.state) && !G.p) {
-      /* w menu tytułowym też można otworzyć, ale bez mapy walki */
-    }
+  /* v1.2.0: powiadomienie o osiągnięciu */
+  toast(a) {
+    const t = document.createElement('div');
+    t.className = 'toast';
+    const im = document.createElement('img');
+    im.src = `assets/achievements/${a.img}.png`;
+    const tx = document.createElement('div');
+    const b = document.createElement('b');
+    b.textContent = trn('Osiągnięcie odblokowane!');
+    const n = document.createElement('span');
+    n.textContent = trn(a.name);
+    tx.append(b, document.createElement('br'), n);
+    t.append(im, tx);
+    document.body.append(t);
+    setTimeout(() => t.remove(), 4800);
+  },
+
+  /* v1.2.0: menu (Tab) z zakładkami: Menu | Ustawienia | Osiągnięcia */
+  toggleMenu(tab) {
+    if (this.menuOpen && tab === undefined) { this.closeMenu(); return; }
+    if (tab) this.menuTab = tab;
+    this.menuTab = this.menuTab || 'menu';
     this.menuOpen = true;
     const s = this.$('screen');
     s.innerHTML = '';
@@ -232,6 +253,17 @@ const UI = {
     h.textContent = trn('Menu (Tab)');
     s.append(h);
 
+    const bar = document.createElement('div');
+    bar.className = 'tabbar';
+    [['menu', 'Menu'], ['settings', 'Ustawienia'], ['ach', 'Osiągnięcia']].forEach(([id, label]) => {
+      const tb = document.createElement('button');
+      tb.textContent = trn(label) + (id === 'ach' ? ` ${Prog.count()}/${ACH.length}` : '');
+      tb.className = 'tabbtn' + (this.menuTab === id ? ' active' : '');
+      tb.onclick = () => this.toggleMenu(id);
+      bar.append(tb);
+    });
+    s.append(bar);
+
     const mk = (label, locked, fn) => {
       const b = document.createElement('button');
       b.textContent = locked ? trn(label) + ' 🔒' : trn(label);
@@ -239,77 +271,120 @@ const UI = {
       else b.onclick = fn;
       s.append(b);
     };
-
-    mk('🗺  Mapa świata', false, () => {
-      this.menuOpen = false;
-      this.worldMap({ fromMenu: 1 });
-    });
-
-    /* v1.1: zapis / odczyt (PostgreSQL, 3 sloty) i nowa gra */
-    mk('💾  Zapisz grę (3 sloty)', !Slots.canSave(), () => { this.menuOpen = false; this.slots('save', 'menu'); });
-    mk('📂  Wczytaj grę', !Slots.canLoad(), () => { this.menuOpen = false; this.slots('load', 'menu'); });
-    mk('⚔  Nowa kampania', false, () => this.newGame('campaign'));
-    mk('♾  Nowy tryb nieskończony', false, () => this.newGame('endless'));
-
-    /* muzyka */
-    const musicBox = document.createElement('div');
-    musicBox.className = 'menu-block';
-    musicBox.innerHTML = `<p><b>${trn('Muzyka')}</b>: ${trn(Music.on ? 'włączona' : 'wyłączona')}</p>`;
-    const tog = document.createElement('button');
-    tog.textContent = trn(Music.on ? 'Wyłącz muzykę' : 'Włącz muzykę');
-    tog.onclick = () => { Music.toggle(); tog.textContent = trn(Music.on ? 'Wyłącz muzykę' : 'Włącz muzykę'); };
-    musicBox.append(tog);
-    const volL = document.createElement('label');
-    volL.textContent = trn(' Głośność: ');
-    const vol = document.createElement('input');
-    vol.type = 'range'; vol.min = 0; vol.max = 100; vol.value = Math.round((Music.vol || 0.5) * 100);
-    vol.oninput = () => {
-      Music.vol = vol.value / 100;
-      if (Music.cur) Music.cur.volume = Music.vol;
-    };
-    volL.append(vol);
-    musicBox.append(volL);
-    s.append(musicBox);
-
-    /* statystyki */
+    const rerender = () => { this.menuOpen = false; this.toggleMenu(); };
     const d = Player.d || {};
-    const stats = document.createElement('div');
-    stats.className = 'menu-block';
-    stats.innerHTML = `<p><b>${trn('Statystyki gracza')}</b></p>
-      <p>${trn('Poziom:')} ${d.level || 1} &nbsp;|&nbsp; ${trn('Zabici przeciwnicy:')} ${d.kills || 0}<br>
-      ${trn('Liczba śmierci:')} ${d.deaths || 0} &nbsp;|&nbsp; ${trn('Eliksiry:')} ${d.potions || 0}</p>`;
-    s.append(stats);
 
-    /* v1.1.1: USTAWIENIA – język, ruch po kliknięciu, opcje trybu deweloperskiego */
-    const set = document.createElement('div');
-    set.className = 'menu-block';
-    set.innerHTML = `<p><b>${trn('Ustawienia')}</b></p><p>${trn('Język / Language')}:</p>`;
-    const lrow = document.createElement('div');
-    lrow.style.cssText = 'display:flex;gap:6px;justify-content:center;flex-wrap:wrap';
-    I18N.LANGS.forEach(([code, label]) => {
-      const lb = document.createElement('button');
-      lb.textContent = label; lb.style.minWidth = '0'; lb.style.flex = '1';
-      if (I18N.lang === code) lb.style.outline = '2px solid #7aff9a';
-      lb.onclick = () => { I18N.set(code); if (Player.d && G.p) this.hud(); this.menuOpen = false; this.toggleMenu(); };
-      lrow.append(lb);
-    });
-    set.append(lrow);
-    const cm = document.createElement('button');
-    cm.style.marginTop = '8px';
-    cm.textContent = `${trn('Ruch po kliknięciu (żółta otoczka)')}: ${trn(G.clickMove ? 'włączony' : 'wyłączony')}`;
-    cm.onclick = () => { G.setClickMove(!G.clickMove); this.menuOpen = false; this.toggleMenu(); };
-    set.append(cm);
-    if (G.dev) {
-      const db = document.createElement('button');
-      db.style.marginTop = '8px';
-      db.textContent = `${trn('Tryb deweloperski')} – ${trn('Etapy zaczynaj od bossa')}: ${trn(G.devBoss ? 'włączony' : 'wyłączony')}`;
-      db.onclick = () => { G.devBoss = !G.devBoss; this.menuOpen = false; this.toggleMenu(); };
-      set.append(db);
+    if (this.menuTab === 'menu') {
+      mk('🗺  Mapa świata', false, () => { this.menuOpen = false; this.worldMap({ fromMenu: 1 }); });
+      mk('💾  Zapisz grę (3 sloty)', !Slots.canSave(), () => { this.menuOpen = false; this.slots('save', 'menu'); });
+      mk('📂  Wczytaj grę', !Slots.canLoad(), () => { this.menuOpen = false; this.slots('load', 'menu'); });
+      mk('⚔  Nowa kampania', false, () => this.newGame('campaign'));
+      mk('♾  Nowy tryb nieskończony', false, () => this.newGame('endless'));
+
+      const stats = document.createElement('div');
+      stats.className = 'menu-block';
+      stats.innerHTML = `<p><b>${trn('Statystyki gracza')}</b></p>
+        <p>${trn('Poziom:')} ${d.level || 1} &nbsp;|&nbsp; ${trn('Zabici przeciwnicy:')} ${d.kills || 0}<br>
+        ${trn('Liczba śmierci:')} ${d.deaths || 0} &nbsp;|&nbsp; ${trn('Eliksiry:')} ${d.potions || 0}<br>
+        <b>${trn('Najdalsza fala (tryb nieskończony):')} ${Prog.d.best || 0}</b></p>`;
+      s.append(stats);
     }
-    s.append(set);
 
-    mk('⚙  Poziom trudności (wkrótce)', true, null);
-    mk('🖼  Ustawienia graficzne (wkrótce)', true, null);
+    if (this.menuTab === 'settings') {
+      /* muzyka */
+      const musicBox = document.createElement('div');
+      musicBox.className = 'menu-block';
+      musicBox.innerHTML = `<p><b>${trn('Muzyka')}</b>: ${trn(Music.on ? 'włączona' : 'wyłączona')}</p>`;
+      const tog = document.createElement('button');
+      tog.textContent = trn(Music.on ? 'Wyłącz muzykę' : 'Włącz muzykę');
+      tog.onclick = () => { Music.toggle(); tog.textContent = trn(Music.on ? 'Wyłącz muzykę' : 'Włącz muzykę'); };
+      musicBox.append(tog);
+      const volL = document.createElement('label');
+      volL.textContent = trn(' Głośność: ');
+      const vol = document.createElement('input');
+      vol.type = 'range'; vol.min = 0; vol.max = 100; vol.value = Math.round((Music.vol || 0.5) * 100);
+      vol.oninput = () => { Music.vol = vol.value / 100; if (Music.cur) Music.cur.volume = Music.vol; };
+      volL.append(vol);
+      musicBox.append(volL);
+      s.append(musicBox);
+
+      /* język + ruch po kliknięciu + opcje dev */
+      const set = document.createElement('div');
+      set.className = 'menu-block';
+      set.innerHTML = `<p><b>${trn('Ustawienia')}</b></p><p>${trn('Język / Language')}:</p>`;
+      const lrow = document.createElement('div');
+      lrow.style.cssText = 'display:flex;gap:6px;justify-content:center;flex-wrap:wrap';
+      I18N.LANGS.forEach(([code, label]) => {
+        const lb = document.createElement('button');
+        lb.textContent = label; lb.style.minWidth = '0'; lb.style.flex = '1';
+        if (I18N.lang === code) lb.style.outline = '2px solid #7aff9a';
+        lb.onclick = () => { I18N.set(code); if (Player.d && G.p) this.hud(); rerender(); };
+        lrow.append(lb);
+      });
+      set.append(lrow);
+      const cm = document.createElement('button');
+      cm.style.marginTop = '8px';
+      cm.textContent = `${trn('Ruch po kliknięciu (żółta otoczka)')}: ${trn(G.clickMove ? 'włączony' : 'wyłączony')}`;
+      cm.onclick = () => { G.setClickMove(!G.clickMove); rerender(); };
+      set.append(cm);
+      if (G.dev) {
+        const db = document.createElement('button');
+        db.style.marginTop = '8px';
+        db.textContent = `${trn('Tryb deweloperski')} – ${trn('Etapy zaczynaj od bossa')}: ${trn(G.devBoss ? 'włączony' : 'wyłączony')}`;
+        db.onclick = () => { G.devBoss = !G.devBoss; rerender(); };
+        set.append(db);
+      }
+      s.append(set);
+
+      /* v1.2.0: USTAWIENIA GRAFICZNE – jakość grafiki */
+      const gfx = document.createElement('div');
+      gfx.className = 'menu-block';
+      gfx.innerHTML = `<p><b>${trn('Ustawienia graficzne')}</b></p><p>${trn('Jakość grafiki')}:</p>`;
+      const qrow = document.createElement('div');
+      qrow.style.cssText = 'display:flex;gap:6px;justify-content:center;flex-wrap:wrap';
+      ['Niska', 'Średnia', 'Wysoka'].forEach((label, q) => {
+        const qb = document.createElement('button');
+        qb.textContent = trn(label); qb.style.minWidth = '0'; qb.style.flex = '1';
+        if (G.quality === q) qb.style.outline = '2px solid #7aff9a';
+        qb.onclick = () => { G.setQuality(q); rerender(); };
+        qrow.append(qb);
+      });
+      gfx.append(qrow);
+      const note = document.createElement('p');
+      note.className = 'small';
+      note.textContent = trn(['Mniej efektów, rysowanie co drugą klatkę, słabsze wstrząsy – dla wolniejszych komputerów.',
+        'Standardowa jakość (zalecana).', 'Ostrzejsza grafika (2× rozdzielczość), więcej cząsteczek i delikatna winieta.'][G.quality]);
+      gfx.append(note);
+      s.append(gfx);
+
+      mk('⚙  Poziom trudności (wkrótce)', true, null);
+    }
+
+    if (this.menuTab === 'ach') {
+      const head = document.createElement('p');
+      head.className = 'ach-head';
+      head.textContent = `${trn('Odblokowano')}: ${Prog.count()} / ${ACH.length}`;
+      s.append(head);
+      const list = document.createElement('div');
+      list.className = 'ach-list';
+      ACH.forEach(a => {
+        const on = Prog.has(a.id);
+        const tile = document.createElement('div');
+        tile.className = 'ach-tile' + (on ? ' on' : '');
+        const im = document.createElement('img');
+        im.src = `assets/achievements/${a.img}.png`; im.alt = '';
+        const tx = document.createElement('div');
+        tx.className = 'ach-text';
+        const nm = document.createElement('b'); nm.textContent = trn(a.name);
+        const ds = document.createElement('span'); ds.textContent = trn(a.desc);
+        const st = document.createElement('em');
+        st.textContent = on ? `✓ ${trn('Odblokowane')} · ${new Date(Prog.d.ach[a.id]).toLocaleDateString(I18N.locale())}` : `🔒 ${trn('Zablokowane')}`;
+        tx.append(nm, ds, st);
+        tile.append(im, tx);
+        list.append(tile);
+      });
+      s.append(list);
+    }
 
     const close = document.createElement('button');
     close.textContent = trn('Zamknij (Tab)');
@@ -318,6 +393,7 @@ const UI = {
   },
   closeMenu() {
     this.menuOpen = false;
+    this.menuTab = 'menu';
     const s = this.$('screen');
     /* nie chowaj ekranu jeśli jesteśmy w sklepie / tytule – tylko gdy menu było nad grą */
     if (G.state === 'fight' || G.state === 'clear' || G.state === 'over' || G.state === 'won' || G.state === 'moving') {
@@ -476,9 +552,10 @@ const UI = {
       const b = document.createElement('button');
       const full = k.comp ? (d.comps || []).length >= 3 : own >= k.max;
       const need = k.req && !d.sk[k.req];   // v1.1: np. moc kuli wymaga kuli ognia
-      b.textContent = `${trn(k.name)}: ${trn(k.desc)} [${need ? trn('najpierw: Kula ognia') : full ? trn(k.comp ? 'DRUŻYNA PEŁNA' : 'MAX') : c + ' ' + trn('pkt')}]` +
+      const lockN = k.need && !d[k.need];   // v1.2.0: ulepszenia dostępne po pokonaniu Yeti
+      b.textContent = `${trn(k.name)}: ${trn(k.desc)} [${lockN ? '🔒 ' + trn('najpierw pokonaj Yeti') : need ? trn('najpierw: Kula ognia') : full ? trn(k.comp ? 'DRUŻYNA PEŁNA' : 'MAX') : c + ' ' + trn('pkt')}]` +
         (!k.comp && own && k.max > 1 ? ' x' + own : '');
-      b.disabled = full || need || (!G.dev && d.pending < c);
+      b.disabled = full || need || lockN || (!G.dev && d.pending < c);
       b.onclick = () => { Player.buy(k.id); this.hud(); this.shop(done); };
       g.append(b);
     });
@@ -621,8 +698,9 @@ const UI = {
       const grid = document.createElement('div');
       grid.className = 'trades';
       const b = document.createElement('button');
-      b.textContent = d.sqArmor ? `${trn(SQ_ARMOR.name)}  ${trn('✓ POSIADANE')}` : `${trn(SQ_ARMOR.name)}: ${trn(SQ_ARMOR.desc)}  [${SQ_ARMOR.cost} ${trn('pkt')}]`;
-      b.disabled = !!d.sqArmor || (!G.dev && d.pending < SQ_ARMOR.cost);
+      const noSq = !Player.hasSquire();   // v1.2.0: zbroja tylko, gdy mamy giermka
+      b.textContent = d.sqArmor ? `${trn(SQ_ARMOR.name)}  ${trn('✓ POSIADANE')}` : noSq ? `${trn(SQ_ARMOR.name)}  (${trn('najpierw zatrudnij giermka')})` : `${trn(SQ_ARMOR.name)}: ${trn(SQ_ARMOR.desc)}  [${SQ_ARMOR.cost} ${trn('pkt')}]`;
+      b.disabled = !!d.sqArmor || noSq || (!G.dev && d.pending < SQ_ARMOR.cost);
       if (d.sqArmor) b.style.outline = '2px solid #7aff9a';
       b.onclick = () => {
         if (Player.buySqArmor()) {

@@ -195,6 +195,45 @@ const DICT={};
 `„Na boisko! Dzisiaj grasz o życie – a ja jestem trenerem, kapitanem i sędzią!”`,`“Onto the pitch! Today you play for your life – and I'm the coach, the captain and the referee!”`,`«¡Al campo! Hoy juegas por tu vida… ¡y yo soy el entrenador, el capitán y el árbitro!»`,
 `„Gwiżdżę koniec… Obyś już nigdy nie wygrał żadnego meczu i zawsze trafiał w słupek, bohaterze…”`,`“Final whistle… May you never win another match and always hit the post, hero…”`,`«Pito el final… Ojalá no vuelvas a ganar ningún partido y siempre des en el poste, héroe…»`,
 `„Gwizdek końcowy! Pokonany w pierwszej połowie! Zejdź z boiska, ławko rezerwowych!”`,`“Final whistle! Beaten in the first half! Off the pitch, you substitute bench!”`,`«¡Pitido final! ¡Derrotado en la primera parte! ¡Fuera del campo, banquillo de suplentes!»`,
+
+/* ---- v1.2.0: nowi wrogowie ---- */
+`Pchła`,`Flea`,`Pulga`,`Zmutowany jeż`,`Mutant Hedgehog`,`Erizo mutante`,`Dmuchawiec`,`Dandelion`,`Diente de león`,`Drzewiec`,`Treant`,`Ent`,
+`Czarny kot`,`Black Cat`,`Gato negro`,`Rybik cukrowy`,`Silverfish`,`Pez de plata`,`Zepsute zmutowane auto`,`Broken Mutant Car`,`Coche roto mutante`,
+`Zmutowany jeż wypuszcza trujące kolce!`,`The Mutant Hedgehog fires poisonous quills!`,`¡El Erizo mutante lanza púas venenosas!`,
+`Dmuchawiec dmucha trującymi nasionami!`,`The Dandelion blows poisonous seeds!`,`¡El Diente de león sopla semillas venenosas!`,
+`Drzewiec miażdży konarem!`,`The Treant crushes with a branch!`,`¡El Ent aplasta con una rama!`,
+`Czarny kot przebiega ci drogę – pech!`,`A black cat crosses your path – bad luck!`,`Un gato negro se cruza en tu camino: ¡mala suerte!`,
+`Zepsute auto taranuje!`,`The broken car rams you!`,`¡El coche roto embiste!`,
+`Zepsute auto dusi trującymi spalinami!`,`The broken car chokes you with toxic fumes!`,`¡El coche roto te ahoga con humos tóxicos!`,
+`Z futra Yeti wyskakują pchły!`,`Fleas jump out of the Yeti's fur!`,`¡Del pelaje del Yeti saltan pulgas!`,`PCHŁY!`,`FLEAS!`,`¡PULGAS!`,
+/* ---- v1.2.0: piorun, totem, ulepszenia ---- */
+`Atak pioruna`,`Lightning Strike`,`Ataque de rayo`,`Totem nieśmiertelności`,`Totem of Immortality`,`Tótem de la inmortalidad`,
+`czarna chmura razi wybranego wroga: 50% jego maks. życia; raz na etap`,`a black cloud strikes the chosen enemy: 50% of its max HP; once per stage`,`una nube negra fulmina al enemigo elegido: 50 % de su PV máx.; una vez por etapa`,
+`po śmierci odradzasz się z 50% HP (zużywa się; można kupić ponownie)`,`on death you revive with 50% HP (consumed; can be bought again)`,`al morir revives con el 50 % de PV (se consume; se puede volver a comprar)`,
+`Piorun`,`Lightning`,`Rayo`,`zużyty`,`used`,`usado`,`TOTEM`,`TOTEM`,`TÓTEM`,`TOTEM!`,`TOTEM!`,`¡TÓTEM!`,
+`najpierw pokonaj Yeti`,`defeat the Yeti first`,`antes derrota al Yeti`,`najpierw zatrudnij giermka`,`hire a squire first`,`antes contrata a un escudero`,
+`+4 DEF giermka`,`+4 DEF for the squire`,`+4 DEF para el escudero`,
+`Nad areną gromadzi się czarna chmura…`,`A black cloud gathers over the arena…`,`Una nube negra se acumula sobre la arena…`,
+`TOTEM NIEŚMIERTELNOŚCI! Bohater powstaje z martwych z 50% HP.`,`TOTEM OF IMMORTALITY! The hero rises from the dead with 50% HP.`,`¡TÓTEM DE LA INMORTALIDAD! El héroe se alza de entre los muertos con el 50 % de PV.`,
+`Yeti pokonany! Kupiec ma teraz nowe, potężne ulepszenia (Atak pioruna, Totem nieśmiertelności).`,`Yeti defeated! The merchant now has powerful new upgrades (Lightning Strike, Totem of Immortality).`,`¡Yeti derrotado! El mercader tiene ahora nuevas y potentes mejoras (Ataque de rayo, Tótem de la inmortalidad).`,
+/* ---- v1.2.0: ustawienia graficzne, zakładki, statystyki ---- */
+`Ustawienia graficzne`,`Graphics settings`,`Ajustes gráficos`,`Jakość grafiki`,`Graphics quality`,`Calidad gráfica`,`Niska`,`Low`,`Baja`,`Średnia`,`Medium`,`Media`,`Wysoka`,`High`,`Alta`,
+`Mniej efektów, rysowanie co drugą klatkę, słabsze wstrząsy – dla wolniejszych komputerów.`,`Fewer effects, drawing every other frame, weaker screen shake – for slower computers.`,`Menos efectos, dibujado cada dos fotogramas, sacudidas más débiles: para ordenadores más lentos.`,
+`Standardowa jakość (zalecana).`,`Standard quality (recommended).`,`Calidad estándar (recomendada).`,
+`Ostrzejsza grafika (2× rozdzielczość), więcej cząsteczek i delikatna winieta.`,`Sharper graphics (2× resolution), more particles and a subtle vignette.`,`Gráficos más nítidos (resolución 2×), más partículas y una viñeta sutil.`,
+`Osiągnięcia`,`Achievements`,`Logros`,`Odblokowano`,`Unlocked`,`Desbloqueados`,`Odblokowane`,`Unlocked`,`Desbloqueado`,`Zablokowane`,`Locked`,`Bloqueado`,
+`Osiągnięcie odblokowane!`,`Achievement unlocked!`,`¡Logro desbloqueado!`,`Najdalsza fala (tryb nieskończony):`,`Furthest wave (endless mode):`,`Oleada más lejana (modo infinito):`,
+/* ---- v1.2.0: osiągnięcia ---- */
+`Maratończyk`,`Marathon Runner`,`Maratoniano`,`Dojdź do 10. fali (etapu) w trybie nieskończonym.`,`Reach wave (stage) 10 in endless mode.`,`Llega a la oleada (etapa) 10 en el modo infinito.`,
+`Król galaretki`,`Jelly King`,`Rey de la gelatina`,`Pokonaj bossa Króla Slime.`,`Defeat the Slime King boss.`,`Derrota al jefe Rey Slime.`,
+`Bohater królestwa`,`Hero of the Kingdom`,`Héroe del reino`,`Przejdź kampanię – pokonaj Mrocznego Trenera.`,`Complete the campaign – defeat the Dark Coach.`,`Completa la campaña: derrota al Entrenador Oscuro.`,
+`Klient wiedźmy`,`The Witch's Customer`,`Cliente de la bruja`,`Kup cokolwiek u wiedźmy z Moczarów.`,`Buy anything from the witch of the Marshes.`,`Compra cualquier cosa a la bruja de los Pantanos.`,
+`Drużyna marzeń`,`Dream Team`,`Equipo de ensueño`,`Miej jednocześnie 3 miniony (kompanów).`,`Have 3 minions (allies) at the same time.`,`Ten 3 secuaces (aliados) a la vez.`,
+`Mithrilowy wojownik`,`Mithril Warrior`,`Guerrero de mithril`,`Miej najlepszy miecz i najlepszą zbroję (mithril).`,`Own the best sword and the best armour (mithril).`,`Posee la mejor espada y la mejor armadura (mithril).`,
+`Żądza krwi`,`Bloodlust`,`Sed de sangre`,`Kup umiejętność Wampiryzm.`,`Buy the Vampirism skill.`,`Compra la habilidad Vampirismo.`,
+`Niezłomny`,`Unbreakable`,`Inquebrantable`,`Ulepsz Odporność na efekty do maksimum.`,`Upgrade Effect Resistance to the maximum.`,`Mejora la Resistencia a efectos al máximo.`,
+`Bez jednej rysy`,`Without a Scratch`,`Sin un rasguño`,`Przejdź całą kampanię bez ani jednej śmierci.`,`Complete the whole campaign without a single death.`,`Completa toda la campaña sin morir ni una sola vez.`,
+`Gołymi pięściami`,`Bare-Handed`,`A puño limpio`,`Pokonaj Yeti bez żadnych ulepszeń.`,`Defeat the Yeti without any upgrades.`,`Derrota al Yeti sin ninguna mejora.`,
 ];for(let i=0;i<A.length;i+=3)DICT[A[i]]=[A[i+1],A[i+2]];}
 /* wzorce komunikatów (kolejność ma znaczenie: bardziej szczegółowe wcześniej) */
 const PAT=[
@@ -238,6 +277,7 @@ const PAT=[
  [/^(.+) jest (skamieniały|zamrożony) i traci turę!$/,(m,t)=>`${t(m[1])} is ${m[2]==='skamieniały'?'petrified':'frozen'} and loses a turn!`,(m,t)=>`¡${t(m[1])} está ${m[2]==='skamieniały'?'petrificado':'congelado'} y pierde un turno!`],
  [/^Eliksir leczy (\d+) HP\.$/,`The potion heals $1 HP.`,`La poción cura $1 PV.`],
  [/^KRYT! (\d+)$/,`CRIT! $1`,`¡CRÍTICO! $1`],
+ [/^Piorun razi (.+) i zadaje (\d+) obrażeń \(50% życia\)\.$/,`Lightning strikes $1 for $2 damage (50% of its life).`,`El rayo fulmina a $1 e inflige $2 de daño (50 % de su vida).`],
  [/^(.+): („.+”)$/,`$1: $2`,`$1: $2`],
  [/^jedna kula przez wszystkich wrogów \(100%, 50%, 25%…\), moc (\d+) niezależna od ATK, podpalenie, odnowa (\d+) tur$/,`one ball through all enemies (100%, 50%, 25%…), power $1 independent of ATK, burning, $2-turn cooldown`,`una bola que atraviesa a todos los enemigos (100 %, 50 %, 25 %…), poder $1 independiente del ATK, quemadura, enfriamiento de $2 turnos`],
  [/^\+(\d+) mocy kuli ognia \(osobno od ATK\)$/,`+$1 fireball power (separate from ATK)`,`+$1 de poder de la bola de fuego (aparte del ATK)`],
