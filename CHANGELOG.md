@@ -1,5 +1,15 @@
 # Changelog – Monster Waves
 
+## [1.2.1]
+
+- **Rybik cukrowy:** po zabiciu 25% szans na rozdwojenie – powstają dwa nowe rybiki z 50% maks. HP poprzedniego (połowa XP; do 2 pokoleń, o ile jest miejsce na arenie).
+- **Jeden spójny system przycisków:** złota płytka z fazą i efektem wciskania; warianty: ciemny (zakładki/wybór), aktywny, czerwony (niebezpieczne), mały; przełączniki i grupy opcji.
+- **Ustawienia przebudowane:** kategorie po lewej (Ogólne, Dźwięk, Grafika, Sterowanie, Rozgrywka, Dane, Deweloper), wiersze opcji po prawej. Nowe opcje: wstrząsy ekranu, cząsteczki otoczenia, paski życia wrogów, reset osiągnięć, przywracanie ustawień domyślnych.
+- **Sklepy (handlarz, zbrojmistrz, wiedźma):** nowy układ – portret postaci i punkty w nagłówku, kategorie, karty z ikoną, opisem, ceną i stanem (posiadane / zablokowane / brak punktów).
+- **Pustynia – event na falę** (poza bossem): 50% normalnie, 25% **burza piaskowa** (żółty odcień, wiejący piasek, więcej pudeł po stronie bohatera i kompanów), 25% **fatamorgana** (2 miraże, które nie istnieją – trafienie rozwiewa je bez obrażeń; prawdziwi wrogowie mają +30% ATK).
+
+---
+
 ## [1.2.0]
 
 ### Tryb nieskończony (bardziej grywalny)

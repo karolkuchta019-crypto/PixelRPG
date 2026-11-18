@@ -1,4 +1,4 @@
-const VERSION='1.2.0';
+const VERSION='1.2.1';
 const MERCHANT_LINES=['Witaj, wojowniku! Mam coś dla ciebie.','Droga daleka... zajrzyj do mojego straganu!','Za twoje punkty mam same cuda!','Hmm! Dobrze wyglądasz. Handlujemy?'];
 const SMITH_LINES=['Potrzebujesz solidnej stali?','Miecze, zbroje, tarcze – wybieraj!','Moja kuźnia nigdy nie stygnie.','Za punkty dam ci najlepszy ekwipunek.'];
 const WITCH_LINES=['Hehehe… pokonałeś mnie, ale kociołek wciąż bulgocze. Kupisz coś?','Eliksiry, talizmany… na szczęście nikt jeszcze nie narzekał.','Łapka królika? Czterolistna koniczyna? Wybieraj, rycerzu.','Bez urazy za tamtą walkę. Interes to interes!'];
@@ -12,13 +12,17 @@ const SWING_COL={sword_wood:'#e8d4a0',sword_iron:'#e6ecf8',sword_steel:'#cfe6ff'
 const COMP_OFF=[[-48,-26],[-48,28],[-92,2]];
 const tween=(o,p,ms,ez)=>new Promise(r=>{const f={},e=EASE[ez]||(u=>u);for(const k in p)f[k]=o[k];const t0=performance.now();
  (function s(t){const u=Math.min(1,(t-t0)/ms);for(const k in p)o[k]=f[k]+(p[k]-f[k])*e(u);u<1?requestAnimationFrame(s):r();})(t0);});
-const G={quality:1,S:1,flash:0,cloud:null,fxTotem:null,sunAlt:false,clickMove:false,devBoss:false,mark:null,npcs:[],hub:null,hubReturn:null,waves:[],top:[],comps:[],state:'title',mode:'endless',level:0,wave:1,p:null,actors:[],enemies:[],fx:[],keys:{},shake:0,fade:0,t:0,sel:null,xpWave:0,
+const G={event:null,opt:{shake:true,ambient:true,hpbars:true},quality:1,S:1,flash:0,cloud:null,fxTotem:null,sunAlt:false,clickMove:false,devBoss:false,mark:null,npcs:[],hub:null,hubReturn:null,waves:[],top:[],comps:[],state:'title',mode:'endless',level:0,wave:1,p:null,actors:[],enemies:[],fx:[],keys:{},shake:0,fade:0,t:0,sel:null,xpWave:0,
  /* v1.2.0: JAKOŚĆ GRAFIKI 0=niska, 1=średnia, 2=wysoka. Wysoka: płótno 2x (ostrzejsze kształty i napisy), więcej cząsteczek i winieta. Niska: mniej efektów, rysowanie co drugą klatkę, mniejsze wstrząsy. */
+ /* v1.2.1: dodatkowe opcje grafiki (Tab -> Ustawienia -> Grafika), zapamiętywane w localStorage (mw_opt) */
+ setOpt(k,v){this.opt[k]=!!v;try{localStorage.setItem('mw_opt',JSON.stringify(this.opt));}catch(e){}},
+ resetOpt(){this.opt={shake:true,ambient:true,hpbars:true};try{localStorage.removeItem('mw_opt');}catch(e){}},
  setQuality(q,noSave){q=Math.max(0,Math.min(2,q|0));this.quality=q;this.S=q===2?2:1;
   if(this.cv){this.cv.width=640*this.S;this.cv.height=320*this.S;this.c.imageSmoothingEnabled=false;}
   try{if(!noSave)localStorage.setItem('mw_quality',String(q));}catch(e){}},
  init(){this.cv=UI.$('cv');this.c=this.cv.getContext('2d');this.c.imageSmoothingEnabled=false;Music.init();
   {let q=1;try{const s=localStorage.getItem('mw_quality');if(s!==null)q=+s;}catch(e){}this.setQuality(q,true);}
+  try{const o=JSON.parse(localStorage.getItem('mw_opt')||'null');if(o&&typeof o==='object')for(const k of['shake','ambient','hpbars'])if(k in o)this.opt[k]=!!o[k];}catch(e){}
   addEventListener('keydown',e=>{this.keys[e.key.toLowerCase()]=1;if(e.key.toLowerCase()==='e')this.interact();if(e.key.toLowerCase()==='m'&&!e.repeat)Music.toggle();
    if(e.key==='Tab'&&!e.repeat){e.preventDefault();UI.toggleMenu();return;}
    if(this.state==='cutscene'&&(e.key===' '||e.key==='Enter'))Cut.next();
@@ -67,7 +71,7 @@ const G={quality:1,S:1,flash:0,cloud:null,fxTotem:null,sunAlt:false,clickMove:fa
  /* trudność: wolniej rośnie z numerem fali (etapy mają teraz więcej fal), mocniej z numerem etapu */
  /* v1.2.0: tryb nieskończony – łagodny start i powolny wzrost (dawniej 1:1 z numerem fali): fala 5 ≈ 2.8, fala 10 ≈ 5, fala 20 ≈ 9.5, fala 30 ≈ 17.5 */
  diff(){return this.mode==='campaign'?Math.max(1,Math.round(this.level*1.2+this.wave*.5)):Math.max(1,1+(this.wave-1)*.45+Math.max(0,this.wave-20)*.35);},
- loadWave(travel,D,quiet){const w=this.cur();this.xpWave=0;this.sel=null;
+ loadWave(travel,D,quiet){this.event=null;const w=this.cur();this.xpWave=0;this.sel=null;
   if(!travel){Player.d.gear=Player.d.gear||{sword:null,armor:null,shield:null};this.p={key:Player.spriteKey(),name:'Bohater',x:110,y:215,ox:0,oy:0,alpha:1,flash:0,scale:3,face:1,ph:0,s:Player.d,vy:0,jumping:0};}
   if(!travel){
    /* kula ognia: odnawia się tylko przy nowym etapie (wave 1) lub walce z bossem – nie przy każdej fali */
@@ -77,7 +81,17 @@ const G={quality:1,S:1,flash:0,cloud:null,fxTotem:null,sunAlt:false,clickMove:fa
   this.enemies=w.e.map((t,i)=>makeEnemy(t,this.diff(),i,w.boss&&i===0));
   if(travel)this.enemies.forEach(e=>e.ox=D||640);   // wrogowie wjeżdżą razem z nową mapą
   this.actors=[this.p,...this.comps,...this.enemies,...(travel?this.npcs:[])];if(!travel){this.npcs=[];if(!quiet)this.begin(w);}},
- begin(w){Music.play(w.map);Combat.busy=false;Combat.guard=false;this.mark=null;Combat.refreshHaste(true);if(this.mode==='endless')Prog.reach(this.wave);   // v1.2.0: rekord fali + osiągnięcie
+ /* ===== v1.2.1: EVENTY PUSTYNI – raz na falę (poza bossem): normalnie 50% / burza piaskowa 25% / fatamorgana 25% ===== */
+ rollEvent(w){this.event=null;if(w.map!=='desert'||w.boss)return;
+  const r=Math.random();this.event=r<.5?null:r<.75?'sandstorm':'mirage';
+  if(this.event==='sandstorm'){UI.log('Nadciąga burza piaskowa! Piasek utrudnia celowanie – więcej pudeł.','crit');if(!this.banner)this.banner={txt:'Burza piaskowa!',t:0};}
+  if(this.event==='mirage'){this.applyMirage();UI.log('Fatamorgana! Na pustyni migoczą miraże – część wrogów nie istnieje, a prawdziwi biją mocniej.','crit');if(!this.banner)this.banner={txt:'Fatamorgana!',t:0};}},
+ /* 2 miraże (przezroczyste kopie wrogów z tej fali) + prawdziwi wrogowie +30% ATK; wszyscy rozmieszczeni na nowo i wymieszani */
+ applyMirage(){const real=this.enemies.filter(e=>!e.phantom);if(!real.length)return;
+  real.forEach(e=>{e.s.atk=Math.round(e.s.atk*1.3);e.boost=1;});
+  for(let i=0;i<2;i++){const ph=makeEnemy(real[i%real.length].key,this.diff(),real.length+i);ph.phantom=1;ph.nobar=1;ph.s.hp=ph.s.maxhp=1;this.enemies.push(ph);this.actors.push(ph);}
+  this.enemies.sort(()=>Math.random()-.5);const n=this.enemies.length;this.enemies.forEach((e,i)=>{e.x=n>1?380+i*(230/(n-1)):500;});},
+ begin(w){this.rollEvent(w);Music.play(w.map);Combat.busy=false;Combat.guard=false;this.mark=null;Combat.refreshHaste(true);if(this.mode==='endless')Prog.reach(this.wave);   // v1.2.0: rekord fali + osiągnięcie
     // v1.1.1: sędzia obecny od początku fali daje piłkarzom szybkość
  
   UI.log(`--- ${UI.waveLabel()}: ${MAPS[w.map].name} ---`,'crit');
@@ -111,7 +125,7 @@ const G={quality:1,S:1,flash:0,cloud:null,fxTotem:null,sunAlt:false,clickMove:fa
  text(a,txt,col,big){this.fx.push({txt:trn(txt),x:a.x+a.ox,y:a.y+a.oy-a.scale*32-10,c:col,life:1,big});},
  hitfx(a,k){this.fx.push({spr:k,x:a.x+a.ox,y:a.y+a.oy-a.scale*14,life:1});},
  burst(x,y,c,n){n=Math.ceil(n*[.35,1,1.5][this.quality]);for(let i=0;i<n;i++)this.fx.push({x,y,vx:(Math.random()-.5)*6,vy:-Math.random()*5,life:1,c,sz:2+Math.random()*3,pt:1});},
- async win(){this.state='won';UI.lock(true);const d=Player.d,heal=Math.round(d.maxhp*.3);d.hp=Math.min(d.maxhp,d.hp+heal);
+ async win(){this.event=null;this.state='won';UI.lock(true);const d=Player.d,heal=Math.round(d.maxhp*.3);d.hp=Math.min(d.maxhp,d.hp+heal);
   let rw=`Fala pokonana! +${this.xpWave} XP, +${heal} HP`;if(this.wave%2===0){d.potions++;rw+=', +1 eliksir';}
   const pts=this.cur().boss?3:1;d.pending+=pts;rw+=`, +${pts} pkt umiejętności`;
   (d.comps||[]).forEach(c=>c.hp=Math.min(c.maxhp,c.hp+Math.round(c.maxhp*.3)));[this.p,...this.comps].forEach(x=>{x.poison=x.burn=x.freeze=x.sand=null;});
@@ -272,7 +286,7 @@ const G={quality:1,S:1,flash:0,cloud:null,fxTotem:null,sunAlt:false,clickMove:fa
   this.banner={txt:CAMPAIGN[i].name,t:0};},
  /* v1.2.0: licznik śmierci zapisany też w migawce etapu i autozapisie – „Spróbuj ponownie” nie kasuje śmierci (osiągnięcie „bez jednej rysy”) */
  syncDeaths(){const n=Player.d.deaths;try{if(this.snap){const s=JSON.parse(this.snap);s.deaths=n;this.snap=JSON.stringify(s);}const sv=Save.get('campaign');if(sv&&sv.p){sv.p.deaths=n;Save.set('campaign',sv);}}catch(e){}},
- async lose(){this.state='over';Player.d.deaths=(Player.d.deaths||0)+1;this.syncDeaths();
+ async lose(){this.event=null;this.state='over';Player.d.deaths=(Player.d.deaths||0)+1;this.syncDeaths();
   if(this.mode==='campaign'&&this.level>=CAMPAIGN.length-1)await Story.bad();
   if(this.mode==='campaign'){
     /* po śmierci – mapa świata (cofnięcie do odblokowanych etapów) */
@@ -299,12 +313,12 @@ const G={quality:1,S:1,flash:0,cloud:null,fxTotem:null,sunAlt:false,clickMove:fa
    if(clr&&p.x>=600)this.advance();}
   else if(p.dest){p.dest=null;this.mark=null;}
   const mid=this.bg?this.bg.path[Math.min(this.bg.path.length-1,Math.round(this.bg.x/640))]:this.cur().map,amb=MAPS[mid]&&AMB[MAPS[mid].amb];   // klimat mapy: liście, śnieg, iskry...
-  if(amb&&Math.random()<.35*[0,1,1.6][this.quality])this.fx.push({x:Math.random()*660,y:amb.y(),vx:amb.vx+(this.bg?-7:0),vy:amb.vy,g:0,dl:.006,life:1.2,c:amb.c,sz:amb.sz,pt:1});
+  if(amb&&Math.random()<.35*[0,1,1.6][this.quality]*(this.opt.ambient?1:0))this.fx.push({x:Math.random()*660,y:amb.y(),vx:amb.vx+(this.bg?-7:0),vy:amb.vy,g:0,dl:.006,life:1.2,c:amb.c,sz:amb.sz,pt:1});
   for(const a of this.actors)if(a.burn&&Math.random()<.3)this.fx.push({x:a.x+a.ox+(Math.random()-.5)*20,y:a.y+a.oy-20-Math.random()*30,vx:0,vy:-1.5,life:.8,c:'#ff9a40',sz:3,pt:1});
   if(!Combat.busy&&(this.state==='fight'||this.state==='clear'))this.comps.forEach((c,i)=>{if(c.s.hp<=0||c.alpha<1)return;const o=COMP_OFF[i],tx=p.x+o[0],ty=p.y+o[1];c.x+=(tx-c.x)*.1;c.y+=(ty-c.y)*.1;c.walk=Math.hypot(tx-c.x,ty-c.y)>6?1:0;});
   this.fx=this.fx.filter(f=>{if(f.pt){f.x+=f.vx;f.y+=f.vy;f.vy+=f.g===undefined?.25:f.g;f.life-=f.dl||.025;}else if(f.spr||f.slash){f.life-=f.slash?.08:.05;}else{f.y-=.8;f.life-=.015;}return f.life>0;});},
  draw(){this.c.setTransform(this.S,0,0,this.S,0,0);if(this.state==='cutscene')return Cut.draw(this.c);const c=this.c,w=this.cur(),m=MAPS[w.map];c.save();c.clearRect(0,0,640,320);this.top=[];
-  if(this.shake>0){const sm=this.quality===0?.4:1;c.translate((Math.random()-.5)*this.shake*sm,(Math.random()-.5)*this.shake*sm);this.shake*=.85;}
+  if(this.shake>0){const sm=this.opt.shake?(this.quality===0?.4:1):0;c.translate((Math.random()-.5)*this.shake*sm,(Math.random()-.5)*this.shake*sm);this.shake*=.85;}
   if(this.bg)this.drawTravel(c);else this.drawMap(c,w.map,0);
   if(this.mark){const m=this.mark,u=((this.t-m.t0)/700)%1;c.save();   // v1.1.1: żółta otoczka w miejscu, do którego idzie bohater
    c.fillStyle='rgba(242,193,78,.22)';c.beginPath();c.ellipse(m.x,m.y,14,5.5,0,0,7);c.fill();
@@ -319,6 +333,9 @@ const G={quality:1,S:1,flash:0,cloud:null,fxTotem:null,sunAlt:false,clickMove:fa
   if(this.banner){const b=this.banner;b.t++;const al=Math.min(1,b.t/25,(170-b.t)/30);if(al<=0)this.banner=null;else{c.globalAlpha=al;c.font='bold 22px "Courier New"';c.textAlign='center';c.fillStyle='#000';c.fillText(trn(b.txt),322,72);c.fillStyle='#f2c14e';c.fillText(trn(b.txt),320,70);c.globalAlpha=1;}}
   if(this.dev){c.font='bold 12px "Courier New"';c.textAlign='left';c.fillStyle='#000';c.fillText('DEV ∞HP',9,17);c.fillStyle='#7aff9a';c.fillText('DEV ∞HP',8,16);}
   c.restore();c.globalAlpha=1;
+  if(this.event==='sandstorm'){c.fillStyle='rgba(222,178,60,.2)';c.fillRect(0,0,640,320);   // v1.2.1: burza piaskowa – żółty odcień + wiejący piasek
+   if(this.quality>0){const n=this.quality===2?46:24;c.strokeStyle='rgba(245,215,130,.55)';c.lineWidth=1.5;c.beginPath();
+    for(let i=0;i<n;i++){const sp=2+(i%5)*.7,x=660-((this.t*sp*.18+i*97)%720),y=(i*53+Math.sin(this.t/400+i)*6)%320;c.moveTo(x,y);c.lineTo(x-14-(i%4)*5,y+2);}c.stroke();}}
   if(this.quality===2)this.drawVignette(c);   // v1.2.0: wysoka jakość – delikatna winieta
   if(this.flash>.02){c.fillStyle=`rgba(255,255,230,${this.flash*.7})`;c.fillRect(0,0,640,320);this.flash*=.82;}   // błysk pioruna
   if(this.fade>0){c.fillStyle=`rgba(0,0,0,${this.fade})`;c.fillRect(0,0,640,320);}},
@@ -368,9 +385,10 @@ const G={quality:1,S:1,flash:0,cloud:null,fxTotem:null,sunAlt:false,clickMove:fa
     c.globalAlpha=al;}
    c.rotate(ang);c.drawImage(im,0,0,32,32,-23,-20.5,32,32);c.restore();});},
  drawActor(a){if(a.npc)return this.drawNpc(a);const c=this.c,t=this.t,s=a.scale*(a.pose==='attack'?1.15:1),bob=Math.sin(t/1000*(a.walk?14:3)+a.ph)*(a.walk?2:1.5),
-   x=a.x+a.ox,y=a.y+a.oy,h=ASSETS[a.key].fh*a.scale+(a.air?20:0);
-  c.globalAlpha=a.alpha;c.fillStyle='rgba(0,0,0,.3)';const shS=a.jumping?.55:1;c.beginPath();c.ellipse(x,y,ASSETS[a.key].fw*a.scale*.3*shS,a.scale*3*shS,0,0,7);c.fill();
+   x=a.x+a.ox+(a.phantom?Math.sin(t/120+a.ph)*2:0),y=a.y+a.oy,h=ASSETS[a.key].fh*a.scale+(a.air?20:0);
+  c.globalAlpha=a.phantom?a.alpha*(.42+.14*Math.sin(t/170+a.ph)):a.alpha;c.fillStyle='rgba(0,0,0,.3)';const shS=a.jumping?.55:1;c.beginPath();c.ellipse(x,y,ASSETS[a.key].fw*a.scale*.3*shS,a.scale*3*shS,0,0,7);c.fill();
   if(a.flash>0){c.filter='brightness(3)';a.flash-=.05;}
+  else if(a.phantom)c.filter='sepia(.9) saturate(2.2) brightness(1.2)';   // miraż: złocisty i migoczący
   const st=(a.s.hp<=0&&!a.last)?'death':(a.flash>0||a.last)?'hurt':a.pose==='attack'?((a.anim&&Assets.sheets[a.key][a.anim])?a.anim:'attack'):a.jumping?(Assets.sheets[a.key].jump?'jump':'walk'):a.run?'run':a.walk?'walk':'idle';
   if(a.st!==st){a.st=st;a.at=t;}
   const air=a.air?(-18+Math.sin(t/260+a.ph)*4):0,sq=a.pose==='attack'?.88:a.jumping?(a.vy<0?.92:1.08):(st==='idle'?1+.03*Math.sin(t/300+a.ph):1);   // oddychanie / rozciągnięcie przy ataku/skoku
@@ -413,7 +431,7 @@ const G={quality:1,S:1,flash:0,cloud:null,fxTotem:null,sunAlt:false,clickMove:fa
   }
   if(a.rot)c.restore();c.filter='none';
   if(this.invuln(a)){c.globalAlpha=.4+.15*Math.sin(t/180);c.strokeStyle='#8ae0ff';c.lineWidth=3;c.beginPath();c.ellipse(x,y-h*.45,ASSETS[a.key].fw*a.scale*.4,h*.55,0,0,7);c.stroke();c.globalAlpha=.1;c.fillStyle='#8ae0ff';c.fill();c.globalAlpha=a.alpha;}   // tarcza ochronna
-  if(a.s.hp>0&&!a.nobar){c.fillStyle='#000';c.fillRect(x-22,y-h-14,44,7);c.fillStyle=(a===this.p||a.ally)?'#4ad66a':this.invuln(a)?'#8a93a8':'#d64545';c.fillRect(x-20,y-h-12,40*a.s.hp/a.s.maxhp,3);
+  if(a.s.hp>0&&!a.nobar&&this.opt.hpbars){c.fillStyle='#000';c.fillRect(x-22,y-h-14,44,7);c.fillStyle=(a===this.p||a.ally)?'#4ad66a':this.invuln(a)?'#8a93a8':'#d64545';c.fillRect(x-20,y-h-12,40*a.s.hp/a.s.maxhp,3);
    if(a===this.target()&&a!==this.p&&!a.ally){c.fillStyle='#f2c14e';c.fillRect(x-4,y-h-24,8,6);}}
   if(a.s.hp>0&&!a.nobar){let k=0;for(const[n,col]of[['poison','#7aff6a'],['burn','#ff9a40'],['freeze','#8ae0ff'],['sand','#e8d090'],['haste','#ffd24a']]){const q=a[n];if(!q)continue;const ix=x-22+k*30,ic=Assets.fx[n==='freeze'&&q.stone?'stone':n];
    if(ic)c.drawImage(ic,ix,y-h-32,16,16);else{c.fillStyle=col;c.fillRect(ix,y-h-30,10,10);}

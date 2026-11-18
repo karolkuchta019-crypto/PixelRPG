@@ -234,6 +234,30 @@ const DICT={};
 `Niezłomny`,`Unbreakable`,`Inquebrantable`,`Ulepsz Odporność na efekty do maksimum.`,`Upgrade Effect Resistance to the maximum.`,`Mejora la Resistencia a efectos al máximo.`,
 `Bez jednej rysy`,`Without a Scratch`,`Sin un rasguño`,`Przejdź całą kampanię bez ani jednej śmierci.`,`Complete the whole campaign without a single death.`,`Completa toda la campaña sin morir ni una sola vez.`,
 `Gołymi pięściami`,`Bare-Handed`,`A puño limpio`,`Pokonaj Yeti bez żadnych ulepszeń.`,`Defeat the Yeti without any upgrades.`,`Derrota al Yeti sin ninguna mejora.`,
+
+/* ---- v1.2.1: eventy pustyni, rybik cukrowy ---- */
+`Burza piaskowa`,`Sandstorm`,`Tormenta de arena`,`Fatamorgana`,`Mirage`,`Espejismo`,`Burza piaskowa!`,`Sandstorm!`,`¡Tormenta de arena!`,`Fatamorgana!`,`Mirage!`,`¡Espejismo!`,
+`Nadciąga burza piaskowa! Piasek utrudnia celowanie – więcej pudeł.`,`A sandstorm is coming! Sand makes aiming harder – more misses.`,`¡Se acerca una tormenta de arena! La arena dificulta apuntar: más fallos.`,
+`Fatamorgana! Na pustyni migoczą miraże – część wrogów nie istnieje, a prawdziwi biją mocniej.`,`A mirage! Illusions shimmer in the desert – some enemies don't exist, and the real ones hit harder.`,`¡Un espejismo! Las ilusiones brillan en el desierto: algunos enemigos no existen y los reales golpean más fuerte.`,
+`To tylko fatamorgana! Wróg rozpływa się w powietrzu.`,`It's only a mirage! The enemy melts into thin air.`,`¡Solo es un espejismo! El enemigo se desvanece en el aire.`,`MIRAŻ!`,`MIRAGE!`,`¡ESPEJISMO!`,
+`Rybik cukrowy rozdwaja się!`,`The Silverfish splits in two!`,`¡El Pez de plata se divide en dos!`,`ROZDWOJENIE!`,`SPLIT!`,`¡DIVISIÓN!`,
+/* ---- v1.2.1: ustawienia (kategorie) ---- */
+`Ogólne`,`General`,`General`,`Dźwięk`,`Sound`,`Sonido`,`Grafika`,`Graphics`,`Gráficos`,`Sterowanie`,`Controls`,`Controles`,`Rozgrywka`,`Gameplay`,`Jugabilidad`,`Dane`,`Data`,`Datos`,`Deweloper`,`Developer`,`Desarrollador`,
+`Wersja gry`,`Game version`,`Versión del juego`,`Muzyka w tle w trakcie gry.`,`Background music during the game.`,`Música de fondo durante el juego.`,`Głośność`,`Volume`,`Volumen`,
+`Wstrząsy ekranu`,`Screen shake`,`Sacudidas de pantalla`,`Trzęsienie obrazu przy mocnych trafieniach.`,`The image shakes on powerful hits.`,`La imagen tiembla con los golpes fuertes.`,
+`Cząsteczki otoczenia`,`Ambient particles`,`Partículas ambientales`,`Pył, iskry i śnieg unoszące się na planszy.`,`Dust, sparks and snow drifting across the arena.`,`Polvo, chispas y nieve flotando por la arena.`,
+`Paski życia wrogów`,`Enemy health bars`,`Barras de vida de enemigos`,`Pasek HP nad każdą postacią.`,`An HP bar above every character.`,`Una barra de PV sobre cada personaje.`,
+`Klik w ziemię: bohater idzie w to miejsce. Klik we wroga nadal go namierza.`,`Click the ground: the hero walks there. Clicking an enemy still targets it.`,`Clic en el suelo: el héroe camina hasta allí. Hacer clic en un enemigo sigue fijándolo.`,
+`Ruch`,`Move`,`Moverse`,`Sprint`,`Sprint`,`Correr`,`Skok`,`Jump`,`Saltar`,`Rozmowa z NPC / sklep`,`Talk to NPC / shop`,`Hablar con PNJ / tienda`,
+`Poziom trudności`,`Difficulty`,`Dificultad`,`Wkrótce.`,`Coming soon.`,`Próximamente.`,`wkrótce`,`soon`,`pronto`,
+`Identyfikator zapisów`,`Save ID`,`ID de guardado`,`Rozdziela zapisy w bazie PostgreSQL między graczy.`,`Keeps saves in the PostgreSQL database separate between players.`,`Separa los guardados de la base de datos PostgreSQL entre jugadores.`,
+`Resetuj osiągnięcia i rekord`,`Reset achievements and record`,`Reiniciar logros y récord`,`Usuwa osiągnięcia oraz najdalszą falę trybu nieskończonego.`,`Removes achievements and the furthest wave of endless mode.`,`Elimina los logros y la oleada más lejana del modo infinito.`,`Resetuj`,`Reset`,`Reiniciar`,
+`Przywróć ustawienia domyślne`,`Restore default settings`,`Restaurar ajustes por defecto`,`Język, grafika, dźwięk i sterowanie wracają do wartości początkowych.`,`Language, graphics, sound and controls return to their initial values.`,`El idioma, los gráficos, el sonido y los controles vuelven a sus valores iniciales.`,`Przywróć`,`Restore`,`Restaurar`,
+`Zresetować wszystkie osiągnięcia i rekord trybu nieskończonego?`,`Reset all achievements and the endless mode record?`,`¿Reiniciar todos los logros y el récord del modo infinito?`,`Przywrócić ustawienia domyślne?`,`Restore the default settings?`,`¿Restaurar los ajustes por defecto?`,
+`wł.`,`on`,`sí`,`wył.`,`off`,`no`,
+`Tryb deweloperski: wejście do etapu od razu walką z bossem.`,`Developer mode: entering a stage starts straight with the boss fight.`,`Modo desarrollador: al entrar en una etapa empieza directamente la pelea con el jefe.`,`Nieskończone HP i punkty (przełączany skrótem).`,`Infinite HP and points (toggled with a shortcut).`,`PV y puntos infinitos (se activa con un atajo).`,
+/* ---- v1.2.1: sklepy ---- */
+`Wymień punkty poziomu na umiejętności.`,`Trade level points for skills.`,`Cambia puntos de nivel por habilidades.`,`Statystyki`,`Stats`,`Estadísticas`,`Przetrwanie`,`Survival`,`Supervivencia`,`Walka i magia`,`Combat and magic`,`Combate y magia`,`Kompani`,`Allies`,`Aliados`,
 ];for(let i=0;i<A.length;i+=3)DICT[A[i]]=[A[i+1],A[i+2]];}
 /* wzorce komunikatów (kolejność ma znaczenie: bardziej szczegółowe wcześniej) */
 const PAT=[

@@ -15,7 +15,7 @@ const UI = {
   hud() {
     const d = Player.d, m = MAPS[G.cur().map];
     this.$('wave').textContent = trn(this.waveLabel());
-    this.$('mapname').textContent = trn(m.name);
+    this.$('mapname').textContent = trn(m.name) + (G.event ? ' · ' + trn(G.event === 'sandstorm' ? 'Burza piaskowa' : 'Fatamorgana') : '');
     this.$('lvl').textContent = 'LVL ' + d.level;
     this.$('xpbar').style.width = 100 * d.xp / Player.xpNext() + '%';
     this.$('hpbar').style.width = 100 * d.hp / d.maxhp + '%';
@@ -258,28 +258,31 @@ const UI = {
     [['menu', 'Menu'], ['settings', 'Ustawienia'], ['ach', 'Osiągnięcia']].forEach(([id, label]) => {
       const tb = document.createElement('button');
       tb.textContent = trn(label) + (id === 'ach' ? ` ${Prog.count()}/${ACH.length}` : '');
-      tb.className = 'tabbtn' + (this.menuTab === id ? ' active' : '');
+      tb.className = 'tabbtn ghost' + (this.menuTab === id ? ' on' : '');
       tb.onclick = () => this.toggleMenu(id);
       bar.append(tb);
     });
     s.append(bar);
 
-    const mk = (label, locked, fn) => {
+    const mk = (label, locked, fn, tg = s) => {
       const b = document.createElement('button');
       b.textContent = locked ? trn(label) + ' 🔒' : trn(label);
       if (locked) { b.disabled = true; b.classList.add('locked-opt'); }
       else b.onclick = fn;
-      s.append(b);
+      tg.append(b);
     };
     const rerender = () => { this.menuOpen = false; this.toggleMenu(); };
     const d = Player.d || {};
 
     if (this.menuTab === 'menu') {
-      mk('🗺  Mapa świata', false, () => { this.menuOpen = false; this.worldMap({ fromMenu: 1 }); });
-      mk('💾  Zapisz grę (3 sloty)', !Slots.canSave(), () => { this.menuOpen = false; this.slots('save', 'menu'); });
-      mk('📂  Wczytaj grę', !Slots.canLoad(), () => { this.menuOpen = false; this.slots('load', 'menu'); });
-      mk('⚔  Nowa kampania', false, () => this.newGame('campaign'));
-      mk('♾  Nowy tryb nieskończony', false, () => this.newGame('endless'));
+      const list = document.createElement('div');
+      list.className = 'menu-list';
+      s.append(list);
+      mk('🗺  Mapa świata', false, () => { this.menuOpen = false; this.worldMap({ fromMenu: 1 }); }, list);
+      mk('💾  Zapisz grę (3 sloty)', !Slots.canSave(), () => { this.menuOpen = false; this.slots('save', 'menu'); }, list);
+      mk('📂  Wczytaj grę', !Slots.canLoad(), () => { this.menuOpen = false; this.slots('load', 'menu'); }, list);
+      mk('⚔  Nowa kampania', false, () => this.newGame('campaign'), list);
+      mk('♾  Nowy tryb nieskończony', false, () => this.newGame('endless'), list);
 
       const stats = document.createElement('div');
       stats.className = 'menu-block';
@@ -291,73 +294,89 @@ const UI = {
     }
 
     if (this.menuTab === 'settings') {
-      /* muzyka */
-      const musicBox = document.createElement('div');
-      musicBox.className = 'menu-block';
-      musicBox.innerHTML = `<p><b>${trn('Muzyka')}</b>: ${trn(Music.on ? 'włączona' : 'wyłączona')}</p>`;
-      const tog = document.createElement('button');
-      tog.textContent = trn(Music.on ? 'Wyłącz muzykę' : 'Włącz muzykę');
-      tog.onclick = () => { Music.toggle(); tog.textContent = trn(Music.on ? 'Wyłącz muzykę' : 'Włącz muzykę'); };
-      musicBox.append(tog);
-      const volL = document.createElement('label');
-      volL.textContent = trn(' Głośność: ');
-      const vol = document.createElement('input');
-      vol.type = 'range'; vol.min = 0; vol.max = 100; vol.value = Math.round((Music.vol || 0.5) * 100);
-      vol.oninput = () => { Music.vol = vol.value / 100; if (Music.cur) Music.cur.volume = Music.vol; };
-      volL.append(vol);
-      musicBox.append(volL);
-      s.append(musicBox);
-
-      /* język + ruch po kliknięciu + opcje dev */
-      const set = document.createElement('div');
-      set.className = 'menu-block';
-      set.innerHTML = `<p><b>${trn('Ustawienia')}</b></p><p>${trn('Język / Language')}:</p>`;
-      const lrow = document.createElement('div');
-      lrow.style.cssText = 'display:flex;gap:6px;justify-content:center;flex-wrap:wrap';
-      I18N.LANGS.forEach(([code, label]) => {
-        const lb = document.createElement('button');
-        lb.textContent = label; lb.style.minWidth = '0'; lb.style.flex = '1';
-        if (I18N.lang === code) lb.style.outline = '2px solid #7aff9a';
-        lb.onclick = () => { I18N.set(code); if (Player.d && G.p) this.hud(); rerender(); };
-        lrow.append(lb);
+      /* v1.2.1: ustawienia podzielone na kategorie (lewa kolumna) z wierszami opcji (prawa kolumna) */
+      const cats = [['general', '🌐', 'Ogólne'], ['sound', '🔊', 'Dźwięk'], ['gfx', '🖼', 'Grafika'], ['ctrl', '🎮', 'Sterowanie'], ['play', '⚔', 'Rozgrywka'], ['data', '💾', 'Dane']];
+      if (G.dev) cats.push(['dev', '🛠', 'Deweloper']);
+      if (!cats.some(c => c[0] === this.setCat)) this.setCat = 'general';
+      const wrap = document.createElement('div'); wrap.className = 'set-wrap';
+      const nav = document.createElement('nav'); nav.className = 'set-nav';
+      cats.forEach(([id, ic, label]) => {
+        const b = document.createElement('button');
+        b.className = 'ghost' + (this.setCat === id ? ' on' : '');
+        b.textContent = `${ic}  ${trn(label)}`;
+        b.onclick = () => { this.setCat = id; rerender(); };
+        nav.append(b);
       });
-      set.append(lrow);
-      const cm = document.createElement('button');
-      cm.style.marginTop = '8px';
-      cm.textContent = `${trn('Ruch po kliknięciu (żółta otoczka)')}: ${trn(G.clickMove ? 'włączony' : 'wyłączony')}`;
-      cm.onclick = () => { G.setClickMove(!G.clickMove); rerender(); };
-      set.append(cm);
-      if (G.dev) {
-        const db = document.createElement('button');
-        db.style.marginTop = '8px';
-        db.textContent = `${trn('Tryb deweloperski')} – ${trn('Etapy zaczynaj od bossa')}: ${trn(G.devBoss ? 'włączony' : 'wyłączony')}`;
-        db.onclick = () => { G.devBoss = !G.devBoss; rerender(); };
-        set.append(db);
+      const panel = document.createElement('section'); panel.className = 'set-panel';
+      const h3 = document.createElement('h3'); h3.textContent = trn(cats.find(c => c[0] === this.setCat)[2]);
+      panel.append(h3);
+      const row = (label, desc, ctl) => {
+        const r = document.createElement('div'); r.className = 'opt-row';
+        const i = document.createElement('div'); i.className = 'opt-info';
+        const b = document.createElement('b'); b.textContent = trn(label); i.append(b);
+        if (desc) { const sp = document.createElement('span'); sp.textContent = trn(desc); i.append(sp); }
+        const c = document.createElement('div'); c.className = 'opt-ctl'; c.append(ctl);
+        r.append(i, c); panel.append(r);
+      };
+      const seg = (opts, cur, pick) => {
+        const w = document.createElement('span'); w.className = 'seg';
+        opts.forEach(([v, l]) => { const b = document.createElement('button'); b.className = 'ghost' + (v === cur ? ' on' : ''); b.textContent = trn(l); b.onclick = () => pick(v); w.append(b); });
+        return w;
+      };
+      const toggle = (on, fn) => { const b = document.createElement('button'); b.className = 'toggle ghost' + (on ? ' on' : ''); b.textContent = trn(on ? 'wł.' : 'wył.'); b.onclick = () => fn(!on); return b; };
+      const text = t => { const e = document.createElement('span'); e.className = 'opt-val'; e.textContent = t; e.style.minWidth = '0'; return e; };
+      const btn = (label, cls, fn) => { const b = document.createElement('button'); b.className = cls; b.textContent = trn(label); b.onclick = fn; return b; };
+
+      if (this.setCat === 'general') {
+        row('Język / Language', null, seg(I18N.LANGS, I18N.lang, v => { I18N.set(v); if (Player.d && G.p) this.hud(); rerender(); }));
+        row('Wersja gry', null, text('v' + VERSION));
       }
-      s.append(set);
-
-      /* v1.2.0: USTAWIENIA GRAFICZNE – jakość grafiki */
-      const gfx = document.createElement('div');
-      gfx.className = 'menu-block';
-      gfx.innerHTML = `<p><b>${trn('Ustawienia graficzne')}</b></p><p>${trn('Jakość grafiki')}:</p>`;
-      const qrow = document.createElement('div');
-      qrow.style.cssText = 'display:flex;gap:6px;justify-content:center;flex-wrap:wrap';
-      ['Niska', 'Średnia', 'Wysoka'].forEach((label, q) => {
-        const qb = document.createElement('button');
-        qb.textContent = trn(label); qb.style.minWidth = '0'; qb.style.flex = '1';
-        if (G.quality === q) qb.style.outline = '2px solid #7aff9a';
-        qb.onclick = () => { G.setQuality(q); rerender(); };
-        qrow.append(qb);
-      });
-      gfx.append(qrow);
-      const note = document.createElement('p');
-      note.className = 'small';
-      note.textContent = trn(['Mniej efektów, rysowanie co drugą klatkę, słabsze wstrząsy – dla wolniejszych komputerów.',
-        'Standardowa jakość (zalecana).', 'Ostrzejsza grafika (2× rozdzielczość), więcej cząsteczek i delikatna winieta.'][G.quality]);
-      gfx.append(note);
-      s.append(gfx);
-
-      mk('⚙  Poziom trudności (wkrótce)', true, null);
+      if (this.setCat === 'sound') {
+        row('Muzyka', 'Muzyka w tle w trakcie gry.', toggle(Music.on, () => { Music.toggle(); rerender(); }));
+        const vol = document.createElement('input');
+        vol.type = 'range'; vol.min = 0; vol.max = 100; vol.value = Math.round((Music.vol || 0.5) * 100);
+        const val = document.createElement('span'); val.className = 'opt-val'; val.textContent = vol.value + '%';
+        vol.oninput = () => { Music.vol = vol.value / 100; if (Music.cur) Music.cur.volume = Music.vol; val.textContent = vol.value + '%'; };
+        const box = document.createElement('span'); box.className = 'opt-ctl'; box.append(vol, val);
+        row('Głośność', null, box);
+      }
+      if (this.setCat === 'gfx') {
+        row('Jakość grafiki', ['Mniej efektów, rysowanie co drugą klatkę, słabsze wstrząsy – dla wolniejszych komputerów.', 'Standardowa jakość (zalecana).', 'Ostrzejsza grafika (2× rozdzielczość), więcej cząsteczek i delikatna winieta.'][G.quality],
+          seg([[0, 'Niska'], [1, 'Średnia'], [2, 'Wysoka']], G.quality, v => { G.setQuality(v); rerender(); }));
+        row('Wstrząsy ekranu', 'Trzęsienie obrazu przy mocnych trafieniach.', toggle(G.opt.shake, v => { G.setOpt('shake', v); rerender(); }));
+        row('Cząsteczki otoczenia', 'Pył, iskry i śnieg unoszące się na planszy.', toggle(G.opt.ambient, v => { G.setOpt('ambient', v); rerender(); }));
+        row('Paski życia wrogów', 'Pasek HP nad każdą postacią.', toggle(G.opt.hpbars, v => { G.setOpt('hpbars', v); rerender(); }));
+      }
+      if (this.setCat === 'ctrl') {
+        row('Ruch po kliknięciu (żółta otoczka)', 'Klik w ziemię: bohater idzie w to miejsce. Klik we wroga nadal go namierza.', toggle(G.clickMove, v => { G.setClickMove(v); rerender(); }));
+        [['WASD / ←↑↓→', 'Ruch'], ['Shift', 'Sprint'], ['Spacja', 'Skok'], ['E', 'Rozmowa z NPC / sklep'], ['M', 'Muzyka'], ['Tab', 'Menu']].forEach(([k, l]) => {
+          const kb = document.createElement('kbd'); kb.textContent = k; row(l, null, kb);
+        });
+      }
+      if (this.setCat === 'play') {
+        const dis = btn('wkrótce', 'ghost sm', () => {}); dis.disabled = true;
+        row('Poziom trudności', 'Wkrótce.', dis);
+        row('Najdalsza fala (tryb nieskończony):', null, text(String(Prog.d.best || 0)));
+        row('Osiągnięcia', null, text(`${Prog.count()} / ${ACH.length}`));
+      }
+      if (this.setCat === 'data') {
+        row('Identyfikator zapisów', 'Rozdziela zapisy w bazie PostgreSQL między graczy.', text(Slots.pid().slice(0, 8) + '…'));
+        row('Resetuj osiągnięcia i rekord', 'Usuwa osiągnięcia oraz najdalszą falę trybu nieskończonego.', btn('Resetuj', 'danger sm', () => {
+          if (!confirm(trn('Zresetować wszystkie osiągnięcia i rekord trybu nieskończonego?'))) return;
+          Prog.d = { best: 0, ach: {} }; Prog.save(); rerender();
+        }));
+        row('Przywróć ustawienia domyślne', 'Język, grafika, dźwięk i sterowanie wracają do wartości początkowych.', btn('Przywróć', 'ghost sm', () => {
+          if (!confirm(trn('Przywrócić ustawienia domyślne?'))) return;
+          I18N.set('pl'); G.setQuality(1); G.resetOpt(); G.setClickMove(false); if (!Music.on) Music.toggle(); Music.vol = 0.5; if (Music.cur) Music.cur.volume = 0.5;
+          if (Player.d && G.p) this.hud(); rerender();
+        }));
+      }
+      if (this.setCat === 'dev') {
+        row('Etapy zaczynaj od bossa', 'Tryb deweloperski: wejście do etapu od razu walką z bossem.', toggle(G.devBoss, v => { G.devBoss = v; rerender(); }));
+        row('Tryb deweloperski', 'Nieskończone HP i punkty (przełączany skrótem).', text(trn('włączony')));
+      }
+      wrap.append(nav, panel);
+      s.append(wrap);
     }
 
     if (this.menuTab === 'ach') {
@@ -526,195 +545,147 @@ const UI = {
     });
   },
 
-  /* --- sklep wieśniaka (umiejętności) – przed bossem --- */
-  shop(done) {
-    const d = Player.d, s = this.$('screen');
-    d.sk = d.sk || {};
+  /* ===== v1.2.1: wspólny układ sklepów – portret + punkty w nagłówku, sekcje (kategorie) z kartami ===== */
+  shopFrame(o) {
+    const s = this.$('screen'), keep = s.scrollTop;
     s.innerHTML = '';
+    s.className = 'shopscreen';
     s.classList.remove('hidden');
-    const im = document.createElement('img');
-    im.src = 'assets/ui/merchant.png';
-    im.width = im.height = 96;
-    im.onerror = () => im.remove();
-    s.append(im);
-    const h = document.createElement('h2');
-    h.textContent = trn('Wędrowny Kupiec');
-    s.append(h);
-    const p = document.createElement('p');
-    p.textContent = trn('Wymień punkty poziomu na umiejętności. Twoje punkty: ') + (G.dev ? '∞' : d.pending) +
-      '   ' + trn('Kompani:') + ' ' + (d.comps || []).length + '/3' + (d.sk.fire ? '   ' + trn('Moc kuli ognia:') + ' ' + Player.fireDmg() : '');
-    s.append(p);
-    const g = document.createElement('div');
-    g.className = 'trades';
-    s.append(g);
-    SKILLS.forEach(k => {
-      const own = d.sk[k.id] || 0, c = Player.cost(k);
-      const b = document.createElement('button');
-      const full = k.comp ? (d.comps || []).length >= 3 : own >= k.max;
-      const need = k.req && !d.sk[k.req];   // v1.1: np. moc kuli wymaga kuli ognia
-      const lockN = k.need && !d[k.need];   // v1.2.0: ulepszenia dostępne po pokonaniu Yeti
-      b.textContent = `${trn(k.name)}: ${trn(k.desc)} [${lockN ? '🔒 ' + trn('najpierw pokonaj Yeti') : need ? trn('najpierw: Kula ognia') : full ? trn(k.comp ? 'DRUŻYNA PEŁNA' : 'MAX') : c + ' ' + trn('pkt')}]` +
-        (!k.comp && own && k.max > 1 ? ' x' + own : '');
-      b.disabled = full || need || lockN || (!G.dev && d.pending < c);
-      b.onclick = () => { Player.buy(k.id); this.hud(); this.shop(done); };
-      g.append(b);
+    const wrap = document.createElement('div');
+    wrap.className = 'shop';
+
+    const head = document.createElement('div');
+    head.className = 'shop-head';
+    const cv = document.createElement('canvas');
+    cv.className = 'shop-portrait'; cv.width = cv.height = 72;
+    try { const c2 = cv.getContext('2d'); c2.imageSmoothingEnabled = false; Assets.draw(c2, o.sprite, 36, 70, o.scale || 2, 0); } catch (e) {}
+    const tt = document.createElement('div');
+    tt.className = 'shop-title';
+    const h = document.createElement('h2'); h.textContent = trn(o.title);
+    tt.append(h);
+    if (o.sub) { const p = document.createElement('p'); p.className = 'shop-sub'; p.textContent = o.sub; tt.append(p); }
+    const chips = document.createElement('div');
+    chips.className = 'shop-chips';
+    (o.chips || []).forEach(c => { const e = document.createElement('span'); e.className = 'chip' + (c.cls ? ' ' + c.cls : ''); e.textContent = c.text; chips.append(e); });
+    head.append(cv, tt, chips);
+    wrap.append(head);
+
+    o.sections.forEach(sec => {
+      const box = document.createElement('div');
+      box.className = 'shop-sec';
+      const h3 = document.createElement('h3'); h3.textContent = trn(sec.label);
+      const grid = document.createElement('div'); grid.className = 'shop-grid';
+      sec.items.forEach(it => {
+        const b = document.createElement('button');
+        b.className = 'shop-card' + (it.owned ? ' owned' : '') + (it.locked ? ' locked' : '') + (it.worse ? ' worse' : '');
+        const mk = (cls, txt) => { const e = document.createElement('span'); e.className = cls; e.textContent = txt; return e; };
+        b.append(mk('ic', it.icon || '•'), mk('nm', it.name), mk('pr' + (it.pcls ? ' ' + it.pcls : ''), it.price), mk('ds', it.desc || ''));
+        b.disabled = !!it.disabled;
+        if (!it.disabled) b.onclick = it.onClick;
+        grid.append(b);
+      });
+      box.append(h3, grid);
+      wrap.append(box);
     });
+
     const x = document.createElement('button');
+    x.className = 'shop-exit';
     x.textContent = trn('Idź dalej');
-    x.onclick = () => { s.classList.add('hidden'); G.syncComps(); done(); };
-    s.append(x);
+    x.onclick = o.onExit;
+    wrap.append(x);
+    s.append(wrap);
+    s.scrollTop = keep;
   },
 
-  /* --- v1.1: sklep wiedźmy (eliksiry + talizmany szczęścia = szansa na cios krytyczny) --- */
-  witch(done) {
-    const d = Player.d, s = this.$('screen');
-    d.wi = d.wi || {};
-    s.innerHTML = '';
-    s.className = '';
-    s.classList.remove('hidden');
-    const cv = document.createElement('canvas');
-    cv.width = cv.height = 96;
-    const cx = cv.getContext('2d');
-    cx.imageSmoothingEnabled = false;
-    Assets.draw(cx, 'witch', 48, 96, 2, 0);
-    s.append(cv);
-    const h = document.createElement('h2');
-    h.textContent = trn('Wiedźma z Moczarów');
-    s.append(h);
-    const p = document.createElement('p');
-    p.innerHTML = `${trn('Punkty:')} <b>${G.dev ? '∞' : d.pending}</b> · ${trn('Szczęście (szansa na krytyk):')} <b>${Math.round((d.crit + Player.luck()) * 100)}%</b> (${trn('w tym talizmany')}: +${Math.round(Player.luck() * 100)}%)`;
-    s.append(p);
-    [['potion', 'ELIKSIRY'], ['charm', 'TALIZMANY SZCZĘŚCIA']].forEach(([kind, label]) => {
-      const lab = document.createElement('div');
-      lab.textContent = trn(label);
-      lab.style.cssText = 'text-align:center;font-weight:bold;color:#f2c14e;font-size:13px;margin:6px 0 4px;letter-spacing:1px;border-bottom:1px solid #5a4a20;padding-bottom:4px;width:100%;max-width:720px';
-      s.append(lab);
-      const g = document.createElement('div');
-      g.className = 'trades';
-      WITCH.filter(k => k.kind === kind).forEach(k => {
-        const own = d.wi[k.id] || 0, c = Player.wcost(k), full = own >= k.max;
-        const b = document.createElement('button');
-        b.textContent = `${trn(k.name)}: ${trn(k.desc)} [${full ? trn(k.max === 1 ? '✓ POSIADANE' : 'MAX') : c + ' ' + trn('pkt')}]` + (own && k.max > 1 ? ' x' + own : '');
-        b.disabled = full || (!G.dev && d.pending < c);
-        if (full && k.max === 1) b.style.outline = '2px solid #7aff9a';
-        b.onclick = () => { if (Player.buyWitch(k.id)) { this.hud(); this.witch(done); } };
-        g.append(b);
-      });
-      s.append(g);
+  /* --- sklep wieśniaka (umiejętności) – przed bossem --- */
+  shop(done) {
+    const d = Player.d;
+    d.sk = d.sk || {};
+    const ICON = { atk: '⚔️', def: '🛡️', hp: '❤️', crit: '🎯', dodge: '💨', potion: '🧪', vamp: '🦇', herb: '🌿', venom: '☠️', flame: '🔥', frost: '❄️',
+      resist: '🔰', fire: '🔥', fireup: '☄️', thunder: '⚡', totem: '🗿', double: '🗡️', compS: '🛡️', compA: '🏹' };
+    const CATS = [['Statystyki', ['atk', 'def', 'hp', 'crit', 'dodge']], ['Przetrwanie', ['potion', 'herb', 'vamp', 'resist', 'totem']],
+      ['Walka i magia', ['double', 'venom', 'flame', 'frost', 'fire', 'fireup', 'thunder']], ['Kompani', ['compS', 'compA']]];
+    const sections = CATS.map(([label, ids]) => ({
+      label,
+      items: ids.map(id => SKILLS.find(k => k.id === id)).filter(Boolean).map(k => {
+        const own = d.sk[k.id] || 0, c = Player.cost(k);
+        const full = k.comp ? (d.comps || []).length >= 3 : own >= k.max;
+        const need = k.req && !d.sk[k.req];            // np. moc kuli wymaga kuli ognia
+        const lockN = k.need && !d[k.need];            // ulepszenia dostępne po pokonaniu Yeti
+        const poor = !G.dev && d.pending < c;
+        const cnt = (!k.comp && own && k.max > 1) ? ` ×${own}` : '';
+        let price = `${c} ${trn('pkt')}`, pcls = poor ? 'poor' : '';
+        if (lockN) { price = '🔒'; pcls = 'lock'; } else if (need) { price = '🔒'; pcls = 'lock'; } else if (full) { price = trn(k.comp ? 'DRUŻYNA PEŁNA' : 'MAX'); pcls = 'tag'; }
+        const note = lockN ? ` — ${trn('najpierw pokonaj Yeti')}` : need ? ` — ${trn('najpierw: Kula ognia')}` : '';
+        return { icon: ICON[k.id], name: trn(k.name) + cnt, desc: trn(k.desc) + note, price, pcls, owned: full && !k.comp && k.max === 1,
+          locked: lockN || need, disabled: full || need || lockN || poor, onClick: () => { Player.buy(k.id); this.hud(); this.shop(done); } };
+      })
+    })).filter(sec => sec.items.length);
+    this.shopFrame({
+      sprite: 'merchant', title: 'Wędrowny Kupiec', sections,
+      sub: trn('Wymień punkty poziomu na umiejętności.'),
+      chips: [{ cls: 'pts', text: `★ ${G.dev ? '∞' : d.pending} ${trn('pkt')}` }, { text: `${trn('Kompani:')} ${(d.comps || []).length}/3` }]
+        .concat(d.sk.fire ? [{ text: `${trn('Moc kuli ognia:')} ${Player.fireDmg()}` }] : []),
+      onExit: () => { this.$('screen').classList.add('hidden'); G.syncComps(); done(); }
     });
-    const x = document.createElement('button');
-    x.textContent = trn('Idź dalej');
-    x.style.marginTop = '12px';
-    x.onclick = () => { s.classList.add('hidden'); done(); };
-    s.append(x);
+  },
+
+  /* --- sklep wiedźmy (eliksiry + talizmany szczęścia = szansa na cios krytyczny) --- */
+  witch(done) {
+    const d = Player.d;
+    d.wi = d.wi || {};
+    const ICON = { w_potion: '🧪', w_vit: '💖', w_rabbit: '🐇', w_clover: '🍀', w_horseshoe: '🌟' };
+    const sections = [['potion', 'ELIKSIRY'], ['charm', 'TALIZMANY SZCZĘŚCIA']].map(([kind, label]) => ({
+      label,
+      items: WITCH.filter(k => k.kind === kind).map(k => {
+        const own = d.wi[k.id] || 0, c = Player.wcost(k), full = own >= k.max, poor = !G.dev && d.pending < c;
+        return { icon: ICON[k.id], name: trn(k.name) + (own && k.max > 1 ? ` ×${own}` : ''), desc: trn(k.desc),
+          price: full ? trn(k.max === 1 ? '✓ POSIADANE' : 'MAX') : `${c} ${trn('pkt')}`, pcls: full ? 'tag' : (poor ? 'poor' : ''),
+          owned: full && k.max === 1, disabled: full || poor, onClick: () => { if (Player.buyWitch(k.id)) { this.hud(); this.witch(done); } } };
+      })
+    }));
+    const luck = Math.round((d.crit + Player.luck()) * 100), ch = Math.round(Player.luck() * 100);
+    this.shopFrame({
+      sprite: 'witch', scale: 1.4, title: 'Wiedźma z Moczarów', sections,
+      sub: `${trn('Szczęście (szansa na krytyk):')} ${luck}%  (${trn('w tym talizmany')}: +${ch}%)`,
+      chips: [{ cls: 'pts', text: `★ ${G.dev ? '∞' : d.pending} ${trn('pkt')}` }],
+      onExit: () => { this.$('screen').classList.add('hidden'); done(); }
+    });
   },
 
   /* --- sklep zbrojmistrza (ekwipunek) – po bossie --- */
   smith(done) {
-    const d = Player.d, s = this.$('screen');
+    const d = Player.d;
     d.gear = d.gear || { sword: null, armor: null, shield: null };
-    s.innerHTML = '';
-    s.classList.remove('hidden');
-
-    const im = document.createElement('img');
-    im.src = 'assets/ui/blacksmith.png';
-    im.width = im.height = 96;
-    im.style.imageRendering = 'pixelated';
-    im.onerror = () => im.remove();
-    s.append(im);
-
-    const h = document.createElement('h2');
-    h.textContent = trn('Zbrojmistrz');
-    s.append(h);
-
-    const eqName = (slot) => {
-      const id = d.gear[slot];
-      if (!id) return trn('brak');
-      const it = GEAR.find(x => x.id === id);
-      return it ? trn(it.name) : id;
-    };
-    const note = document.createElement('p');
-    note.textContent = trn('Zbrojmistrz nie skupuje towaru. Nowy przedmiot zastępuje stary – zostaje tylko najlepszy, jaki kupiłeś.');
-    note.style.cssText = 'font-size:11px;opacity:.8;margin:0';
-    s.append(note);
-    const info = document.createElement('p');
-    info.innerHTML = `${trn('Punkty:')} <b>${G.dev ? '∞' : d.pending}</b><br>${trn('Miecz:')} ${eqName('sword')} · ${trn('Zbroja:')} ${eqName('armor')} · ${trn('Tarcza:')} ${eqName('shield')}` +
-      `<br>${trn('Dystans:')} ${d.sk && d.sk.xbow ? trn('Kusza') : d.sk && d.sk.bow ? trn('Łuk') : trn('brak')}`;
-    s.append(info);
-
-    /* osobna sekcja na każdą kategorię – nagłówek pełnej szerokości + siatka przedmiotów */
-    const sections = [
-      { key: 'sword',  label: 'MIECZE  (atak)' },
-      { key: 'armor',  label: 'ZBROJE  (obrona + wygląd)' },
-      { key: 'shield', label: 'TARCZE  (obrona)' },
-      { key: 'ranged', label: 'BROŃ DYSTANSOWA' }
-    ];
-    sections.forEach(sec => {
-      const wrap = document.createElement('div');
-      wrap.className = 'smith-section';
-      wrap.style.cssText = 'width:100%;max-width:720px;margin-top:10px';
-
-      const lab = document.createElement('div');
-      lab.textContent = trn(sec.label);
-      lab.style.cssText = 'text-align:center;font-weight:bold;color:#f2c14e;font-size:13px;margin:6px 0 4px;letter-spacing:1px;border-bottom:1px solid #5a4a20;padding-bottom:4px';
-      wrap.append(lab);
-
-      const grid = document.createElement('div');
-      grid.className = 'trades';
-      GEAR.filter(it => it.slot === sec.key).forEach(it => {
-        const b = document.createElement('button');
-        d.sk = d.sk || {};
-        const own = Player.ownedTier(it.slot), tr = Player.tier(it);
-        const owned = tr === own;            // dokładnie ten przedmiot
-        const worse = tr < own;              // mamy już lepszy – słabszego nie kupimy
-        b.textContent = owned
-          ? `${trn(it.name)}  ${trn('✓ POSIADANE')}`
-          : worse
-            ? `${trn(it.name)}  ${trn('(masz lepszy)')}`
-            : `${trn(it.name)}: ${trn(it.desc)}  [${it.cost} ${trn('pkt')}]`;
-        b.disabled = owned || worse || (!G.dev && d.pending < it.cost);
-        if (owned) b.style.outline = '2px solid #7aff9a';
-        b.onclick = () => {
-          if (Player.equip(it.id)) {
-            if (G.p) G.p.key = Player.spriteKey();
-            this.hud();
-            this.smith(done);
-          }
-        };
-        grid.append(b);
-      });
-      wrap.append(grid);
-      s.append(wrap);
+    d.sk = d.sk || {};
+    const eqName = slot => { const id = d.gear[slot]; if (!id) return trn('brak'); const it = GEAR.find(x => x.id === id); return it ? trn(it.name) : id; };
+    const SLOT_ICON = { sword: '🗡️', armor: '🥋', shield: '🛡️', ranged: '🏹' };
+    const SECS = [['sword', 'MIECZE  (atak)'], ['armor', 'ZBROJE  (obrona + wygląd)'], ['shield', 'TARCZE  (obrona)'], ['ranged', 'BROŃ DYSTANSOWA']];
+    const sections = SECS.map(([key, label]) => ({
+      label,
+      items: GEAR.filter(it => it.slot === key).map(it => {
+        const own = Player.ownedTier(it.slot), tier = Player.tier(it);
+        const owned = tier === own, worse = tier < own, poor = !G.dev && d.pending < it.cost;
+        return { icon: SLOT_ICON[key], name: trn(it.name), desc: owned || worse ? trn(it.desc) : trn(it.desc),
+          price: owned ? trn('✓ POSIADANE') : worse ? trn('(masz lepszy)') : `${it.cost} ${trn('pkt')}`, pcls: owned ? 'tag' : worse ? 'lock' : (poor ? 'poor' : ''),
+          owned, worse, disabled: owned || worse || poor,
+          onClick: () => { if (Player.equip(it.id)) { if (G.p) G.p.key = Player.spriteKey(); this.hud(); this.smith(done); } } };
+      })
+    }));
+    const noSq = !Player.hasSquire();   // zbroja giermka tylko, gdy mamy giermka
+    sections.push({ label: 'GIERMEK  (zbroja kompana)', items: [{
+      icon: '🥋', name: trn(SQ_ARMOR.name), desc: noSq && !d.sqArmor ? `${trn(SQ_ARMOR.desc)} — ${trn('najpierw zatrudnij giermka')}` : trn(SQ_ARMOR.desc),
+      price: d.sqArmor ? trn('✓ POSIADANE') : noSq ? '🔒' : `${SQ_ARMOR.cost} ${trn('pkt')}`, pcls: d.sqArmor ? 'tag' : noSq ? 'lock' : ((!G.dev && d.pending < SQ_ARMOR.cost) ? 'poor' : ''),
+      owned: !!d.sqArmor, locked: noSq && !d.sqArmor, disabled: !!d.sqArmor || noSq || (!G.dev && d.pending < SQ_ARMOR.cost),
+      onClick: () => { if (Player.buySqArmor()) { G.comps.forEach(a => { if (a.s.t === 'squire') a.key = 'comp_squire_leather'; }); this.hud(); this.smith(done); } }
+    }] });
+    this.shopFrame({
+      sprite: 'blacksmith', title: 'Zbrojmistrz', sections,
+      sub: trn('Zbrojmistrz nie skupuje towaru. Nowy przedmiot zastępuje stary – zostaje tylko najlepszy, jaki kupiłeś.'),
+      chips: [{ cls: 'pts', text: `★ ${G.dev ? '∞' : d.pending} ${trn('pkt')}` },
+        { text: `${trn('Miecz:')} ${eqName('sword')}` }, { text: `${trn('Zbroja:')} ${eqName('armor')}` }, { text: `${trn('Tarcza:')} ${eqName('shield')}` },
+        { text: `${trn('Dystans:')} ${d.sk.xbow ? trn('Kusza') : d.sk.bow ? trn('Łuk') : trn('brak')}` }],
+      onExit: () => { this.$('screen').classList.add('hidden'); if (G.p) G.p.key = Player.spriteKey(); done(); }
     });
-
-    /* v1.1: skórzana zbroja dla giermka */
-    {
-      const wrap = document.createElement('div');
-      wrap.style.cssText = 'width:100%;max-width:720px;margin-top:10px';
-      const lab = document.createElement('div');
-      lab.textContent = trn('GIERMEK  (zbroja kompana)');
-      lab.style.cssText = 'text-align:center;font-weight:bold;color:#f2c14e;font-size:13px;margin:6px 0 4px;letter-spacing:1px;border-bottom:1px solid #5a4a20;padding-bottom:4px';
-      wrap.append(lab);
-      const grid = document.createElement('div');
-      grid.className = 'trades';
-      const b = document.createElement('button');
-      const noSq = !Player.hasSquire();   // v1.2.0: zbroja tylko, gdy mamy giermka
-      b.textContent = d.sqArmor ? `${trn(SQ_ARMOR.name)}  ${trn('✓ POSIADANE')}` : noSq ? `${trn(SQ_ARMOR.name)}  (${trn('najpierw zatrudnij giermka')})` : `${trn(SQ_ARMOR.name)}: ${trn(SQ_ARMOR.desc)}  [${SQ_ARMOR.cost} ${trn('pkt')}]`;
-      b.disabled = !!d.sqArmor || noSq || (!G.dev && d.pending < SQ_ARMOR.cost);
-      if (d.sqArmor) b.style.outline = '2px solid #7aff9a';
-      b.onclick = () => {
-        if (Player.buySqArmor()) {
-          G.comps.forEach(a => { if (a.s.t === 'squire') a.key = 'comp_squire_leather'; });
-          this.hud(); this.smith(done);
-        }
-      };
-      grid.append(b); wrap.append(grid); s.append(wrap);
-    }
-
-    const x = document.createElement('button');
-    x.textContent = trn('Idź dalej');
-    x.style.marginTop = '12px';
-    x.onclick = () => { s.classList.add('hidden'); if (G.p) G.p.key = Player.spriteKey(); done(); };
-    s.append(x);
   }
 };

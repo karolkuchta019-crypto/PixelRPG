@@ -7,6 +7,7 @@ const Combat={busy:false,guard:false,fbCd:0,
  roll(a,d,mult,acc,force,nocrit,target,actor,flat){
   /* efekt piasku na atakującym: obniża celność */
   if(actor&&actor.sand)acc*=.55;
+  if(G.event==='sandstorm'&&actor&&(actor===G.p||actor.ally))acc*=.7;   // v1.2.1: burza piaskowa – więcej pudeł po stronie bohatera
   if(target&&target.freeze){/* zamrożony nie unika */}else if(Math.random()>acc)return{miss:1};
   else if(Math.random()<d.dodge)return{dodge:1};
   const crit=!nocrit&&(force||Math.random()<a.crit+(a===Player.d?Player.luck():0));   // v1.1: + szczęście z talizmanów wiedźmy
@@ -29,6 +30,7 @@ const Combat={busy:false,guard:false,fbCd:0,
   const b=kind==='burn',dm=Math.max(b?3:2,Math.round(src.atk*(b?.35:.3)));t[kind]={t:3,d:dm};
   G.text(t,b?'PODPALONY':'TRUCIZNA',b?'#ff9a40':'#7aff6a');UI.log(`${t.name} ${b?'płonie':'zostaje zatruty'} (3 tury, ${dm} HP/turę)!`,'bad');},
  async strike(a,t,mult,acc,force,name,o={}){
+  if(t.phantom){await this.dispel(t);return;}   // v1.2.1: miraż
   if(o.say)UI.log(o.say,'bad');
   a.anim=o.rng==='bullet'?'shoot':(o.rng==='bottle'||o.rng==='trident'||o.rng==='flare')?'throw':o.rng==='ball'?'kick':'';   // wybór animacji ataku (jeśli postać ją ma)
   const dir=Math.sign(t.x-a.x)||1,sk=Player.d.sk||{},df=a.def||{};
@@ -70,7 +72,21 @@ const Combat={busy:false,guard:false,fbCd:0,
   G.actors=G.actors.filter(e=>e!==t);
   if(t.ally){G.comps=G.comps.filter(c=>c!==t);Player.d.comps=Player.d.comps.filter(c=>c!==t.s);return;}   // kompan ginie na zawsze
   G.enemies=G.enemies.filter(e=>e!==t);this.refreshHaste();G.xpWave+=t.xp;Player.d.kills=(Player.d.kills||0)+1;
-  if(Player.gainXp(t.xp))UI.log('AWANS na poziom '+Player.d.level+'! +1 punkt umiejętności (do wydania u kupca)','crit');UI.hud();},
+  if(Player.gainXp(t.xp))UI.log('AWANS na poziom '+Player.d.level+'! +1 punkt umiejętności (do wydania u kupca)','crit');UI.hud();
+  await this.split(t);
+  if(G.enemies.length&&!G.enemies.some(e=>!e.phantom)){G.enemies.forEach(p=>G.burst(p.x,p.y-30,'#ffe9a0',12));G.actors=G.actors.filter(a=>!a.phantom);G.enemies=[];G.sel=null;}},   // v1.2.1: po prawdziwych wrogach znikają też miraże
+ /* v1.2.1: RYBIK CUKROWY – po zabiciu 25% szans na rozdwojenie: dwa nowe rybiki z 50% maks. HP poprzedniego (do 2 pokoleń, o ile jest miejsce na arenie) */
+ async split(t){
+  if(t.key!=='silverfish'||t.phantom||(t.gen||0)>=2||Math.random()>=.25)return;
+  const free=MAX_FOES-G.enemies.length;if(free<=0)return;
+  UI.log('Rybik cukrowy rozdwaja się!','crit');G.text(t,'ROZDWOJENIE!','#cfe8ff');
+  const hp=Math.max(1,Math.round(t.s.maxhp*.5)),jobs=[];
+  for(let i=0;i<Math.min(2,free);i++){const k=makeEnemy('silverfish',G.diff(),G.enemies.length);k.gen=(t.gen||0)+1;k.minion=1;k.s.hp=k.s.maxhp=hp;k.xp=Math.round(t.xp*.5);
+   k.x=Math.max(380,Math.min(610,t.x+(i?34:-34)));k.y=t.y;k.alpha=0;k.ox=i?-24:24;G.enemies.push(k);G.actors.push(k);G.burst(t.x,t.y-24,'#cfe8ff',10);jobs.push(tween(k,{alpha:1,ox:0},380,'out'));}
+  await Promise.all(jobs);},
+ /* v1.2.1: FATAMORGANA – trafiony miraż rozpływa się w powietrzu (bez obrażeń i bez nagrody) */
+ async dispel(t){UI.log('To tylko fatamorgana! Wróg rozpływa się w powietrzu.','crit');G.text(t,'MIRAŻ!','#ffe070');G.burst(t.x,t.y-30,'#ffe9a0',18);
+  await tween(t,{alpha:0},380,'in');G.enemies=G.enemies.filter(e=>e!==t);G.actors=G.actors.filter(e=>e!==t);if(G.sel===t)G.sel=null;},
  async summon(e,type,n,msg,txt){UI.log(msg||`${e.name} przywołuje pomocników!`,'bad');G.text(e,txt||'DO MNIE!','#f2c14e');e.anim='jump';e.pose='attack';
   const list=Array.isArray(type)?type:Array.from({length:n||2},()=>type);
   for(const ty of list){if(G.enemies.length>=4)break;const k=makeEnemy(ty,G.diff(),G.enemies.length);k.minion=1;k.alpha=0;k.ox=80;G.enemies.push(k);G.actors.push(k);G.burst(k.x,k.y-20,'#fff',10);await tween(k,{alpha:1,ox:0},400,'out');}
@@ -85,7 +101,7 @@ const Combat={busy:false,guard:false,fbCd:0,
  async healSelf(e,m){if(m.say)UI.log(m.say,'bad');e.pose='attack';await sleep(300);const h=Math.max(0,Math.min(Math.round(e.s.maxhp*m.heal),e.s.maxhp-e.s.hp));e.s.hp+=h;
   G.text(e,'+'+h,'#7aff9a');G.burst(e.x,e.y-40,'#7aff9a',18);UI.log(`${e.name} odzyskuje ${h} HP.`,'bad');e.pose='';UI.hud();await sleep(450);},
  /* jedna tura wroga (używana w fazie początkowej dla szybkich i w zwykłej fazie wrogów) */
- async enemyAct(e){if(e.s.hp<=0||Player.d.hp<=0)return;
+ async enemyAct(e){if(e.s.hp<=0||Player.d.hp<=0||e.phantom)return;
   if(e.freeze){await this.thaw(e);return;}
   for(const m of e.def.behave(e)){if(Player.d.hp<=0)break;
    if(m.summon){await this.summon(e,m.summon,m.n||2,m.say,m.txt);continue;}
@@ -108,7 +124,7 @@ const Combat={busy:false,guard:false,fbCd:0,
   UI.log('[DEV] Fala pominięta.','crit');G.enemies.forEach(e=>G.burst(e.x,e.y-30,'#f2c14e',14));
   G.actors=G.actors.filter(a=>!G.enemies.includes(a));G.enemies=[];this.busy=false;return G.win();},
  /* v1.2.0: PIORUN – zabiera 50% maks. życia celu; bez uników, pancerza i krytyków */
- async thunderHit(t){const dmg=Math.max(1,Math.round(t.s.maxhp*.5));t.s.hp=Math.max(0,t.s.hp-dmg);
+ async thunderHit(t){if(t.phantom){await this.dispel(t);return;}const dmg=Math.max(1,Math.round(t.s.maxhp*.5));t.s.hp=Math.max(0,t.s.hp-dmg);
   G.shake=18;G.flash=1;G.text(t,'-'+dmg,'#fff27a',1);t.flash=1;G.burst(t.x,t.y-30,'#fff27a',26);
   UI.log(`Piorun razi ${t.name} i zadaje ${dmg} obrażeń (50% życia).`,'crit');UI.hud();
   if(t.s.hp<=0)await this.kill(t);},

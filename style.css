@@ -21,13 +21,28 @@ canvas,img,.panel,button,.bar{image-rendering:pixelated}
 .bar i{display:block;height:100%;width:0;transition:width .3s}
 .hp i{background:url(assets/ui/bar-hp.png) 0 0/auto 100%,linear-gradient(#ff7a7a,var(--red) 60%,#8a2020)}
 .xp i{background:url(assets/ui/bar-xp.png) 0 0/auto 100%,linear-gradient(#9fd0ff,var(--blue) 60%,#25669f)}
-#actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+#actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#actions button{justify-content:flex-start;padding-left:38px;min-height:40px}
 /* przyciski: assets/ui/button.png (+ button-hover.png); ikony: assets/items/*.png */
-button{font:inherit;font-size:12px;font-weight:bold;color:var(--dark);cursor:pointer;padding:10px 8px 10px 36px;position:relative;
- background:url(assets/ui/button.png) center/100% 100% no-repeat,var(--gold);border:3px solid #000;box-shadow:0 4px var(--gold-d);text-shadow:1px 1px #fff6}
-button:hover:not(:disabled){background:url(assets/ui/button-hover.png) center/100% 100% no-repeat,#ffd777}
-button:active{transform:translateY(3px);box-shadow:0 1px var(--gold-d)}
-button:disabled{opacity:.4;cursor:not-allowed}
+/* v1.2.1: JEDEN SPÓJNY SYSTEM PRZYCISKÓW. Bazowy = złota płytka z fazą i „wciskaniem”.
+   Warianty: .ghost (ciemny, drugorzędny/zakładki), .on (aktywny/wybrany), .danger (czerwony), .sm (mały). */
+button{font:inherit;font-size:12px;font-weight:bold;letter-spacing:.3px;color:#2a1a05;cursor:pointer;position:relative;
+ display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:8px 16px;text-align:center;line-height:1.25;
+ background:linear-gradient(#ffe48f,#f2c14e 48%,#d9a53a);border:3px solid #1a1206;
+ box-shadow:inset 0 2px 0 #fff8,inset 0 -3px 0 #0003,0 4px 0 #8a6a1c,0 6px 8px #0006;text-shadow:0 1px 0 #fff7;
+ transition:transform .08s,filter .12s,box-shadow .08s}
+button:hover:not(:disabled){filter:brightness(1.1);transform:translateY(-1px)}
+button:active:not(:disabled){transform:translateY(3px);box-shadow:inset 0 2px 0 #fff6,inset 0 -2px 0 #0003,0 1px 0 #8a6a1c}
+button:disabled{filter:grayscale(.75) brightness(.7);opacity:.6;cursor:not-allowed}
+button:focus-visible{outline:3px solid #fff;outline-offset:2px}
+button.ghost{color:var(--gold);background:linear-gradient(#3b3060,#2a2140);border-color:#000;text-shadow:0 1px 0 #000;
+ box-shadow:inset 0 0 0 2px #6a5424,inset 0 2px 0 #fff2,0 4px 0 #0009,0 6px 8px #0006}
+button.ghost:active:not(:disabled){box-shadow:inset 0 0 0 2px #6a5424,0 1px 0 #0009}
+button.ghost.on,button.on{color:#2a1a05;background:linear-gradient(#ffe48f,#f2c14e 48%,#d9a53a);text-shadow:0 1px 0 #fff7;
+ box-shadow:inset 0 2px 0 #fff8,inset 0 -3px 0 #0003,0 0 0 2px #fff4,0 4px 0 #8a6a1c,0 6px 8px #0006}
+button.danger{color:#fff;background:linear-gradient(#f07070,#d64545 50%,#a42a2a);text-shadow:0 1px 0 #0008;
+ box-shadow:inset 0 2px 0 #fff6,inset 0 -3px 0 #0003,0 4px 0 #6a1818,0 6px 8px #0006}
+button.sm{min-height:28px;padding:5px 10px;font-size:11px;box-shadow:inset 0 2px 0 #fff8,inset 0 -2px 0 #0003,0 3px 0 #8a6a1c}
 button::before{content:"";position:absolute;left:6px;top:50%;width:22px;height:22px;margin-top:-11px;background:center/contain no-repeat;image-rendering:pixelated}
 [data-a=attack]::before{background-image:url(assets/items/icon-attack.png)}[data-a=crit]::before{background-image:url(assets/items/icon-crit.png)}
 [data-a=defend]::before{background-image:url(assets/items/icon-defend.png)}[data-a=potion]::before{background-image:url(assets/items/potion.png)}
@@ -36,14 +51,13 @@ button::before{content:"";position:absolute;left:6px;top:50%;width:22px;height:2
 #screen{position:absolute;inset:8px;background:url(assets/ui/screen-bg.png) center/cover,rgba(15,11,26,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:16px;z-index:5}
 #screen{overflow-y:auto}#screen img{image-rendering:pixelated}
 #screen .trades{display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%;max-width:720px}
-#screen .trades button{min-width:0;font-size:11px;padding-left:12px}
 #screen h2{color:var(--gold);margin:0;font-size:clamp(18px,4vw,32px);text-shadow:3px 3px #000}
-#screen p{max-width:520px;font-size:12px;line-height:1.6}#screen button{min-width:240px;padding-left:12px}
+#screen p{max-width:520px;font-size:12px;line-height:1.6}#screen>button{min-width:240px}
 .hidden{display:none!important}
 @media(max-width:600px){#bottom{grid-template-columns:1fr}#log{grid-column:1}}
 
 /* przycisk megafonu (muzyka) – zawsze nad ekranami menu */
-.icon-btn{position:relative;z-index:7;flex:none;min-width:0;width:38px;height:32px;padding:0;display:flex;align-items:center;justify-content:center;box-shadow:0 3px var(--gold-d)}
+.icon-btn{position:relative;z-index:7;flex:none;min-width:0;width:38px;height:32px;min-height:0;padding:0;display:flex;align-items:center;justify-content:center}
 .icon-btn::before{display:none}.icon-btn svg{display:block;image-rendering:pixelated}
 .icon-btn.off .waves{display:none}.icon-btn:not(.off) .slash{display:none}.icon-btn.off svg{opacity:.75}
 #skip{position:absolute;top:56px;right:20px;z-index:6;min-width:0;padding:6px 10px;font-size:11px}
@@ -80,7 +94,7 @@ button::before{content:"";position:absolute;left:6px;top:50%;width:22px;height:2
 
 /* ===== MENU TAB ===== */
 #screen.tabmenu{display:flex;flex-direction:column;align-items:center;gap:10px;padding:20px;background:rgba(15,11,26,.94)}
-#screen.tabmenu button{min-width:280px}
+#screen.tabmenu>button{min-width:280px}
 #screen.tabmenu button.locked-opt{opacity:.5;cursor:not-allowed}
 .menu-block{background:#2a2140;border:2px solid #5a4a2a;padding:10px 16px;border-radius:4px;min-width:280px;text-align:center}
 .menu-block input[type=range]{width:140px;vertical-align:middle}
@@ -92,7 +106,7 @@ button::before{content:"";position:absolute;left:6px;top:50%;width:22px;height:2
 .credits-scroll a{color:#4aa3ff}
 
 /* ===== v1.1: sloty zapisu, przycisk DEV, napisy końcowe jak w filmie ===== */
-[data-a=skipwave],[data-a=toboss]{padding-left:12px}
+[data-a=skipwave],[data-a=toboss]{padding-left:14px;justify-content:center}
 #screen.slots{display:flex;flex-direction:column;align-items:center;gap:10px;padding:20px;background:rgba(15,11,26,.95)}
 .slot-list{display:flex;flex-direction:column;gap:8px;width:100%;max-width:640px}
 .slot-card{background:#2a2140;border:2px solid #5a4a2a;padding:8px 12px;text-align:left}
@@ -100,16 +114,15 @@ button::before{content:"";position:absolute;left:6px;top:50%;width:22px;height:2
 .slot-title{color:var(--gold);font-weight:bold;font-size:13px}
 .slot-info{font-size:11px;margin:4px 0 6px;line-height:1.4}
 .slot-btns{display:flex;gap:8px;flex-wrap:wrap}
-#screen .slot-btns button{min-width:120px;padding:6px 10px;font-size:11px}
+#screen .slot-btns button{min-width:120px;min-height:28px;padding:5px 10px;font-size:11px}
 #screen.credits{display:block;padding:0;gap:0;overflow:hidden;background:#000}
 .credits-roll{position:absolute;inset:0;overflow:hidden}
 .credits-scroll{position:absolute;left:50%;top:0;width:min(480px,90%);transform:translate(-50%,2000px);text-align:center;line-height:1.7;font-size:13px}
-.credits-btn{position:absolute;right:14px;bottom:12px;z-index:2;min-width:140px!important;padding:6px 10px!important;font-size:11px}
+.credits-btn{position:absolute;right:14px;bottom:12px;z-index:2;min-width:140px!important;min-height:30px;padding:6px 10px!important;font-size:11px}
 
 /* ===== v1.2.0: zakładki menu, osiągnięcia (prostokątne kafelki jeden pod drugim), powiadomienie, ustawienia graficzne ===== */
 .tabbar{display:flex;gap:6px;width:100%;max-width:620px;justify-content:center}
-#screen.tabmenu .tabbar button{min-width:0;flex:1;padding:8px 6px;font-size:12px;opacity:.65}
-#screen.tabmenu .tabbar button.active{opacity:1;outline:2px solid var(--gold);background:#3a2f58}
+#screen.tabmenu .tabbar button{min-width:0;flex:1;padding:8px 6px;font-size:12px}
 .menu-block .small{font-size:11px;opacity:.85;margin-top:6px;line-height:1.4}
 .ach-head{font-size:13px;color:var(--gold);margin:2px 0}
 .ach-list{display:flex;flex-direction:column;gap:8px;width:100%;max-width:620px;max-height:200px;overflow-y:auto;padding-right:4px}
@@ -124,3 +137,61 @@ button::before{content:"";position:absolute;left:6px;top:50%;width:22px;height:2
 .toast img{width:48px;height:48px;image-rendering:pixelated}
 .toast b{color:#f2c14e}
 @keyframes toast{0%{transform:translateX(120%);opacity:0}8%{transform:none;opacity:1}88%{transform:none;opacity:1}100%{transform:translateX(120%);opacity:0}}
+
+/* ===== v1.2.1: kontrolki ustawień, układ ustawień (kategorie), karty sklepów ===== */
+.menu-list{display:flex;flex-direction:column;gap:10px;align-items:stretch;width:100%;max-width:360px}
+.menu-list button{width:100%;justify-content:flex-start;padding-left:18px}
+.set-wrap{display:flex;gap:14px;width:100%;max-width:760px;align-items:flex-start;text-align:left}
+.set-nav{display:flex;flex-direction:column;gap:8px;flex:0 0 170px}
+.set-nav button{justify-content:flex-start;width:100%;padding:8px 12px;font-size:12px}
+.set-panel{flex:1;min-width:0;background:#241c38;border:3px solid #000;outline:2px solid #5a4a2a;padding:12px 14px;box-shadow:inset 0 0 0 2px #14101f}
+.set-panel h3{margin:0 0 8px;font-size:14px;color:var(--gold);letter-spacing:1px;border-bottom:2px solid #5a4a2a;padding-bottom:6px}
+.opt-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:9px 0;border-bottom:1px dashed #3a3150}
+.opt-row:last-child{border-bottom:0}
+.opt-info{display:flex;flex-direction:column;gap:2px;min-width:0}
+.opt-info b{font-size:12px;color:var(--txt)}
+.opt-info span{font-size:10px;opacity:.75;line-height:1.35}
+.opt-ctl{flex:none;display:flex;align-items:center;gap:8px}
+.seg{display:inline-flex}
+.seg button{min-width:0;border-radius:0;margin-left:-3px;padding:6px 12px;min-height:30px;font-size:11px}
+.seg button:first-child{margin-left:0}
+.toggle{min-width:64px;min-height:30px;padding:4px 10px;font-size:11px}
+.toggle.on{background:linear-gradient(#a8ffc0,#4ad66a 50%,#2a9a48);color:#06240f;text-shadow:0 1px 0 #fff7}
+.opt-row input[type=range]{width:150px;accent-color:#f2c14e}
+.opt-val{font-size:11px;min-width:34px;text-align:right;color:var(--gold)}
+.key-row{display:flex;gap:8px;align-items:center}
+kbd{display:inline-block;min-width:22px;padding:2px 7px;text-align:center;font:inherit;font-size:10px;color:var(--gold);background:#14101f;border:2px solid #6a5424;box-shadow:0 2px 0 #000}
+@media(max-width:640px){.set-wrap{flex-direction:column}.set-nav{flex-direction:row;flex-wrap:wrap;flex:none;width:100%}.set-nav button{flex:1;min-width:0}}
+
+/* sklepy: nagłówek z portretem i punktami, sekcje z kartami */
+.shop{display:flex;flex-direction:column;gap:10px;width:100%;max-width:780px;text-align:left}
+.shop-head{position:sticky;top:-16px;z-index:3;display:flex;align-items:center;gap:14px;padding:10px 14px;background:linear-gradient(#352a55,#241c38);border:3px solid #000;outline:2px solid var(--gold-d);box-shadow:0 6px 10px #000a}
+.shop-portrait{flex:none;width:72px;height:72px;background:#14101f;border:3px solid var(--gold);outline:2px solid #000;image-rendering:pixelated}
+.shop-title{flex:1;min-width:0}
+.shop-title h2{margin:0;font-size:clamp(16px,3vw,24px);text-align:left}
+.shop-sub{margin:4px 0 0!important;font-size:11px!important;opacity:.85;max-width:none!important;line-height:1.45!important}
+.shop-chips{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.chip{display:inline-block;padding:3px 10px;font-size:11px;background:#14101f;border:2px solid #6a5424;color:var(--txt);white-space:nowrap}
+.chip.pts{border-color:var(--gold);color:var(--gold);font-size:13px;font-weight:bold}
+.shop-sec h3{margin:6px 0 8px;font-size:12px;letter-spacing:1.5px;color:var(--gold);display:flex;align-items:center;gap:10px}
+.shop-sec h3::after{content:"";flex:1;height:2px;background:linear-gradient(90deg,#6a5424,transparent)}
+.shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+button.shop-card{display:grid;grid-template-columns:38px 1fr auto;grid-template-areas:"ic nm pr" "ic ds ds";gap:2px 10px;align-items:center;justify-content:stretch;text-align:left;padding:9px 10px;min-height:64px;
+ color:var(--txt);background:linear-gradient(#34295a,#261e40);border-color:#000;text-shadow:none;box-shadow:inset 0 0 0 2px #5a4a2a,inset 0 2px 0 #fff1,0 4px 0 #0009}
+button.shop-card:hover:not(:disabled){filter:brightness(1.18);box-shadow:inset 0 0 0 2px var(--gold),inset 0 2px 0 #fff2,0 4px 0 #0009}
+button.shop-card .ic{grid-area:ic;font-size:26px;text-align:center;filter:drop-shadow(0 2px 0 #000a)}
+button.shop-card .nm{grid-area:nm;font-size:12px;color:var(--gold)}
+button.shop-card .ds{grid-area:ds;font-size:10px;font-weight:normal;opacity:.85;line-height:1.35}
+button.shop-card .pr{grid-area:pr;font-size:12px;color:#2a1a05;background:linear-gradient(#ffe48f,#f2c14e);border:2px solid #000;padding:2px 8px;white-space:nowrap}
+button.shop-card .pr.poor{color:#fff;background:linear-gradient(#f07070,#b83a3a)}
+button.shop-card .pr.tag{color:#7aff9a;background:#14301c;border-color:#2a7a44}
+button.shop-card .pr.lock{color:#ccc;background:#2a2a36;border-color:#555}
+button.shop-card.owned{box-shadow:inset 0 0 0 2px #4ad66a,0 4px 0 #0009}
+button.shop-card:disabled{filter:none;opacity:.7}
+button.shop-card.locked,button.shop-card.worse{opacity:.5}
+.shop-exit{align-self:center;margin-top:6px;min-width:220px}
+@media(max-width:600px){.shop-head{flex-wrap:wrap}.shop-chips{align-items:flex-start}}
+
+#screen.shopscreen,#screen.tabmenu{justify-content:flex-start}
+#screen.shopscreen>.shop{margin:auto}
+.ach-list{max-height:min(46vh,340px)}
