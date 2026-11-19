@@ -4,6 +4,13 @@
 
 /* v1.1: KULA OGNIA ma własną moc – nie zależy od ATK (ani od miecza). Ulepszasz ją osobno u kupca ('Moc kuli ognia').
    Jedna kula przelatuje przez wszystkich wrogów: pierwszy dostaje 100%, każdy następny 50% poprzedniego. */
+/* v1.2.2: POZIOMY TRUDNOŚCI – mnożniki HP / ATK / XP przeciwników (zmiana: Tab -> Ustawienia -> Rozgrywka) */
+const DIFFS = [
+  { id: 'easy',      name: 'Łatwy',    hp: .75, atk: .75, xp: 1.2, desc: 'Słabsi wrogowie (−25% HP i ATK), więcej XP. Dla spokojnej przygody.' },
+  { id: 'normal',    name: 'Normalny', hp: 1,   atk: 1,   xp: 1,   desc: 'Standardowa trudność (zalecana).' },
+  { id: 'hard',      name: 'Trudny',   hp: 1.3, atk: 1.25, xp: .9,  desc: 'Mocniejsi wrogowie (+30% HP, +25% ATK), nieco mniej XP.' },
+  { id: 'nightmare', name: 'Koszmar',  hp: 1.7, atk: 1.5, xp: .8,  desc: 'Bardzo silni wrogowie (+70% HP, +50% ATK), mniej XP. Tylko dla wytrwałych.' },
+];
 const FIRE = { base: 70, step: 15, cd: 5 };            // moc bazowa, +moc za ulepszenie, odnowa w turach
 /* v1.1: skórzana zbroja giermka (kowal) – +DEF dla każdego giermka, także późniejszego */
 const SQ_ARMOR = { id: 'sq_leather', name: 'Skórzana zbroja giermka', desc: '+4 DEF giermka', cost: 3, def: 4 };   // v1.2.0: do kupienia tylko, gdy masz giermka
@@ -52,8 +59,10 @@ const Player = {
   },
 
   /* efektywny atak / obrona (baza + gear) */
-  atk() { return this.d.atk + this.gearBonus('atk'); },
-  def() { return this.d.def + this.gearBonus('def'); },
+  /* v1.2.2: promieniowanie (elektrownia) obniża ATK i DEF z rundy na rundę */
+  radMul() { return G.event === 'radiation' ? Math.max(.58, 1 - .06 * (G.radStack || 0)) : 1; },
+  atk() { return Math.max(1, Math.round((this.d.atk + this.gearBonus('atk')) * this.radMul())); },
+  def() { return Math.max(0, Math.round((this.d.def + this.gearBonus('def')) * this.radMul())); },
 
   /* klucz sprite'a bohatera zależny od założonej zbroi */
   spriteKey() {

@@ -1,5 +1,15 @@
 # Changelog – Monster Waves
 
+## [1.2.2]
+
+- **Oryginalne animacje ataku:** każdy wróg ma własny styl dojścia do celu i powrotu (`ENEMY_DEFS[...].move`): sprint, skok po łuku, podskoki, nurkowanie z góry, taran (cofnięcie i uderzenie), turlanie, miażdżący upadek, przykucnięcie i skok, chwiejny marsz, zniknięcie i pojawienie się, zygzak. 12 stylów; wrogowie czysto dystansowi (np. piłkarz) mają własne animacje pocisków.
+- **Promieniowanie w starej elektrowni:** na ok. 30% fal (poza bossem) zielony, migający tint. Co rundę bohater traci 3% maks. HP, a jego ATK i DEF spadają o kolejne 6% (maks. −42%). Eliksir zmniejsza skutki o 3 poziomy. Po fali statystyki wracają do normy.
+- **Osiągnięcia za bossów:** 8 nowych (Orc, Wiedźma, Leszy, Yeti, Królowa Pająków, Sfinks, Mechaniczny Kolos, Demon Lord) + „Pogromca bossów” (wszyscy 10) + „Bez drugiej szansy” (kampania w hardcore). Razem 20.
+- **Poziomy trudności** (Tab → Ustawienia → Rozgrywka): Łatwy (−25% HP i ATK wrogów, +20% XP), Normalny, Trudny (+30% HP, +25% ATK, −10% XP), Koszmar (+70% HP, +50% ATK, −20% XP). Zmiana działa od następnej fali, wybór jest zapamiętywany.
+- **Tryb hardcore:** nowy przycisk „Kampania ☠ HARDCORE” (ekran tytułowy i Menu). Śmierć kończy kampanię – autozapis jest usuwany, zapisy tej kampanii w slotach są kasowane z bazy i nie da się ich wczytać (nawet gdyby kasowanie z bazy się nie udało). Totem nieśmiertelności nadal ratuje.
+
+---
+
 ## [1.2.1]
 
 - **Rybik cukrowy:** po zabiciu 25% szans na rozdwojenie – powstają dwa nowe rybiki z 50% maks. HP poprzedniego (połowa XP; do 2 pokoleń, o ile jest miejsce na arenie).

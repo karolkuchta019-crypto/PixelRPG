@@ -36,12 +36,23 @@ const Slots = {
     const d = rec.player, camp = rec.mode === 'campaign';
     return {
       label: (camp ? `Etap ${rec.level + 1}: ${CAMPAIGN[rec.level].name}, fala ${rec.wave}/${rec.waves.length}` : `Fala ${rec.wave}`) + (rec.state === 'clear' ? ' ✓' : ''),
+      hardcore: !!d.hardcore, run: d.runId || null,   // v1.2.2
       stage: camp ? rec.level : null, wave: rec.wave, total: camp ? rec.waves.length : null, clear: rec.state === 'clear',   // v1.1.1: dane strukturalne – etykieta tłumaczona na bieżący język
       level: d.level, kills: d.kills || 0, deaths: d.deaths || 0
     };
   },
   /* etykieta slotu w aktualnym języku (stare zapisy bez pól strukturalnych: tłumaczy zapisany napis) */
+  dead(r) { return !!(r && r.meta && r.meta.hardcore && Prog.isDead(r.meta.run)); },
+  /* usuwa z bazy zapisy zakończonej śmiercią kampanii hardcore (błędy serwera ignorujemy – i tak są oznaczone jako martwe) */
+  async burn(run) {
+    if (!run) return;
+    try { const rows = await this.list(); for (const r of rows) if (r.meta && r.meta.run === run) await this.del(r.slot); } catch (e) {}
+  },
   label(r) {
+    const m = r.meta || {};
+    return (m.hardcore ? '☠ ' : '') + this.baseLabel(r) + (this.dead(r) ? ' — ' + trn('martwa kampania') : '');
+  },
+  baseLabel(r) {
     const m = r.meta || {};
     if (m.wave == null) return trn(m.label || '');
     const mark = m.clear ? ' ✓' : '';
@@ -75,6 +86,7 @@ const Slots = {
     const r = await this.get(n);
     const rec = this.validate(r.data);
     if (!rec) throw new Error('Zapis w slocie ' + n + ' jest uszkodzony.');
+    if (rec.player.hardcore && Prog.isDead(rec.player.runId)) throw new Error('Ta kampania hardcore zakończyła się śmiercią – nie można jej wczytać.');   // v1.2.2
     /* zsynchronizuj też zwykły autozapis (mapa świata / „Kontynuuj”) */
     if (rec.mode === 'campaign') Save.set('campaign', { p: rec.player, cleared: rec.cleared || 0 });
     else Save.set('endless', { p: rec.player, w: rec.wave + (rec.state === 'clear' ? 1 : 0) });

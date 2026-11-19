@@ -34,7 +34,7 @@ const Combat={busy:false,guard:false,fbCd:0,
   if(o.say)UI.log(o.say,'bad');
   a.anim=o.rng==='bullet'?'shoot':(o.rng==='bottle'||o.rng==='trident'||o.rng==='flare')?'throw':o.rng==='ball'?'kick':'';   // wybór animacji ataku (jeśli postać ją ma)
   const dir=Math.sign(t.x-a.x)||1,sk=Player.d.sk||{},df=a.def||{};
-  if(o.pass){/* v1.1: pocisk (kula ognia) leci osobno przez wszystkich wrogów – tu tylko trafienie */}else if(o.rng)await G.shoot(a,t,o.rng);else await G.dash(a,t);
+  if(o.pass){/* v1.1: pocisk (kula ognia) leci osobno przez wszystkich wrogów – tu tylko trafienie */}else if(o.rng)await G.shoot(a,t,o.rng);else await G.approach(a,t,(a.def&&typeof a.def==='object'&&a.def.move)||'dash');   // v1.2.2: styl ataku wroga
   if(!o.pass)a.pose='attack';
   if(!o.rng&&a===G.p&&Player.d.gear&&Player.d.gear.sword){a.sw={t0:G.t,dur:force?400:340,big:!!force};await sleep(force?170:150);}   // SWING: trafienie przypada na środek cięcia
   else await sleep(o.rng?60:90);
@@ -56,7 +56,7 @@ const Combat={busy:false,guard:false,fbCd:0,
    if(df.drain&&a.s.hp>0){const v=Math.max(1,Math.round(r.dmg*df.drain));a.s.hp=Math.min(a.s.maxhp,a.s.hp+v);G.text(a,'+'+v,'#d890e8');UI.log(`${a.name} wysysa życie (+${v} HP).`,'bad');}
    if(t.s.hp>0)k.forEach(x=>this.status(t,x,a.s,!!o.fire));}
   if(G.dev&&t===G.p)t.s.hp=t.s.maxhp;
-  UI.hud();await sleep(150);if(!o.pass){a.pose='';a.anim='';a.sw=null;}if(!o.rng)await G.back(a);
+  UI.hud();await sleep(150);if(!o.pass){a.pose='';a.anim='';a.sw=null;}if(!o.rng)await G.retreat(a,(a.def&&typeof a.def==='object'&&a.def.move)||'dash');
   if(t.s.hp<=0)await this.kill(t);},
  async kill(t){if(t===G.p&&((Player.d.sk||{}).totem>0)&&!G.dev){await this.totem();return;}   // v1.2.0: totem zamiast śmierci
   UI.log(`${t.name} ginie.`,t===G.p?'bad':'good');G.burst(t.x,t.y-30,'#ff8040',30);
@@ -123,6 +123,10 @@ const Combat={busy:false,guard:false,fbCd:0,
  async skipWave(){if(!G.dev||this.busy||G.state!=='fight')return;this.busy=true;UI.lock(true);
   UI.log('[DEV] Fala pominięta.','crit');G.enemies.forEach(e=>G.burst(e.x,e.y-30,'#f2c14e',14));
   G.actors=G.actors.filter(a=>!G.enemies.includes(a));G.enemies=[];this.busy=false;return G.win();},
+ /* v1.2.2: PROMIENIOWANIE (elektrownia) – co rundę bohater traci 3% maks. HP, a jego ATK i DEF spadają o kolejne 6% (do −42%); po fali wracają do normy */
+ async radiate(){G.radStack=Math.min(7,(G.radStack||0)+1);const d=Player.d,dmg=Math.max(2,Math.round(d.maxhp*.03));d.hp=Math.max(0,d.hp-dmg);
+  G.text(G.p,'☢ -'+dmg,'#7aff6a');G.p.flash=.6;UI.log(`Promieniowanie rani bohatera (-${dmg} HP, statystyki -${G.radStack*6}%).`,'bad');UI.hud();
+  if(d.hp<=0)await this.kill(G.p);},
  /* v1.2.0: PIORUN – zabiera 50% maks. życia celu; bez uników, pancerza i krytyków */
  async thunderHit(t){if(t.phantom){await this.dispel(t);return;}const dmg=Math.max(1,Math.round(t.s.maxhp*.5));t.s.hp=Math.max(0,t.s.hp-dmg);
   G.shake=18;G.flash=1;G.text(t,'-'+dmg,'#fff27a',1);t.flash=1;G.burst(t.x,t.y-30,'#fff27a',26);
@@ -168,6 +172,7 @@ const Combat={busy:false,guard:false,fbCd:0,
    if(kind==='defend'){this.guard=true;UI.log('Bohater przyjmuje postawę obronną.');G.burst(p.x,p.y-30,'#4aa3ff',12);await sleep(400);}
    if(kind==='potion'){const d=Player.d,h=Math.min(40+(sk.herb?20:0),d.maxhp-d.hp);d.potions--;d.hp+=h;G.text(p,'+'+h,'#7aff9a');
     if(p.poison||p.burn){p.poison=p.burn=null;UI.log('Eliksir gasi ogień i neutralizuje truciznę.','good');}
+    if(G.event==='radiation'&&G.radStack>0){G.radStack=Math.max(0,G.radStack-3);UI.log('Eliksir łagodzi skutki promieniowania.','good');}   // v1.2.2
     G.burst(p.x,p.y-30,'#7aff9a',16);UI.log(`Eliksir leczy ${h} HP.`,'good');UI.hud();await sleep(500);}}
   if(kind!=='fire'&&this.fbCd>0)this.fbCd--;UI.hud();
   await this.rounds();},
@@ -180,6 +185,7 @@ const Combat={busy:false,guard:false,fbCd:0,
   if(!G.enemies.length){end();return G.win();}
   for(const e of [...G.enemies]){if(e.s.hp<=0||Player.d.hp<=0)break;if(e.acted){e.acted=0;continue;}await this.enemyAct(e);}
   if(Player.d.hp>0)await this.tick();
+  if(Player.d.hp>0&&G.event==='radiation'&&G.enemies.length)await this.radiate();   // v1.2.2
   if(Player.d.hp<=0){end();return G.lose();}
   if(!G.enemies.length){end();return G.win();}
   this.guard=false;end();UI.lock(false);}

@@ -1,4 +1,4 @@
-const VERSION='1.2.1';
+const VERSION='1.2.2';
 const MERCHANT_LINES=['Witaj, wojowniku! Mam coś dla ciebie.','Droga daleka... zajrzyj do mojego straganu!','Za twoje punkty mam same cuda!','Hmm! Dobrze wyglądasz. Handlujemy?'];
 const SMITH_LINES=['Potrzebujesz solidnej stali?','Miecze, zbroje, tarcze – wybieraj!','Moja kuźnia nigdy nie stygnie.','Za punkty dam ci najlepszy ekwipunek.'];
 const WITCH_LINES=['Hehehe… pokonałeś mnie, ale kociołek wciąż bulgocze. Kupisz coś?','Eliksiry, talizmany… na szczęście nikt jeszcze nie narzekał.','Łapka królika? Czterolistna koniczyna? Wybieraj, rycerzu.','Bez urazy za tamtą walkę. Interes to interes!'];
@@ -12,9 +12,13 @@ const SWING_COL={sword_wood:'#e8d4a0',sword_iron:'#e6ecf8',sword_steel:'#cfe6ff'
 const COMP_OFF=[[-48,-26],[-48,28],[-92,2]];
 const tween=(o,p,ms,ez)=>new Promise(r=>{const f={},e=EASE[ez]||(u=>u);for(const k in p)f[k]=o[k];const t0=performance.now();
  (function s(t){const u=Math.min(1,(t-t0)/ms);for(const k in p)o[k]=f[k]+(p[k]-f[k])*e(u);u<1?requestAnimationFrame(s):r();})(t0);});
-const G={event:null,opt:{shake:true,ambient:true,hpbars:true},quality:1,S:1,flash:0,cloud:null,fxTotem:null,sunAlt:false,clickMove:false,devBoss:false,mark:null,npcs:[],hub:null,hubReturn:null,waves:[],top:[],comps:[],state:'title',mode:'endless',level:0,wave:1,p:null,actors:[],enemies:[],fx:[],keys:{},shake:0,fade:0,t:0,sel:null,xpWave:0,
+/* v1.2.2: animacja klatka po klatce – fn(u), u 0..1 (do łuków, podskoków, turlania itp.) */
+const anim=(ms,fn)=>new Promise(r=>{const t0=performance.now();(function s(t){const u=Math.min(1,(t-t0)/ms);fn(u);u<1?requestAnimationFrame(s):r();})(t0);});
+const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,ambient:true,hpbars:true},quality:1,S:1,flash:0,cloud:null,fxTotem:null,sunAlt:false,clickMove:false,devBoss:false,mark:null,npcs:[],hub:null,hubReturn:null,waves:[],top:[],comps:[],state:'title',mode:'endless',level:0,wave:1,p:null,actors:[],enemies:[],fx:[],keys:{},shake:0,fade:0,t:0,sel:null,xpWave:0,
  /* v1.2.0: JAKOŚĆ GRAFIKI 0=niska, 1=średnia, 2=wysoka. Wysoka: płótno 2x (ostrzejsze kształty i napisy), więcej cząsteczek i winieta. Niska: mniej efektów, rysowanie co drugą klatkę, mniejsze wstrząsy. */
  /* v1.2.1: dodatkowe opcje grafiki (Tab -> Ustawienia -> Grafika), zapamiętywane w localStorage (mw_opt) */
+ /* v1.2.2: poziom trudności 0..3 (Łatwy / Normalny / Trudny / Koszmar), zapamiętywany w localStorage (mw_diff) */
+ setDifficulty(i){this.difficulty=Math.max(0,Math.min(3,i|0));try{localStorage.setItem('mw_diff',String(this.difficulty));}catch(e){}},
  setOpt(k,v){this.opt[k]=!!v;try{localStorage.setItem('mw_opt',JSON.stringify(this.opt));}catch(e){}},
  resetOpt(){this.opt={shake:true,ambient:true,hpbars:true};try{localStorage.removeItem('mw_opt');}catch(e){}},
  setQuality(q,noSave){q=Math.max(0,Math.min(2,q|0));this.quality=q;this.S=q===2?2:1;
@@ -22,6 +26,7 @@ const G={event:null,opt:{shake:true,ambient:true,hpbars:true},quality:1,S:1,flas
   try{if(!noSave)localStorage.setItem('mw_quality',String(q));}catch(e){}},
  init(){this.cv=UI.$('cv');this.c=this.cv.getContext('2d');this.c.imageSmoothingEnabled=false;Music.init();
   {let q=1;try{const s=localStorage.getItem('mw_quality');if(s!==null)q=+s;}catch(e){}this.setQuality(q,true);}
+  try{const n=parseInt(localStorage.getItem('mw_diff'),10);if(n>=0&&n<=3)this.difficulty=n;}catch(e){}
   try{const o=JSON.parse(localStorage.getItem('mw_opt')||'null');if(o&&typeof o==='object')for(const k of['shake','ambient','hpbars'])if(k in o)this.opt[k]=!!o[k];}catch(e){}
   addEventListener('keydown',e=>{this.keys[e.key.toLowerCase()]=1;if(e.key.toLowerCase()==='e')this.interact();if(e.key.toLowerCase()==='m'&&!e.repeat)Music.toggle();
    if(e.key==='Tab'&&!e.repeat){e.preventDefault();UI.toggleMenu();return;}
@@ -60,7 +65,9 @@ const G={event:null,opt:{shake:true,ambient:true,hpbars:true},quality:1,S:1,flas
   await this.instant(()=>{this.wave=target;if(!camp)Save.set('endless',{p:Player.d,w:this.wave});});},
  startEndless(nw){this.mode='endless';if(nw)Save.clear('endless');const s=Save.get('endless');
   Player.d=s?s.p:Player.base();Player.d.gear=Player.d.gear||{sword:null,armor:null,shield:null};this.wave=s?s.w:1;Player.d.hp=Math.max(Player.d.hp,1);this.newRun();},
- async startCampaign(i,skipMap){this.mode='campaign';const s=Save.get('campaign');Player.d=s?s.p:Player.base();Player.d.gear=Player.d.gear||{sword:null,armor:null,shield:null};Player.d.hp=Player.d.maxhp;
+ async startCampaign(i,skipMap){this.mode='campaign';const s=Save.get('campaign');Player.d=s?s.p:Player.base();
+  if(!s&&this.nextHardcore){Player.d.hardcore=1;Player.d.runId=Math.random().toString(36).slice(2,10)+Date.now().toString(36);}this.nextHardcore=false;   // v1.2.2: tryb hardcore
+  Player.d.gear=Player.d.gear||{sword:null,armor:null,shield:null};Player.d.hp=Player.d.maxhp;
   Player.d.kills=Player.d.kills||0;Player.d.deaths=Player.d.deaths||0;
   this.level=i;this.wave=1;this.waves=buildWaves(i);this.wave=this.stageStart();this.snap=JSON.stringify(Player.d);
   if(i===0&&!(s&&s.cleared))await Story.intro();
@@ -71,7 +78,7 @@ const G={event:null,opt:{shake:true,ambient:true,hpbars:true},quality:1,S:1,flas
  /* trudność: wolniej rośnie z numerem fali (etapy mają teraz więcej fal), mocniej z numerem etapu */
  /* v1.2.0: tryb nieskończony – łagodny start i powolny wzrost (dawniej 1:1 z numerem fali): fala 5 ≈ 2.8, fala 10 ≈ 5, fala 20 ≈ 9.5, fala 30 ≈ 17.5 */
  diff(){return this.mode==='campaign'?Math.max(1,Math.round(this.level*1.2+this.wave*.5)):Math.max(1,1+(this.wave-1)*.45+Math.max(0,this.wave-20)*.35);},
- loadWave(travel,D,quiet){this.event=null;const w=this.cur();this.xpWave=0;this.sel=null;
+ loadWave(travel,D,quiet){this.event=null;this.radStack=0;const w=this.cur();this.xpWave=0;this.sel=null;
   if(!travel){Player.d.gear=Player.d.gear||{sword:null,armor:null,shield:null};this.p={key:Player.spriteKey(),name:'Bohater',x:110,y:215,ox:0,oy:0,alpha:1,flash:0,scale:3,face:1,ph:0,s:Player.d,vy:0,jumping:0};}
   if(!travel){
    /* kula ognia: odnawia się tylko przy nowym etapie (wave 1) lub walce z bossem – nie przy każdej fali */
@@ -82,7 +89,8 @@ const G={event:null,opt:{shake:true,ambient:true,hpbars:true},quality:1,S:1,flas
   if(travel)this.enemies.forEach(e=>e.ox=D||640);   // wrogowie wjeżdżą razem z nową mapą
   this.actors=[this.p,...this.comps,...this.enemies,...(travel?this.npcs:[])];if(!travel){this.npcs=[];if(!quiet)this.begin(w);}},
  /* ===== v1.2.1: EVENTY PUSTYNI – raz na falę (poza bossem): normalnie 50% / burza piaskowa 25% / fatamorgana 25% ===== */
- rollEvent(w){this.event=null;if(w.map!=='desert'||w.boss)return;
+ rollEvent(w){this.event=null;this.radStack=0;if(w.boss||(w.map!=='desert'&&w.map!=='plant'))return;
+  if(w.map==='plant'){if(Math.random()<.3){this.event='radiation';UI.log('Radioaktywne opary! Zielony blask razi bohatera: co rundę traci HP, a jego ATK i DEF spadają – po fali wszystko wraca do normy.','crit');if(!this.banner)this.banner={txt:'Promieniowanie!',t:0};}return;}   // v1.2.2
   const r=Math.random();this.event=r<.5?null:r<.75?'sandstorm':'mirage';
   if(this.event==='sandstorm'){UI.log('Nadciąga burza piaskowa! Piasek utrudnia celowanie – więcej pudeł.','crit');if(!this.banner)this.banner={txt:'Burza piaskowa!',t:0};}
   if(this.event==='mirage'){this.applyMirage();UI.log('Fatamorgana! Na pustyni migoczą miraże – część wrogów nie istnieje, a prawdziwi biją mocniej.','crit');if(!this.banner)this.banner={txt:'Fatamorgana!',t:0};}},
@@ -118,6 +126,38 @@ const G={event:null,opt:{shake:true,ambient:true,hpbars:true},quality:1,S:1,flas
  target(){const ok=this.enemies.filter(e=>!this.invuln(e));return ok.includes(this.sel)?this.sel:ok[0];},
  async dash(a,t){const dir=Math.sign(t.x-a.x)||1,dx=t.x-a.x-dir*70;a.run=1;await tween(a,{ox:-dir*14},110,'out');await tween(a,{ox:dx,oy:t.y-a.y},150,'in');a.run=0;},   // zamach + szarża
  back(a){return tween(a,{ox:0,oy:0},240,'io');},
+ /* ===== v1.2.2: RÓŻNE ANIMACJE ATAKU – styl z ENEMY_DEFS[...].move (domyślnie dash): dojście do celu i powrót ===== */
+ async approach(a,t,style){
+  const dir=Math.sign(t.x-a.x)||1,dx=t.x-a.x-dir*70,dy=t.y-a.y,L=(p,q,u)=>p+(q-p)*u,fx=()=>a.x+a.ox,fy=()=>a.y+a.oy+4;
+  switch(style){
+   case 'rush':a.run=1;await tween(a,{ox:-dir*8},70,'out');this.burst(fx(),fy(),'#c9b38a',5);await tween(a,{ox:dx+dir*6,oy:dy},110,'in');await tween(a,{ox:dx},50,'out');a.run=0;break;
+   case 'leap':{a.sqy=.7;await tween(a,{ox:-dir*6},130,'out');a.sqy=1.15;const x0=a.ox,y0=a.oy;await anim(340,u=>{a.ox=L(x0,dx,u);a.oy=L(y0,dy,u)-Math.sin(Math.PI*u)*78;});
+    a.sqy=.8;this.shake=Math.max(this.shake,4);this.burst(fx(),fy(),'#fff',6);await sleep(60);break;}
+   case 'hop':{const x0=a.ox,y0=a.oy;for(let i=0;i<3;i++){const xa=L(x0,dx,i/3),xb=L(x0,dx,(i+1)/3),ya=L(y0,dy,i/3),yb=L(y0,dy,(i+1)/3);
+     a.sqy=.8;await sleep(30);a.sqy=1.1;await anim(110,u=>{a.ox=L(xa,xb,u);a.oy=L(ya,yb,u)-Math.sin(Math.PI*u)*26;});this.burst(fx(),fy(),'#fff',2);}a.sqy=.85;await sleep(40);break;}
+   case 'swoop':{const x0=a.ox,y0=a.oy;await anim(170,u=>{a.ox=L(x0,x0-dir*14,u);a.oy=L(y0,y0-52,Math.sin(u*Math.PI/2));});
+    const x1=a.ox,y1=a.oy;await anim(210,u=>{a.ox=L(x1,dx,u);a.oy=L(y1,dy,u*u);});break;}
+   case 'ram':{a.sqy=.94;await anim(260,u=>{a.ox=-dir*30*u;a.oy=Math.sin(u*44)*1.4;});a.sqy=0;a.run=1;await anim(120,u=>{const e=u*u;a.ox=L(-dir*30,dx,e);a.oy=L(0,dy,e);});
+    a.run=0;this.shake=Math.max(this.shake,9);this.burst(fx(),fy(),'#b9a47a',9);break;}
+   case 'roll':await anim(300,u=>{a.rotc=dir*u*Math.PI*4;a.ox=L(0,dx,u);a.oy=L(0,dy,u);});a.rotc=0;break;
+   case 'slam':{a.sqy=1.12;await anim(230,u=>{a.oy=-34*Math.sin(u*Math.PI/2);a.rotc=-dir*u*.25;});
+    await anim(110,u=>{const e=u*u;a.ox=L(0,dx,e);a.oy=L(-34,dy,e);a.rotc=L(-dir*.25,dir*.08,e);});a.rotc=0;a.sqy=.85;this.shake=Math.max(this.shake,11);this.burst(fx(),fy(),'#a08a6a',12);break;}
+   case 'pounce':{a.sqy=.62;await tween(a,{ox:-dir*12},150,'out');a.sqy=1.18;const x0=a.ox;await anim(170,u=>{a.ox=L(x0,dx,u);a.oy=L(0,dy,u)-Math.sin(Math.PI*u)*28;});a.sqy=.9;break;}
+   case 'sway':await anim(340,u=>{a.ox=L(0,dx,u);a.oy=L(0,dy,u)+Math.sin(u*Math.PI*5)*7;a.rotc=Math.sin(u*Math.PI*5)*.18*dir;});a.rotc=0;break;
+   case 'blink':await anim(130,u=>{a.alpha=1-u;});a.ox=dx;a.oy=dy;this.burst(fx(),fy()-20,'#cfe8ff',10);await anim(130,u=>{a.alpha=u;});a.alpha=1;break;
+   case 'scuttle':a.run=1;await anim(240,u=>{a.ox=L(0,dx,u);a.oy=L(0,dy,u)+Math.sin(u*Math.PI*8)*6;});a.run=0;break;
+   default:await this.dash(a,t);
+  }},
+ async retreat(a,style){
+  const x0=a.ox,y0=a.oy,L=(p,q,u)=>p+(q-p)*u;
+  switch(style){
+   case 'leap':case 'pounce':case 'hop':await anim(260,u=>{a.ox=L(x0,0,u);a.oy=L(y0,0,u)-Math.sin(Math.PI*u)*30;});break;
+   case 'swoop':await anim(280,u=>{a.ox=L(x0,0,u);a.oy=L(y0,0,u)-Math.sin(Math.PI*u)*40;});break;
+   case 'roll':{const dir=Math.sign(-x0)||1;await anim(260,u=>{a.rotc=dir*u*Math.PI*2;a.ox=L(x0,0,u);a.oy=L(y0,0,u);});break;}
+   case 'blink':await anim(110,u=>{a.alpha=1-u;});a.ox=0;a.oy=0;await anim(110,u=>{a.alpha=u;});break;
+   default:await this.back(a);
+  }
+  a.ox=0;a.oy=0;a.sqy=0;a.rotc=0;a.run=0;a.alpha=1;},
  knock(t,dir){const o=t.ox;tween(t,{ox:o+dir*12},70,'out').then(()=>tween(t,{ox:o},170,'io'));},
  slash(t,dir){this.fx.push({slash:1,x:t.x+t.ox,y:t.y+t.oy-t.scale*16,d:dir,life:1});},
  syncComps(){Player.d.comps.forEach(c=>{if(this.comps.some(a=>a.s===c))return;const a=this.makeComp(c,this.comps.length);a.alpha=0;this.comps.push(a);this.actors.push(a);
@@ -125,7 +165,7 @@ const G={event:null,opt:{shake:true,ambient:true,hpbars:true},quality:1,S:1,flas
  text(a,txt,col,big){this.fx.push({txt:trn(txt),x:a.x+a.ox,y:a.y+a.oy-a.scale*32-10,c:col,life:1,big});},
  hitfx(a,k){this.fx.push({spr:k,x:a.x+a.ox,y:a.y+a.oy-a.scale*14,life:1});},
  burst(x,y,c,n){n=Math.ceil(n*[.35,1,1.5][this.quality]);for(let i=0;i<n;i++)this.fx.push({x,y,vx:(Math.random()-.5)*6,vy:-Math.random()*5,life:1,c,sz:2+Math.random()*3,pt:1});},
- async win(){this.event=null;this.state='won';UI.lock(true);const d=Player.d,heal=Math.round(d.maxhp*.3);d.hp=Math.min(d.maxhp,d.hp+heal);
+ async win(){this.event=null;this.radStack=0;this.state='won';UI.lock(true);const d=Player.d,heal=Math.round(d.maxhp*.3);d.hp=Math.min(d.maxhp,d.hp+heal);
   let rw=`Fala pokonana! +${this.xpWave} XP, +${heal} HP`;if(this.wave%2===0){d.potions++;rw+=', +1 eliksir';}
   const pts=this.cur().boss?3:1;d.pending+=pts;rw+=`, +${pts} pkt umiejętności`;
   (d.comps||[]).forEach(c=>c.hp=Math.min(c.maxhp,c.hp+Math.round(c.maxhp*.3)));[this.p,...this.comps].forEach(x=>{x.poison=x.burn=x.freeze=x.sand=null;});
@@ -286,8 +326,12 @@ const G={event:null,opt:{shake:true,ambient:true,hpbars:true},quality:1,S:1,flas
   this.banner={txt:CAMPAIGN[i].name,t:0};},
  /* v1.2.0: licznik śmierci zapisany też w migawce etapu i autozapisie – „Spróbuj ponownie” nie kasuje śmierci (osiągnięcie „bez jednej rysy”) */
  syncDeaths(){const n=Player.d.deaths;try{if(this.snap){const s=JSON.parse(this.snap);s.deaths=n;this.snap=JSON.stringify(s);}const sv=Save.get('campaign');if(sv&&sv.p){sv.p.deaths=n;Save.set('campaign',sv);}}catch(e){}},
- async lose(){this.event=null;this.state='over';Player.d.deaths=(Player.d.deaths||0)+1;this.syncDeaths();
+ /* v1.2.2: HARDCORE – śmierć kończy kampanię: autozapis znika, zapisy w slotach tej kampanii są usuwane i nie da się ich wczytać */
+ async hardcoreOver(){const run=Player.d.runId;Prog.markDead(run);Save.clear('campaign');try{Slots.burn(run);}catch(e){}
+  UI.screen('☠ HARDCORE – KONIEC GRY',`Poległeś na etapie ${this.level+1} (poziom ${Player.d.level}). Ta kampania jest zamknięta – nie można jej kontynuować.`,[{l:'Menu główne',f:()=>UI.title()}]);},
+ async lose(){this.event=null;this.radStack=0;this.state='over';Player.d.deaths=(Player.d.deaths||0)+1;this.syncDeaths();
   if(this.mode==='campaign'&&this.level>=CAMPAIGN.length-1)await Story.bad();
+  if(this.mode==='campaign'&&Player.d.hardcore)return this.hardcoreOver();   // v1.2.2
   if(this.mode==='campaign'){
     /* po śmierci – mapa świata (cofnięcie do odblokowanych etapów) */
     return UI.worldMap({fromDeath:1,retryLevel:this.level});
@@ -336,6 +380,8 @@ const G={event:null,opt:{shake:true,ambient:true,hpbars:true},quality:1,S:1,flas
   if(this.event==='sandstorm'){c.fillStyle='rgba(222,178,60,.2)';c.fillRect(0,0,640,320);   // v1.2.1: burza piaskowa – żółty odcień + wiejący piasek
    if(this.quality>0){const n=this.quality===2?46:24;c.strokeStyle='rgba(245,215,130,.55)';c.lineWidth=1.5;c.beginPath();
     for(let i=0;i<n;i++){const sp=2+(i%5)*.7,x=660-((this.t*sp*.18+i*97)%720),y=(i*53+Math.sin(this.t/400+i)*6)%320;c.moveTo(x,y);c.lineTo(x-14-(i%4)*5,y+2);}c.stroke();}}
+  if(this.event==='radiation'){const f=.09+.1*Math.abs(Math.sin(this.t/90)*Math.sin(this.t/41));c.fillStyle=`rgba(70,255,90,${f.toFixed(3)})`;c.fillRect(0,0,640,320);   // v1.2.2: zielony, migający tint
+   if(this.quality>0){c.fillStyle='rgba(150,255,140,.5)';for(let i=0;i<(this.quality===2?26:12);i++){const x=(i*83+this.t*.02*(1+i%3))%640,y=320-((this.t*.03*(1+i%4)+i*47)%330);c.fillRect(x,y,2,2);}}}
   if(this.quality===2)this.drawVignette(c);   // v1.2.0: wysoka jakość – delikatna winieta
   if(this.flash>.02){c.fillStyle=`rgba(255,255,230,${this.flash*.7})`;c.fillRect(0,0,640,320);this.flash*=.82;}   // błysk pioruna
   if(this.fade>0){c.fillStyle=`rgba(0,0,0,${this.fade})`;c.fillRect(0,0,640,320);}},
@@ -391,9 +437,9 @@ const G={event:null,opt:{shake:true,ambient:true,hpbars:true},quality:1,S:1,flas
   else if(a.phantom)c.filter='sepia(.9) saturate(2.2) brightness(1.2)';   // miraż: złocisty i migoczący
   const st=(a.s.hp<=0&&!a.last)?'death':(a.flash>0||a.last)?'hurt':a.pose==='attack'?((a.anim&&Assets.sheets[a.key][a.anim])?a.anim:'attack'):a.jumping?(Assets.sheets[a.key].jump?'jump':'walk'):a.run?'run':a.walk?'walk':'idle';
   if(a.st!==st){a.st=st;a.at=t;}
-  const air=a.air?(-18+Math.sin(t/260+a.ph)*4):0,sq=a.pose==='attack'?.88:a.jumping?(a.vy<0?.92:1.08):(st==='idle'?1+.03*Math.sin(t/300+a.ph):1);   // oddychanie / rozciągnięcie przy ataku/skoku
+  const air=a.air?(-18+Math.sin(t/260+a.ph)*4):0,sq=a.sqy?a.sqy:a.pose==='attack'?.88:a.jumping?(a.vy<0?.92:1.08):(st==='idle'?1+.03*Math.sin(t/300+a.ph):1);   // oddychanie / rozciągnięcie przy ataku/skoku
   if(a.freeze&&a.flash<=0)c.filter=a.freeze.stone?'grayscale(1) brightness(.85) contrast(1.2)':'hue-rotate(170deg) brightness(1.3)';
-  if(a.rot){c.save();c.translate(x,y);c.rotate(a.rot);c.translate(-x,-y);}
+  if(a.rot||a.rotc){const pv=a.rotc?y-h*.5:y;c.save();c.translate(x,pv);c.rotate(a.rot||a.rotc);c.translate(-x,-pv);}   // rotc = obrót wokół środka (turlanie, chwiejny marsz)
   /* warstwy: ciało → tarcza z boku (osłania, nie zasłania) → miecz */
   const gear=((a===this.p||a.hero)&&Player.d)?(Player.d.gear||{}):null;
   const face=a.face||1;
@@ -429,7 +475,7 @@ const G={event:null,opt:{shake:true,ambient:true,hpbars:true},quality:1,S:1,flas
       }
     }
   }
-  if(a.rot)c.restore();c.filter='none';
+  if(a.rot||a.rotc)c.restore();c.filter='none';
   if(this.invuln(a)){c.globalAlpha=.4+.15*Math.sin(t/180);c.strokeStyle='#8ae0ff';c.lineWidth=3;c.beginPath();c.ellipse(x,y-h*.45,ASSETS[a.key].fw*a.scale*.4,h*.55,0,0,7);c.stroke();c.globalAlpha=.1;c.fillStyle='#8ae0ff';c.fill();c.globalAlpha=a.alpha;}   // tarcza ochronna
   if(a.s.hp>0&&!a.nobar&&this.opt.hpbars){c.fillStyle='#000';c.fillRect(x-22,y-h-14,44,7);c.fillStyle=(a===this.p||a.ally)?'#4ad66a':this.invuln(a)?'#8a93a8':'#d64545';c.fillRect(x-20,y-h-12,40*a.s.hp/a.s.maxhp,3);
    if(a===this.target()&&a!==this.p&&!a.ally){c.fillStyle='#f2c14e';c.fillRect(x-4,y-h-24,8,6);}}

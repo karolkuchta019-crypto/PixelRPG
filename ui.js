@@ -15,7 +15,7 @@ const UI = {
   hud() {
     const d = Player.d, m = MAPS[G.cur().map];
     this.$('wave').textContent = trn(this.waveLabel());
-    this.$('mapname').textContent = trn(m.name) + (G.event ? ' · ' + trn(G.event === 'sandstorm' ? 'Burza piaskowa' : 'Fatamorgana') : '');
+    this.$('mapname').textContent = trn(m.name) + (G.event ? ' · ' + trn(G.event === 'sandstorm' ? 'Burza piaskowa' : G.event === 'radiation' ? 'Promieniowanie' : 'Fatamorgana') : '');
     this.$('lvl').textContent = 'LVL ' + d.level;
     this.$('xpbar').style.width = 100 * d.xp / Player.xpNext() + '%';
     this.$('hpbar').style.width = 100 * d.hp / d.maxhp + '%';
@@ -36,7 +36,7 @@ const UI = {
     this.$('stats').textContent =
       `HP ${d.hp}/${d.maxhp}  ATK ${atk}${gAtk ? `(+${gAtk})` : ''}  DEF ${def}${gDef ? `(+${gDef})` : ''}  ` +
       `${trn('PUNKTY')} ${ptsLabel}  ${trn('Eliksiry')} ${d.potions|0}  ${trn('KOMPANI')} ${(d.comps || []).length}/3  ` +
-      `CRIT ${Math.round((d.crit + Player.luck()) * 100)}%  ${trn('UNIK')} ${Math.round(d.dodge * 100)}%` + (sk.totem ? `  ${trn('TOTEM')} ✓` : '');
+      `CRIT ${Math.round((d.crit + Player.luck()) * 100)}%  ${trn('UNIK')} ${Math.round(d.dodge * 100)}%` + (sk.totem ? `  ${trn('TOTEM')} ✓` : '') + (d.hardcore ? '  ☠ HARDCORE' : '') + (G.event === 'radiation' && G.radStack ? `  ☢ -${G.radStack * 6}%` : '');
   },
 
   lock(b) {
@@ -77,9 +77,11 @@ const UI = {
 
   title() {
     Music.play(null);   // w menu cisza
+    G.nextHardcore = false;
     this.screen('MONSTER WAVES  v' + VERSION,
       'Wybierz tryb. WASD / strzałki – ruch, Spacja – skok, M – muzyka, Tab – ustawienia, kliknij wroga, by go namierzyć.',
       [{ l: 'Kampania', f: () => this.campaign() },
+       { l: 'Kampania ☠ HARDCORE', f: () => this.newHardcore() },
        { l: 'Tryb nieskończony', f: () => this.endless() },
        { l: 'Wczytaj grę (sloty)', f: () => this.slots('load', 'title') }]);
   },
@@ -282,6 +284,7 @@ const UI = {
       mk('💾  Zapisz grę (3 sloty)', !Slots.canSave(), () => { this.menuOpen = false; this.slots('save', 'menu'); }, list);
       mk('📂  Wczytaj grę', !Slots.canLoad(), () => { this.menuOpen = false; this.slots('load', 'menu'); }, list);
       mk('⚔  Nowa kampania', false, () => this.newGame('campaign'), list);
+      mk('☠  Nowa kampania HARDCORE', false, () => this.newGame('hardcore'), list);
       mk('♾  Nowy tryb nieskończony', false, () => this.newGame('endless'), list);
 
       const stats = document.createElement('div');
@@ -289,6 +292,7 @@ const UI = {
       stats.innerHTML = `<p><b>${trn('Statystyki gracza')}</b></p>
         <p>${trn('Poziom:')} ${d.level || 1} &nbsp;|&nbsp; ${trn('Zabici przeciwnicy:')} ${d.kills || 0}<br>
         ${trn('Liczba śmierci:')} ${d.deaths || 0} &nbsp;|&nbsp; ${trn('Eliksiry:')} ${d.potions || 0}<br>
+        ${trn('Poziom trudności')}: ${trn(DIFFS[G.difficulty].name)}${d.hardcore ? ' · ☠ HARDCORE' : ''}<br>
         <b>${trn('Najdalsza fala (tryb nieskończony):')} ${Prog.d.best || 0}</b></p>`;
       s.append(stats);
     }
@@ -354,8 +358,9 @@ const UI = {
         });
       }
       if (this.setCat === 'play') {
-        const dis = btn('wkrótce', 'ghost sm', () => {}); dis.disabled = true;
-        row('Poziom trudności', 'Wkrótce.', dis);
+        row('Poziom trudności', DIFFS[G.difficulty].desc, seg(DIFFS.map((d, i) => [i, d.name]), G.difficulty, v => { G.setDifficulty(v); rerender(); }));
+        row('Tryb hardcore', 'Śmierć w kampanii kończy grę na tym zapisie. Nową kampanię hardcore zaczniesz z ekranu tytułowego lub z Menu.',
+          text(trn(Player.d && Player.d.hardcore && G.mode === 'campaign' ? 'włączony' : 'wyłączony')));
         row('Najdalsza fala (tryb nieskończony):', null, text(String(Prog.d.best || 0)));
         row('Osiągnięcia', null, text(`${Prog.count()} / ${ACH.length}`));
       }
@@ -363,7 +368,7 @@ const UI = {
         row('Identyfikator zapisów', 'Rozdziela zapisy w bazie PostgreSQL między graczy.', text(Slots.pid().slice(0, 8) + '…'));
         row('Resetuj osiągnięcia i rekord', 'Usuwa osiągnięcia oraz najdalszą falę trybu nieskończonego.', btn('Resetuj', 'danger sm', () => {
           if (!confirm(trn('Zresetować wszystkie osiągnięcia i rekord trybu nieskończonego?'))) return;
-          Prog.d = { best: 0, ach: {} }; Prog.save(); rerender();
+          Prog.resetProgress(); rerender();
         }));
         row('Przywróć ustawienia domyślne', 'Język, grafika, dźwięk i sterowanie wracają do wartości początkowych.', btn('Przywróć', 'ghost sm', () => {
           if (!confirm(trn('Przywrócić ustawienia domyślne?'))) return;
@@ -426,14 +431,24 @@ const UI = {
   },
 
   /* --- v1.1: NOWA GRA z menu (Tab) --- */
+  /* v1.2.2: HARDCORE – nowa kampania, w której śmierć kończy grę (zapisu nie da się kontynuować) */
+  newHardcore() {
+    if (Save.get('campaign') && !confirm(trn('Rozpocząć NOWĄ kampanię HARDCORE? Obecny zapis kampanii zostanie usunięty.\nW trybie hardcore śmierć kończy grę, a zapisów tej kampanii nie da się wczytać.'))) return;
+    Save.clear('campaign');
+    G.nextHardcore = true;
+    this.worldMap({ start: 1 });
+  },
+
   newGame(kind) {
+    if (kind === 'hardcore' && !confirm(trn('Rozpocząć NOWĄ kampanię HARDCORE? Obecny zapis kampanii zostanie usunięty.\nW trybie hardcore śmierć kończy grę, a zapisów tej kampanii nie da się wczytać.'))) return;
     const txt = kind === 'campaign' ? 'Rozpocząć NOWĄ kampanię?' : 'Rozpocząć NOWY tryb nieskończony?';
-    if (!confirm(trn(txt) + trn('\nNiezapisany postęp zostanie utracony (zapisy w slotach zostają).'))) return;
+    if (kind !== 'hardcore' && !confirm(trn(txt) + trn('\nNiezapisany postęp zostanie utracony (zapisy w slotach zostają).'))) return;
     const s = this.$('screen');
     s.classList.add('hidden'); s.innerHTML = ''; this.menuOpen = false;
     G.nextBub(); G.hub = null; Combat.busy = false;
     if (kind === 'endless') { G.startEndless(true); return; }
     Save.clear('campaign');
+    if (kind === 'hardcore') G.nextHardcore = true;
     G.p = null; G.actors = []; G.enemies = []; G.comps = []; G.npcs = []; G.state = 'title';
     this.worldMap({ start: 1 });
   },
@@ -489,7 +504,7 @@ const UI = {
             try { await Slots.save(n); say(`Zapisano w slocie ${n}.`); render(); } catch (e) { say(e.message, true); }
           });
         } else {
-          mk(trn('Wczytaj'), !r || !(from === 'title' || Slots.canLoad()), async () => {
+          mk(trn('Wczytaj'), !r || !(from === 'title' || Slots.canLoad()) || Slots.dead(r), async () => {
             try { await Slots.load(n); } catch (e) { say(e.message, true); }
           });
         }

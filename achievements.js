@@ -12,14 +12,27 @@ const ACH = [
   { id: 'resist',    img: 'ach_resist',    name: 'Niezłomny',              desc: 'Ulepsz Odporność na efekty do maksimum.' },
   { id: 'nodeath',   img: 'ach_nodeath',   name: 'Bez jednej rysy',        desc: 'Przejdź całą kampanię bez ani jednej śmierci.' },
   { id: 'yetinoup',  img: 'ach_yeti',      name: 'Gołymi pięściami',       desc: 'Pokonaj Yeti bez żadnych ulepszeń.' },
+  /* v1.2.2: osiągnięcia za pokonanie bossów (w kampanii lub w trybie nieskończonym) */
+  { id: 'boss_orc',         img: 'ach_boss_orc',         name: 'Pogromca Orków',        desc: 'Pokonaj bossa Orc Berserker.' },
+  { id: 'boss_witch',       img: 'ach_boss_witch',       name: 'Łowca czarownic',       desc: 'Pokonaj bossa Wiedźmę na miotle.' },
+  { id: 'boss_leshy',       img: 'ach_boss_leshy',       name: 'Drwal',                 desc: 'Pokonaj bossa Leszego.' },
+  { id: 'boss_yeti',        img: 'ach_boss_yeti',        name: 'Śnieżny pogromca',      desc: 'Pokonaj bossa Yeti.' },
+  { id: 'boss_spiderqueen', img: 'ach_boss_spiderqueen', name: 'Pogromca pająków',      desc: 'Pokonaj bossa Królową Pająków.' },
+  { id: 'boss_sphinx',      img: 'ach_boss_sphinx',      name: 'Rozwiązana zagadka',    desc: 'Pokonaj bossa Sfinksa.' },
+  { id: 'boss_mech',        img: 'ach_boss_mech',        name: 'Złomiarz',              desc: 'Pokonaj bossa Mechanicznego Kolosa.' },
+  { id: 'boss_demon',       img: 'ach_boss_demon',       name: 'Pogromca demonów',      desc: 'Pokonaj bossa Demon Lorda.' },
+  { id: 'allbosses',        img: 'ach_allbosses',        name: 'Pogromca bossów',       desc: 'Pokonaj wszystkich 10 bossów.' },
+  { id: 'hardcore',         img: 'ach_hardcore',         name: 'Bez drugiej szansy',    desc: 'Przejdź kampanię w trybie hardcore.' },
 ];
+const BOSS_KEYS = ['slimeking', 'orc', 'witch', 'leshy', 'yeti', 'spiderqueen', 'sphinx', 'mech', 'demon', 'coach'];
 
 const Prog = {
-  d: { best: 0, ach: {} },
+  d: { best: 0, ach: {}, bosses: {}, dead: {} },   // bosses: pokonani bossowie; dead: zakończone śmiercią kampanie hardcore (runId)
   load() {
     try {
       const s = JSON.parse(localStorage.getItem('mw_prog') || 'null');
-      if (s && typeof s === 'object') this.d = { best: s.best | 0, ach: (s.ach && typeof s.ach === 'object') ? s.ach : {} };
+      const o = v => (v && typeof v === 'object') ? v : {};
+      if (s && typeof s === 'object') this.d = { best: s.best | 0, ach: o(s.ach), bosses: o(s.bosses), dead: o(s.dead) };
     } catch (e) {}
   },
   save() { try { localStorage.setItem('mw_prog', JSON.stringify(this.d)); } catch (e) {} },
@@ -53,6 +66,12 @@ const Prog = {
   /* boss pokonany (wywoływane z G.win) */
   bossDown(key) {
     const d = Player.d;
+    if (!G.dev && BOSS_KEYS.includes(key)) {   // v1.2.2: rejestr pokonanych bossów + osiągnięcia za każdego z nich
+      this.d.bosses = this.d.bosses || {};
+      this.d.bosses[key] = 1; this.save();
+      if (ACH.some(a => a.id === 'boss_' + key)) this.unlock('boss_' + key);
+      if (BOSS_KEYS.every(k => this.d.bosses[k])) this.unlock('allbosses');
+    }
     if (key === 'slimeking') this.unlock('slimeking');
     if (key === 'yeti') {
       if (!d.yetiDown) { d.yetiDown = 1; UI.log('Yeti pokonany! Kupiec ma teraz nowe, potężne ulepszenia (Atak pioruna, Totem nieśmiertelności).', 'crit'); }
@@ -60,8 +79,14 @@ const Prog = {
     }
   },
   /* kampania ukończona */
+  /* v1.2.2: hardcore – kampania zakończona śmiercią (runId) nie może być wznowiona */
+  markDead(run) { if (run) { this.d.dead = this.d.dead || {}; this.d.dead[run] = 1; this.save(); } },
+  isDead(run) { return !!(run && this.d.dead && this.d.dead[run]); },
+  /* reset osiągnięć i rekordu – lista martwych kampanii zostaje (nie da się „wskrzesić” zapisu hardcore) */
+  resetProgress() { this.d = { best: 0, ach: {}, bosses: {}, dead: this.d.dead || {} }; this.save(); },
   won() {
     this.unlock('win');
+    if (Player.d.hardcore) this.unlock('hardcore');
     if ((Player.d.deaths || 0) === 0) this.unlock('nodeath');
   }
 };

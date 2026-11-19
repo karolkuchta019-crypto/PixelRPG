@@ -86,9 +86,10 @@ const ENEMY_DEFS={
 function makeEnemy(type,wave,i,boss){   // v1.0
  const d=ENEMY_DEFS[type],k=wave-1,b=1;
  const hm=d.boss?1:(((MAPS[(G.cur()||{}).map])||{}).hpMul||1);   // v1.1.1: więcej HP zwykłych wrogów na elektrowni i stadionie
- const hp=Math.round(d.hp*(1+.2*k)*b*hm);
+ const D=DIFFS[G.difficulty|0]||DIFFS[1];   // v1.2.2: poziom trudności mnoży HP, ATK i XP wrogów
+ const hp=Math.round(d.hp*(1+.2*k)*b*hm*D.hp);
  return{key:type,name:d.name,def:d,turn:1,tags:d.tags||[],air:(d.tags||[]).includes('air'),x:390+i*70,y:205+i*12,hx:0,ox:0,oy:0,alpha:1,flash:0,scale:d.scale,face:-1,ph:i,
-  xp:Math.round(d.xp*(1+.1*k)*(G.mode==='endless'?1.5:1)),s:{hp,maxhp:hp,atk:Math.round(d.atk*(1+.15*k)*b),def:Math.round(d.def+k*.6),crit:d.crit,dodge:d.dodge}};
+  xp:Math.round(d.xp*(1+.1*k)*(G.mode==='endless'?1.5:1)*D.xp),s:{hp,maxhp:hp,atk:Math.round(d.atk*(1+.15*k)*b*D.atk),def:Math.round(d.def+k*.6),crit:d.crit,dodge:d.dodge}};
 }
 
 /* TYPY: poison działa na goblin/human/elf/animal/yeti, burn na wszystkie bez 'fire', freeze na wszystkie bez 'winter'.
@@ -121,3 +122,12 @@ const DLG={
  coach:{intro:['„No proszę, nasz bohater! Wyglądasz jak ktoś, kto nigdy nie strzelił gola. Rezerwowy!”','„Na boisko! Dzisiaj grasz o życie – a ja jestem trenerem, kapitanem i sędzią!”'],death:'„Gwiżdżę koniec… Obyś już nigdy nie wygrał żadnego meczu i zawsze trafiał w słupek, bohaterze…”',win:'„Gwizdek końcowy! Pokonany w pierwszej połowie! Zejdź z boiska, ławko rezerwowych!”'},
 };
 for(const k in DLG)ENEMY_DEFS[k].dlg=DLG[k];
+
+/* v1.2.2: ORYGINALNE ANIMACJE ATAKU – każdy wróg ma własny styl dojścia do celu (G.approach / G.retreat w game.js):
+   dash (domyślny), rush (szybki sprint), leap (skok po łuku), hop (kilka podskoków), swoop (nurkowanie z góry), ram (cofnięcie i taran),
+   roll (turlanie), slam (uniesienie i miażdżący upadek), pounce (przykucnięcie i skok), sway (chwiejny marsz), blink (zniknięcie i pojawienie się), scuttle (zygzak) */
+const MOVES={drowned:'sway',dandelion:'hop',slime:'leap',goblin:'rush',skeleton:'sway',shroom:'hop',elf:'blink',lavagolem:'slam',imp:'swoop',wolf:'pounce',spider:'scuttle',drone:'swoop',robot:'dash',
+ mosquitos:'swoop',bear:'ram',beaver:'rush',scorpion:'scuttle',mummy:'sway',referee:'dash',bat:'swoop',snowman:'roll',dwarf:'ram',basilisk:'sway',fighter:'swoop',
+ flea:'hop',hedgehog:'roll',treant:'slam',blackcat:'pounce',silverfish:'scuttle',wreck:'ram',fan:'rush',mutmosq:'swoop',
+ slimeking:'slam',orc:'ram',demon:'blink',yeti:'slam',spiderqueen:'pounce',mech:'slam',witch:'swoop',leshy:'sway',sphinx:'pounce',coach:'rush'};
+for(const k in MOVES)if(ENEMY_DEFS[k])ENEMY_DEFS[k].move=MOVES[k];

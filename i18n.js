@@ -258,6 +258,34 @@ const DICT={};
 `Tryb deweloperski: wejście do etapu od razu walką z bossem.`,`Developer mode: entering a stage starts straight with the boss fight.`,`Modo desarrollador: al entrar en una etapa empieza directamente la pelea con el jefe.`,`Nieskończone HP i punkty (przełączany skrótem).`,`Infinite HP and points (toggled with a shortcut).`,`PV y puntos infinitos (se activa con un atajo).`,
 /* ---- v1.2.1: sklepy ---- */
 `Wymień punkty poziomu na umiejętności.`,`Trade level points for skills.`,`Cambia puntos de nivel por habilidades.`,`Statystyki`,`Stats`,`Estadísticas`,`Przetrwanie`,`Survival`,`Supervivencia`,`Walka i magia`,`Combat and magic`,`Combate y magia`,`Kompani`,`Allies`,`Aliados`,
+
+/* ---- v1.2.2: promieniowanie (elektrownia) ---- */
+`Promieniowanie`,`Radiation`,`Radiación`,`Promieniowanie!`,`Radiation!`,`¡Radiación!`,
+`Radioaktywne opary! Zielony blask razi bohatera: co rundę traci HP, a jego ATK i DEF spadają – po fali wszystko wraca do normy.`,`Radioactive fumes! The green glow hurts the hero: they lose HP every round and their ATK and DEF drop – everything returns to normal after the wave.`,`¡Vapores radiactivos! El brillo verde daña al héroe: pierde PV cada ronda y su ATK y DEF bajan; todo vuelve a la normalidad tras la oleada.`,
+`Eliksir łagodzi skutki promieniowania.`,`The potion eases the effects of radiation.`,`La poción alivia los efectos de la radiación.`,
+/* ---- v1.2.2: poziomy trudności i hardcore ---- */
+`Łatwy`,`Easy`,`Fácil`,`Normalny`,`Normal`,`Normal`,`Trudny`,`Hard`,`Difícil`,`Koszmar`,`Nightmare`,`Pesadilla`,
+`Słabsi wrogowie (−25% HP i ATK), więcej XP. Dla spokojnej przygody.`,`Weaker enemies (−25% HP and ATK), more XP. For a relaxed adventure.`,`Enemigos más débiles (−25 % PV y ATK), más XP. Para una aventura tranquila.`,
+`Standardowa trudność (zalecana).`,`Standard difficulty (recommended).`,`Dificultad estándar (recomendada).`,
+`Mocniejsi wrogowie (+30% HP, +25% ATK), nieco mniej XP.`,`Stronger enemies (+30% HP, +25% ATK), slightly less XP.`,`Enemigos más fuertes (+30 % PV, +25 % ATK), algo menos de XP.`,
+`Bardzo silni wrogowie (+70% HP, +50% ATK), mniej XP. Tylko dla wytrwałych.`,`Very strong enemies (+70% HP, +50% ATK), less XP. Only for the persistent.`,`Enemigos muy fuertes (+70 % PV, +50 % ATK), menos XP. Solo para los perseverantes.`,
+`Tryb hardcore`,`Hardcore mode`,`Modo hardcore`,
+`Śmierć w kampanii kończy grę na tym zapisie. Nową kampanię hardcore zaczniesz z ekranu tytułowego lub z Menu.`,`Death in the campaign ends the game on this save. Start a new hardcore campaign from the title screen or the Menu.`,`La muerte en la campaña termina la partida de este guardado. Empieza una campaña hardcore nueva desde la pantalla de título o el Menú.`,
+`Kampania ☠ HARDCORE`,`Campaign ☠ HARDCORE`,`Campaña ☠ HARDCORE`,`☠  Nowa kampania HARDCORE`,`☠  New HARDCORE campaign`,`☠  Nueva campaña HARDCORE`,
+`Rozpocząć NOWĄ kampanię HARDCORE? Obecny zapis kampanii zostanie usunięty.\nW trybie hardcore śmierć kończy grę, a zapisów tej kampanii nie da się wczytać.`,`Start a NEW HARDCORE campaign? Your current campaign save will be deleted.\nIn hardcore mode death ends the game and the saves of this campaign cannot be loaded.`,`¿Empezar una NUEVA campaña HARDCORE? Se borrará el guardado actual de la campaña.\nEn el modo hardcore la muerte termina la partida y los guardados de esta campaña no se pueden cargar.`,
+`☠ HARDCORE – KONIEC GRY`,`☠ HARDCORE – GAME OVER`,`☠ HARDCORE – FIN DEL JUEGO`,`martwa kampania`,`dead campaign`,`campaña muerta`,
+`Ta kampania hardcore zakończyła się śmiercią – nie można jej wczytać.`,`This hardcore campaign ended in death – it cannot be loaded.`,`Esta campaña hardcore terminó con la muerte: no se puede cargar.`,
+/* ---- v1.2.2: osiągnięcia za bossów ---- */
+`Pogromca Orków`,`Orc Slayer`,`Azote de los orcos`,`Pokonaj bossa Orc Berserker.`,`Defeat the Orc Berserker boss.`,`Derrota al jefe Orco Berserker.`,
+`Łowca czarownic`,`Witch Hunter`,`Cazador de brujas`,`Pokonaj bossa Wiedźmę na miotle.`,`Defeat the Witch on a Broom boss.`,`Derrota al jefe Bruja en escoba.`,
+`Drwal`,`Lumberjack`,`Leñador`,`Pokonaj bossa Leszego.`,`Defeat the Leshy boss.`,`Derrota al jefe Leshy.`,
+`Śnieżny pogromca`,`Snow Slayer`,`Azote de la nieve`,`Pokonaj bossa Yeti.`,`Defeat the Yeti boss.`,`Derrota al jefe Yeti.`,
+`Pogromca pająków`,`Spider Slayer`,`Azote de las arañas`,`Pokonaj bossa Królową Pająków.`,`Defeat the Spider Queen boss.`,`Derrota al jefe Reina Araña.`,
+`Rozwiązana zagadka`,`Riddle Solved`,`Acertijo resuelto`,`Pokonaj bossa Sfinksa.`,`Defeat the Sphinx boss.`,`Derrota al jefe Esfinge.`,
+`Złomiarz`,`Scrapper`,`Chatarrero`,`Pokonaj bossa Mechanicznego Kolosa.`,`Defeat the Mechanical Colossus boss.`,`Derrota al jefe Coloso mecánico.`,
+`Pogromca demonów`,`Demon Slayer`,`Azote de demonios`,`Pokonaj bossa Demon Lorda.`,`Defeat the Demon Lord boss.`,`Derrota al jefe Señor Demonio.`,
+`Pogromca bossów`,`Boss Slayer`,`Azote de jefes`,`Pokonaj wszystkich 10 bossów.`,`Defeat all 10 bosses.`,`Derrota a los 10 jefes.`,
+`Bez drugiej szansy`,`No Second Chance`,`Sin segunda oportunidad`,`Przejdź kampanię w trybie hardcore.`,`Complete the campaign in hardcore mode.`,`Completa la campaña en modo hardcore.`,
 ];for(let i=0;i<A.length;i+=3)DICT[A[i]]=[A[i+1],A[i+2]];}
 /* wzorce komunikatów (kolejność ma znaczenie: bardziej szczegółowe wcześniej) */
 const PAT=[
@@ -302,6 +330,8 @@ const PAT=[
  [/^Eliksir leczy (\d+) HP\.$/,`The potion heals $1 HP.`,`La poción cura $1 PV.`],
  [/^KRYT! (\d+)$/,`CRIT! $1`,`¡CRÍTICO! $1`],
  [/^Piorun razi (.+) i zadaje (\d+) obrażeń \(50% życia\)\.$/,`Lightning strikes $1 for $2 damage (50% of its life).`,`El rayo fulmina a $1 e inflige $2 de daño (50 % de su vida).`],
+ [/^Promieniowanie rani bohatera \(-(\d+) HP, statystyki -(\d+)%\)\.$/,`Radiation hurts the hero (-$1 HP, stats -$2%).`,`La radiación daña al héroe (-$1 PV, estadísticas -$2 %).`],
+ [/^Poległeś na etapie (\d+) \(poziom (\d+)\)\. Ta kampania jest zamknięta – nie można jej kontynuować\.$/,`You fell on stage $1 (level $2). This campaign is closed – it cannot be continued.`,`Caíste en la etapa $1 (nivel $2). Esta campaña está cerrada: no se puede continuar.`],
  [/^(.+): („.+”)$/,`$1: $2`,`$1: $2`],
  [/^jedna kula przez wszystkich wrogów \(100%, 50%, 25%…\), moc (\d+) niezależna od ATK, podpalenie, odnowa (\d+) tur$/,`one ball through all enemies (100%, 50%, 25%…), power $1 independent of ATK, burning, $2-turn cooldown`,`una bola que atraviesa a todos los enemigos (100 %, 50 %, 25 %…), poder $1 independiente del ATK, quemadura, enfriamiento de $2 turnos`],
  [/^\+(\d+) mocy kuli ognia \(osobno od ATK\)$/,`+$1 fireball power (separate from ATK)`,`+$1 de poder de la bola de fuego (aparte del ATK)`],
