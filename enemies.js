@@ -85,11 +85,14 @@ const ENEMY_DEFS={
 };
 function makeEnemy(type,wave,i,boss){   // v1.0
  const d=ENEMY_DEFS[type],k=wave-1,b=1;
- const hm=d.boss?1:(((MAPS[(G.cur()||{}).map])||{}).hpMul||1);   // v1.1.1: więcej HP zwykłych wrogów na elektrowni i stadionie
+ const map=(G.cur()||{}).map;
+ const hm=d.boss?1:(((MAPS[map])||{}).hpMul||1);   // v1.1.1: więcej HP zwykłych wrogów na elektrowni i stadionie
+ /* v1.2.3: odrobinę łatwiejsi przeciwnicy w tajdze (nie licząc bossa) */
+ const tm=(!d.boss&&map==='taiga')?0.85:1;
  const D=DIFFS[G.difficulty|0]||DIFFS[1];   // v1.2.2: poziom trudności mnoży HP, ATK i XP wrogów
- const hp=Math.round(d.hp*(1+.2*k)*b*hm*D.hp);
+ const hp=Math.round(d.hp*(1+.2*k)*b*hm*tm*D.hp);
  return{key:type,name:d.name,def:d,turn:1,tags:d.tags||[],air:(d.tags||[]).includes('air'),x:390+i*70,y:205+i*12,hx:0,ox:0,oy:0,alpha:1,flash:0,scale:d.scale,face:-1,ph:i,
-  xp:Math.round(d.xp*(1+.1*k)*(G.mode==='endless'?1.5:1)*D.xp),s:{hp,maxhp:hp,atk:Math.round(d.atk*(1+.15*k)*b*D.atk),def:Math.round(d.def+k*.6),crit:d.crit,dodge:d.dodge}};
+  xp:Math.round(d.xp*(1+.1*k)*(G.mode==='endless'?1.5:1)*D.xp),s:{hp,maxhp:hp,atk:Math.round(d.atk*(1+.15*k)*b*tm*D.atk),def:Math.round(d.def+k*.6),crit:d.crit,dodge:d.dodge}};
 }
 
 /* TYPY: poison działa na goblin/human/elf/animal/yeti, burn na wszystkie bez 'fire', freeze na wszystkie bez 'winter'.

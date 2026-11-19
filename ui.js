@@ -15,7 +15,7 @@ const UI = {
   hud() {
     const d = Player.d, m = MAPS[G.cur().map];
     this.$('wave').textContent = trn(this.waveLabel());
-    this.$('mapname').textContent = trn(m.name) + (G.event ? ' · ' + trn(G.event === 'sandstorm' ? 'Burza piaskowa' : G.event === 'radiation' ? 'Promieniowanie' : 'Fatamorgana') : '');
+    this.$('mapname').textContent = trn(m.name) + (G.event ? ' · ' + trn(G.event === 'sandstorm' ? 'Burza piaskowa' : G.event === 'snowstorm' ? 'Burza śnieżna' : G.event === 'radiation' ? 'Promieniowanie' : 'Fatamorgana') : '');
     this.$('lvl').textContent = 'LVL ' + d.level;
     this.$('xpbar').style.width = 100 * d.xp / Player.xpNext() + '%';
     this.$('hpbar').style.width = 100 * d.hp / d.maxhp + '%';
@@ -63,7 +63,8 @@ const UI = {
     btns.forEach(b => {
       const e = document.createElement('button');
       e.textContent = trn(b.l);
-      e.onclick = () => { s.classList.add('hidden'); b.f(); };
+      if (b.disabled) { e.disabled = true; e.classList.add('locked'); e.title = trn('Wkrótce'); }
+      else e.onclick = () => { s.classList.add('hidden'); b.f(); };
       s.append(e);
     });
   },
@@ -83,7 +84,10 @@ const UI = {
       [{ l: 'Kampania', f: () => this.campaign() },
        { l: 'Kampania ☠ HARDCORE', f: () => this.newHardcore() },
        { l: 'Tryb nieskończony', f: () => this.endless() },
-       { l: 'Wczytaj grę (sloty)', f: () => this.slots('load', 'title') }]);
+       { l: 'Wczytaj grę (sloty)', f: () => this.slots('load', 'title') },
+       /* v1.2.3: zablokowane na razie – do późniejszej implementacji */
+       { l: '🔒 Lokalne multiplayer', f: () => {}, disabled: true },
+       { l: '🔒 Własne Poziomy', f: () => {}, disabled: true }]);
   },
 
   endless() {
@@ -353,9 +357,48 @@ const UI = {
       }
       if (this.setCat === 'ctrl') {
         row('Ruch po kliknięciu (żółta otoczka)', 'Klik w ziemię: bohater idzie w to miejsce. Klik we wroga nadal go namierza.', toggle(G.clickMove, v => { G.setClickMove(v); rerender(); }));
-        [['WASD / ←↑↓→', 'Ruch'], ['Shift', 'Sprint'], ['Spacja', 'Skok'], ['E', 'Rozmowa z NPC / sklep'], ['M', 'Muzyka'], ['Tab', 'Menu']].forEach(([k, l]) => {
-          const kb = document.createElement('kbd'); kb.textContent = k; row(l, null, kb);
+        /* v1.2.3: zmiana sterowania – kliknij przycisk i naciśnij nowy klawisz */
+        const BIND_LABELS = { left: 'W lewo', right: 'W prawo', up: 'W górę', down: 'W dół', jump: 'Skok', sprint: 'Sprint', interact: 'Rozmowa / sklep', music: 'Muzyka' };
+        const pretty = k => {
+          if (k === ' ') return 'Spacja';
+          if (k === 'arrowleft') return '←';
+          if (k === 'arrowright') return '→';
+          if (k === 'arrowup') return '↑';
+          if (k === 'arrowdown') return '↓';
+          if (k === 'shift') return 'Shift';
+          return k.length === 1 ? k.toUpperCase() : k;
+        };
+        Object.keys(BIND_LABELS).forEach(act => {
+          const keys = (G.binds && G.binds[act]) || [];
+          const btn = document.createElement('button');
+          btn.className = 'ghost sm';
+          btn.textContent = keys.map(pretty).join(' / ') || '—';
+          btn.onclick = () => {
+            btn.textContent = trn('Naciśnij klawisz…');
+            btn.classList.add('on');
+            const once = (e) => {
+              e.preventDefault(); e.stopPropagation();
+              const key = e.key.toLowerCase();
+              if (key === 'tab' || key === 'escape') { btn.textContent = keys.map(pretty).join(' / '); btn.classList.remove('on'); return; }
+              /* jeden główny klawisz + ewentualnie strzałka jeśli pasuje */
+              const next = [key];
+              if (act === 'left' && key === 'a') next.push('arrowleft');
+              if (act === 'right' && key === 'd') next.push('arrowright');
+              if (act === 'up' && key === 'w') next.push('arrowup');
+              if (act === 'down' && key === 's') next.push('arrowdown');
+              if (act === 'jump' && key === ' ') next.push('space');
+              G.binds[act] = next;
+              G.saveBinds();
+              btn.textContent = next.map(pretty).join(' / ');
+              btn.classList.remove('on');
+              removeEventListener('keydown', once, true);
+            };
+            addEventListener('keydown', once, true);
+          };
+          row(BIND_LABELS[act], null, btn);
         });
+        row('Przywróć domyślne sterowanie', null, btn('Domyślne', 'ghost sm', () => { G.resetBinds(); rerender(); }));
+        row('Tab', 'Menu (niezmienne)', text('Tab'));
       }
       if (this.setCat === 'play') {
         row('Poziom trudności', DIFFS[G.difficulty].desc, seg(DIFFS.map((d, i) => [i, d.name]), G.difficulty, v => { G.setDifficulty(v); rerender(); }));
@@ -372,7 +415,7 @@ const UI = {
         }));
         row('Przywróć ustawienia domyślne', 'Język, grafika, dźwięk i sterowanie wracają do wartości początkowych.', btn('Przywróć', 'ghost sm', () => {
           if (!confirm(trn('Przywrócić ustawienia domyślne?'))) return;
-          I18N.set('pl'); G.setQuality(1); G.resetOpt(); G.setClickMove(false); if (!Music.on) Music.toggle(); Music.vol = 0.5; if (Music.cur) Music.cur.volume = 0.5;
+          I18N.set('pl'); G.setQuality(1); G.resetOpt(); G.setClickMove(false); G.resetBinds(); if (!Music.on) Music.toggle(); Music.vol = 0.5; if (Music.cur) Music.cur.volume = 0.5;
           if (Player.d && G.p) this.hud(); rerender();
         }));
       }
@@ -432,11 +475,16 @@ const UI = {
 
   /* --- v1.1: NOWA GRA z menu (Tab) --- */
   /* v1.2.2: HARDCORE – nowa kampania, w której śmierć kończy grę (zapisu nie da się kontynuować) */
+  /* v1.2.3: po kliknięciu przycisku kampania hardcore startuje od razu (bez mapy świata) */
   newHardcore() {
     if (Save.get('campaign') && !confirm(trn('Rozpocząć NOWĄ kampanię HARDCORE? Obecny zapis kampanii zostanie usunięty.\nW trybie hardcore śmierć kończy grę, a zapisów tej kampanii nie da się wczytać.'))) return;
     Save.clear('campaign');
     G.nextHardcore = true;
-    this.worldMap({ start: 1 });
+    const s = this.$('screen');
+    s.classList.add('hidden'); s.innerHTML = ''; this.menuOpen = false;
+    G.nextBub(); G.hub = null; Combat.busy = false;
+    G.p = null; G.actors = []; G.enemies = []; G.comps = []; G.npcs = []; G.state = 'title';
+    G.startCampaign(0, true);
   },
 
   newGame(kind) {
@@ -448,7 +496,12 @@ const UI = {
     G.nextBub(); G.hub = null; Combat.busy = false;
     if (kind === 'endless') { G.startEndless(true); return; }
     Save.clear('campaign');
-    if (kind === 'hardcore') G.nextHardcore = true;
+    if (kind === 'hardcore') {
+      G.nextHardcore = true;
+      G.p = null; G.actors = []; G.enemies = []; G.comps = []; G.npcs = []; G.state = 'title';
+      G.startCampaign(0, true);
+      return;
+    }
     G.p = null; G.actors = []; G.enemies = []; G.comps = []; G.npcs = []; G.state = 'title';
     this.worldMap({ start: 1 });
   },

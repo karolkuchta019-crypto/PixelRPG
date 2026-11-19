@@ -1,4 +1,4 @@
-const VERSION='1.2.2';
+const VERSION='1.2.3';
 const MERCHANT_LINES=['Witaj, wojowniku! Mam coś dla ciebie.','Droga daleka... zajrzyj do mojego straganu!','Za twoje punkty mam same cuda!','Hmm! Dobrze wyglądasz. Handlujemy?'];
 const SMITH_LINES=['Potrzebujesz solidnej stali?','Miecze, zbroje, tarcze – wybieraj!','Moja kuźnia nigdy nie stygnie.','Za punkty dam ci najlepszy ekwipunek.'];
 const WITCH_LINES=['Hehehe… pokonałeś mnie, ale kociołek wciąż bulgocze. Kupisz coś?','Eliksiry, talizmany… na szczęście nikt jeszcze nie narzekał.','Łapka królika? Czterolistna koniczyna? Wybieraj, rycerzu.','Bez urazy za tamtą walkę. Interes to interes!'];
@@ -14,25 +14,34 @@ const tween=(o,p,ms,ez)=>new Promise(r=>{const f={},e=EASE[ez]||(u=>u);for(const
  (function s(t){const u=Math.min(1,(t-t0)/ms);for(const k in p)o[k]=f[k]+(p[k]-f[k])*e(u);u<1?requestAnimationFrame(s):r();})(t0);});
 /* v1.2.2: animacja klatka po klatce – fn(u), u 0..1 (do łuków, podskoków, turlania itp.) */
 const anim=(ms,fn)=>new Promise(r=>{const t0=performance.now();(function s(t){const u=Math.min(1,(t-t0)/ms);fn(u);u<1?requestAnimationFrame(s):r();})(t0);});
-const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,ambient:true,hpbars:true},quality:1,S:1,flash:0,cloud:null,fxTotem:null,sunAlt:false,clickMove:false,devBoss:false,mark:null,npcs:[],hub:null,hubReturn:null,waves:[],top:[],comps:[],state:'title',mode:'endless',level:0,wave:1,p:null,actors:[],enemies:[],fx:[],keys:{},shake:0,fade:0,t:0,sel:null,xpWave:0,
+const DEFAULT_BINDS={left:['a','arrowleft'],right:['d','arrowright'],up:['w','arrowup'],down:['s','arrowdown'],jump:[' ','space'],sprint:['shift'],interact:['e'],music:['m']};
+const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,ambient:true,hpbars:true},quality:1,S:1,flash:0,cloud:null,fxTotem:null,sunAlt:false,clickMove:false,devBoss:false,mark:null,npcs:[],hub:null,hubReturn:null,waves:[],top:[],comps:[],state:'title',mode:'endless',level:0,wave:1,p:null,actors:[],enemies:[],fx:[],keys:{},binds:null,shake:0,fade:0,t:0,sel:null,xpWave:0,
  /* v1.2.0: JAKOŚĆ GRAFIKI 0=niska, 1=średnia, 2=wysoka. Wysoka: płótno 2x (ostrzejsze kształty i napisy), więcej cząsteczek i winieta. Niska: mniej efektów, rysowanie co drugą klatkę, mniejsze wstrząsy. */
  /* v1.2.1: dodatkowe opcje grafiki (Tab -> Ustawienia -> Grafika), zapamiętywane w localStorage (mw_opt) */
  /* v1.2.2: poziom trudności 0..3 (Łatwy / Normalny / Trudny / Koszmar), zapamiętywany w localStorage (mw_diff) */
+ /* v1.2.3: sterowanie – możliwe do zmiany w Ustawieniach (mw_binds) */
  setDifficulty(i){this.difficulty=Math.max(0,Math.min(3,i|0));try{localStorage.setItem('mw_diff',String(this.difficulty));}catch(e){}},
  setOpt(k,v){this.opt[k]=!!v;try{localStorage.setItem('mw_opt',JSON.stringify(this.opt));}catch(e){}},
  resetOpt(){this.opt={shake:true,ambient:true,hpbars:true};try{localStorage.removeItem('mw_opt');}catch(e){}},
  setQuality(q,noSave){q=Math.max(0,Math.min(2,q|0));this.quality=q;this.S=q===2?2:1;
   if(this.cv){this.cv.width=640*this.S;this.cv.height=320*this.S;this.c.imageSmoothingEnabled=false;}
   try{if(!noSave)localStorage.setItem('mw_quality',String(q));}catch(e){}},
- init(){this.cv=UI.$('cv');this.c=this.cv.getContext('2d');this.c.imageSmoothingEnabled=false;Music.init();
+ loadBinds(){this.binds={};for(const k in DEFAULT_BINDS)this.binds[k]=DEFAULT_BINDS[k].slice();
+  try{const s=JSON.parse(localStorage.getItem('mw_binds')||'null');if(s&&typeof s==='object')for(const k in DEFAULT_BINDS)if(Array.isArray(s[k])&&s[k].length)this.binds[k]=s[k].map(x=>String(x).toLowerCase());}catch(e){}},
+ saveBinds(){try{localStorage.setItem('mw_binds',JSON.stringify(this.binds));}catch(e){}},
+ resetBinds(){this.binds={};for(const k in DEFAULT_BINDS)this.binds[k]=DEFAULT_BINDS[k].slice();try{localStorage.removeItem('mw_binds');}catch(e){}},
+ isDown(act){const ks=this.binds&&this.binds[act];if(!ks)return false;return ks.some(k=>this.keys[k]);},
+ init(){this.cv=UI.$('cv');this.c=this.cv.getContext('2d');this.c.imageSmoothingEnabled=false;Music.init();this.loadBinds();
   {let q=1;try{const s=localStorage.getItem('mw_quality');if(s!==null)q=+s;}catch(e){}this.setQuality(q,true);}
   try{const n=parseInt(localStorage.getItem('mw_diff'),10);if(n>=0&&n<=3)this.difficulty=n;}catch(e){}
   try{const o=JSON.parse(localStorage.getItem('mw_opt')||'null');if(o&&typeof o==='object')for(const k of['shake','ambient','hpbars'])if(k in o)this.opt[k]=!!o[k];}catch(e){}
-  addEventListener('keydown',e=>{this.keys[e.key.toLowerCase()]=1;if(e.key.toLowerCase()==='e')this.interact();if(e.key.toLowerCase()==='m'&&!e.repeat)Music.toggle();
+  addEventListener('keydown',e=>{const key=e.key.toLowerCase();this.keys[key]=1;
+   if(this.isDown('interact'))this.interact();
+   if(this.isDown('music')&&!e.repeat)Music.toggle();
    if(e.key==='Tab'&&!e.repeat){e.preventDefault();UI.toggleMenu();return;}
    if(this.state==='cutscene'&&(e.key===' '||e.key==='Enter'))Cut.next();
    if(this.bub&&(e.key===' '||e.key==='Enter'))this.skipBub();
-   this.kseq=(this.kseq||[]).concat(e.key.toLowerCase()).slice(-10);if(this.kseq.join()===KONAMI)this.toggleDev();if(e.key.startsWith('Arrow'))e.preventDefault();});
+   this.kseq=(this.kseq||[]).concat(key).slice(-10);if(this.kseq.join()===KONAMI)this.toggleDev();if(e.key.startsWith('Arrow'))e.preventDefault();});
   addEventListener('keyup',e=>delete this.keys[e.key.toLowerCase()]);
   this.cv.onclick=e=>{const r=this.cv.getBoundingClientRect();this.canvasClick((e.clientX-r.left)*640/r.width,(e.clientY-r.top)*320/r.height);};
   try{this.clickMove=localStorage.getItem('mw_clickmove')==='1';}catch(e){}   // v1.1.1: ruch po kliknięciu (domyślnie wyłączony)
@@ -89,8 +98,11 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
   if(travel)this.enemies.forEach(e=>e.ox=D||640);   // wrogowie wjeżdżą razem z nową mapą
   this.actors=[this.p,...this.comps,...this.enemies,...(travel?this.npcs:[])];if(!travel){this.npcs=[];if(!quiet)this.begin(w);}},
  /* ===== v1.2.1: EVENTY PUSTYNI – raz na falę (poza bossem): normalnie 50% / burza piaskowa 25% / fatamorgana 25% ===== */
- rollEvent(w){this.event=null;this.radStack=0;if(w.boss||(w.map!=='desert'&&w.map!=='plant'))return;
+ /* v1.2.3: LODOWE GÓRY – burza śnieżna na tej samej zasadzie co burza piaskowa (25%) */
+ rollEvent(w){this.event=null;this.radStack=0;if(w.boss||(w.map!=='desert'&&w.map!=='plant'&&w.map!=='ice'))return;
   if(w.map==='plant'){if(Math.random()<.3){this.event='radiation';UI.log('Radioaktywne opary! Zielony blask razi bohatera: co rundę traci HP, a jego ATK i DEF spadają – po fali wszystko wraca do normy.','crit');if(!this.banner)this.banner={txt:'Promieniowanie!',t:0};}return;}   // v1.2.2
+  if(w.map==='ice'){const r=Math.random();this.event=r<.5?null:r<.75?'snowstorm':null;
+   if(this.event==='snowstorm'){UI.log('Nadciąga burza śnieżna! Śnieg utrudnia celowanie – więcej pudeł.','crit');if(!this.banner)this.banner={txt:'Burza śnieżna!',t:0};}return;}
   const r=Math.random();this.event=r<.5?null:r<.75?'sandstorm':'mirage';
   if(this.event==='sandstorm'){UI.log('Nadciąga burza piaskowa! Piasek utrudnia celowanie – więcej pudeł.','crit');if(!this.banner)this.banner={txt:'Burza piaskowa!',t:0};}
   if(this.event==='mirage'){this.applyMirage();UI.log('Fatamorgana! Na pustyni migoczą miraże – część wrogów nie istnieje, a prawdziwi biją mocniej.','crit');if(!this.banner)this.banner={txt:'Fatamorgana!',t:0};}},
@@ -223,7 +235,8 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
  clearNpcs(){
   if(this.mode==='endless')return this.spawnNpcs(['smith','merchant']);
   if(this.postBoss())return this.spawnNpcs(this.witchHere()?['smith','witch']:['smith']);
-  if(this.preBoss())this.spawnNpcs(['merchant']);
+  /* v1.2.3: na 1 falę przed finałowym bossem (ostatni etap) – zbrojmistrz i handlarz */
+  if(this.preBoss())return this.spawnNpcs(this.level===CAMPAIGN.length-1?['smith','merchant']:['merchant']);
  },
  witchHere(){return this.mode==='campaign'&&!!Player.d.witch&&CAMPAIGN[this.level].boss==='witch';},
  /* najbliższy NPC w zasięgu bohatera (null = żaden) */
@@ -340,20 +353,22 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
    [{l:'Zagraj ponownie',f:()=>this.startEndless(true)},{l:'Menu',f:()=>UI.title()}]);},
  loop(t){const dt=t-this.t;this.t=t;this.update();if(this.quality>0||((this.fr=(this.fr||0)+1)%2===0))this.draw();requestAnimationFrame(x=>this.loop(x));},
  toggleDev(){this.dev=!this.dev;if(Player.d&&this.p){Player.d.hp=Player.d.maxhp;UI.hud();}
+  /* v1.2.3: jednorazowe odpalenie kodów (Konami / 7× portret) – osiągnięcia wyłączone na stałe */
+  if(typeof Prog!=='undefined'&&Prog.markCodesUsed)Prog.markCodesUsed();
   UI.log('Tryb deweloperski: '+(this.dev?'WŁĄCZONY (nieskończone HP)':'wyłączony'),'crit');},
  update(){const p=this.p;if(!p)return;if(this.dev)Player.d.hp=Player.d.maxhp;p.walk=p.auto?1:0;
   const clr=this.state==='clear';
   /* zamrożony gracz nie może się ruszać */
   const canMove=((this.state==='fight'&&!Combat.busy)||clr)&&!p.freeze;
-  if(canMove){const k=this.keys,sp=k.shift?4.2:2.2;   // Shift = sprint
-   let dx=(k.d||k.arrowright?1:0)-(k.a||k.arrowleft?1:0),dy=(k.s||k.arrowdown?1:0)-(k.w||k.arrowup?1:0);
-   /* SKOK – Spacja */
-   if((k[' ']||k.space)&&!p.jumping){p.jumping=1;p.vy=-7.2;p.walk=0;}
+  if(canMove){const sp=this.isDown('sprint')?4.2:2.2;   // sprint (domyślnie Shift)
+   let dx=(this.isDown('right')?1:0)-(this.isDown('left')?1:0),dy=(this.isDown('down')?1:0)-(this.isDown('up')?1:0);
+   /* SKOK */
+   if(this.isDown('jump')&&!p.jumping){p.jumping=1;p.vy=-7.2;p.walk=0;}
    if(p.jumping){p.oy+=p.vy;p.vy+=.45;if(p.oy>=0){p.oy=0;p.vy=0;p.jumping=0;}}
    if(dx||dy){p.x=Math.max(40,Math.min(clr?626:560,p.x+dx*sp));p.y=Math.max(180,Math.min(290,p.y+dy*sp));if(!p.jumping)p.walk=1;if(dx)p.face=dx>0?1:-1;}
    else if(p.dest){const ex=p.dest.x-p.x,ey=p.dest.y-p.y,dist=Math.hypot(ex,ey);   // v1.1.1: marsz do klikniętego punktu
     if(dist<2){p.dest=null;this.mark=null;}else{const st=Math.min(dist,sp+.4);p.x+=ex/dist*st;p.y+=ey/dist*st;if(!p.jumping)p.walk=1;if(Math.abs(ex)>1)p.face=ex>0?1:-1;}}
-   if(k.a||k.d||k.w||k.s||k.arrowleft||k.arrowright||k.arrowup||k.arrowdown){p.dest=null;this.mark=null;}   // klawiatura przerywa marsz
+   if(dx||dy){p.dest=null;this.mark=null;}   // klawiatura przerywa marsz
    if(clr&&p.x>=600)this.advance();}
   else if(p.dest){p.dest=null;this.mark=null;}
   const mid=this.bg?this.bg.path[Math.min(this.bg.path.length-1,Math.round(this.bg.x/640))]:this.cur().map,amb=MAPS[mid]&&AMB[MAPS[mid].amb];   // klimat mapy: liście, śnieg, iskry...
@@ -380,6 +395,9 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
   if(this.event==='sandstorm'){c.fillStyle='rgba(222,178,60,.2)';c.fillRect(0,0,640,320);   // v1.2.1: burza piaskowa – żółty odcień + wiejący piasek
    if(this.quality>0){const n=this.quality===2?46:24;c.strokeStyle='rgba(245,215,130,.55)';c.lineWidth=1.5;c.beginPath();
     for(let i=0;i<n;i++){const sp=2+(i%5)*.7,x=660-((this.t*sp*.18+i*97)%720),y=(i*53+Math.sin(this.t/400+i)*6)%320;c.moveTo(x,y);c.lineTo(x-14-(i%4)*5,y+2);}c.stroke();}}
+  if(this.event==='snowstorm'){c.fillStyle='rgba(200,220,255,.22)';c.fillRect(0,0,640,320);   // v1.2.3: burza śnieżna – chłodny odcień + gęsty śnieg
+   if(this.quality>0){const n=this.quality===2?56:30;c.fillStyle='rgba(255,255,255,.7)';
+    for(let i=0;i<n;i++){const sp=1.2+(i%6)*.5,x=((this.t*sp*.12+i*71)%680)-20,y=(i*47+this.t*.25*(1+(i%3)*.3))%340;c.fillRect(x,y,2+(i%3),2+(i%2));}}}
   if(this.event==='radiation'){const f=.09+.1*Math.abs(Math.sin(this.t/90)*Math.sin(this.t/41));c.fillStyle=`rgba(70,255,90,${f.toFixed(3)})`;c.fillRect(0,0,640,320);   // v1.2.2: zielony, migający tint
    if(this.quality>0){c.fillStyle='rgba(150,255,140,.5)';for(let i=0;i<(this.quality===2?26:12);i++){const x=(i*83+this.t*.02*(1+i%3))%640,y=320-((this.t*.03*(1+i%4)+i*47)%330);c.fillRect(x,y,2,2);}}}
   if(this.quality===2)this.drawVignette(c);   // v1.2.0: wysoka jakość – delikatna winieta

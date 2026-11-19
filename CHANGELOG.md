@@ -1,5 +1,17 @@
 # Changelog – Monster Waves
 
+## [1.2.3]
+
+- **Hardcore – start od razu:** po kliknięciu „Kampania ☠ HARDCORE” kampania rozpoczyna się natychmiast (bez mapy świata).
+- **Kody a osiągnięcia:** po jednorazowym odpaleniu kodów (Konami / 7× portret) osiągnięcia nie są już przyznawane – nawet po wyłączeniu trybu deweloperskiego.
+- **Burza śnieżna** w Lodowych górach: działa na tej samej zasadzie co burza piaskowa na pustyni (25% szans poza bossem, niższa celność bohatera i kompanów, chłodny tint + gęsty śnieg).
+- **Tajga – łatwiejsi przeciwnicy:** zwykli wrogowie w tajdze mają ok. −15% HP i ATK (boss bez zmian).
+- **Przed finałowym bossem:** na fali przed bossem ostatniego etapu pojawiają się zarówno zbrojmistrz, jak i handlarz.
+- **Nowe przyciski w menu (zablokowane):** „Lokalne multiplayer” oraz „Własne Poziomy” – na razie niedostępne, do późniejszej implementacji.
+- **Zmiana sterowania:** w Ustawienia → Sterowanie można przypisać własne klawisze do ruchu, skoku, sprintu, interakcji i muzyki (zapis w localStorage).
+
+---
+
 ## [1.2.2]
 
 - **Oryginalne animacje ataku:** każdy wróg ma własny styl dojścia do celu i powrotu (`ENEMY_DEFS[...].move`): sprint, skok po łuku, podskoki, nurkowanie z góry, taran (cofnięcie i uderzenie), turlanie, miażdżący upadek, przykucnięcie i skok, chwiejny marsz, zniknięcie i pojawienie się, zygzak. 12 stylów; wrogowie czysto dystansowi (np. piłkarz) mają własne animacje pocisków.

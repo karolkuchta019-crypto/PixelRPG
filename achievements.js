@@ -27,19 +27,21 @@ const ACH = [
 const BOSS_KEYS = ['slimeking', 'orc', 'witch', 'leshy', 'yeti', 'spiderqueen', 'sphinx', 'mech', 'demon', 'coach'];
 
 const Prog = {
-  d: { best: 0, ach: {}, bosses: {}, dead: {} },   // bosses: pokonani bossowie; dead: zakończone śmiercią kampanie hardcore (runId)
+  d: { best: 0, ach: {}, bosses: {}, dead: {}, codesUsed: false },   // bosses: pokonani bossowie; dead: zakończone śmiercią kampanie hardcore (runId); codesUsed: v1.2.3 po odpaleniu kodów (Konami/portret) osiągnięcia wyłączone na stałe
   load() {
     try {
       const s = JSON.parse(localStorage.getItem('mw_prog') || 'null');
       const o = v => (v && typeof v === 'object') ? v : {};
-      if (s && typeof s === 'object') this.d = { best: s.best | 0, ach: o(s.ach), bosses: o(s.bosses), dead: o(s.dead) };
+      if (s && typeof s === 'object') this.d = { best: s.best | 0, ach: o(s.ach), bosses: o(s.bosses), dead: o(s.dead), codesUsed: !!s.codesUsed };
     } catch (e) {}
   },
   save() { try { localStorage.setItem('mw_prog', JSON.stringify(this.d)); } catch (e) {} },
   has(id) { return !!this.d.ach[id]; },
   count() { return ACH.filter(a => this.has(a.id)).length; },
+  /* v1.2.3: po jednorazowym odpaleniu kodów (dev) osiągnięcia nie są już przyznawane */
+  codesBlocked() { return !!G.dev || !!this.d.codesUsed; },
   unlock(id) {
-    if (G.dev || this.d.ach[id]) return false;
+    if (this.codesBlocked() || this.d.ach[id]) return false;
     const a = ACH.find(x => x.id === id);
     if (!a) return false;
     this.d.ach[id] = Date.now(); this.save();
@@ -48,7 +50,7 @@ const Prog = {
   },
   /* tryb nieskończony: gracz wszedł na falę n (rekord + osiągnięcie 10. fali) */
   reach(n) {
-    if (G.dev) return;
+    if (this.codesBlocked()) return;
     if (n > this.d.best) { this.d.best = n; this.save(); }
     if (n >= 10) this.unlock('endless10');
   },
@@ -66,7 +68,7 @@ const Prog = {
   /* boss pokonany (wywoływane z G.win) */
   bossDown(key) {
     const d = Player.d;
-    if (!G.dev && BOSS_KEYS.includes(key)) {   // v1.2.2: rejestr pokonanych bossów + osiągnięcia za każdego z nich
+    if (!this.codesBlocked() && BOSS_KEYS.includes(key)) {   // v1.2.2: rejestr pokonanych bossów + osiągnięcia za każdego z nich
       this.d.bosses = this.d.bosses || {};
       this.d.bosses[key] = 1; this.save();
       if (ACH.some(a => a.id === 'boss_' + key)) this.unlock('boss_' + key);
@@ -82,8 +84,9 @@ const Prog = {
   /* v1.2.2: hardcore – kampania zakończona śmiercią (runId) nie może być wznowiona */
   markDead(run) { if (run) { this.d.dead = this.d.dead || {}; this.d.dead[run] = 1; this.save(); } },
   isDead(run) { return !!(run && this.d.dead && this.d.dead[run]); },
-  /* reset osiągnięć i rekordu – lista martwych kampanii zostaje (nie da się „wskrzesić” zapisu hardcore) */
-  resetProgress() { this.d = { best: 0, ach: {}, bosses: {}, dead: this.d.dead || {} }; this.save(); },
+  /* reset osiągnięć i rekordu – lista martwych kampanii zostaje (nie da się „wskrzesić” zapisu hardcore); codesUsed zostaje */
+  resetProgress() { this.d = { best: 0, ach: {}, bosses: {}, dead: this.d.dead || {}, codesUsed: !!this.d.codesUsed }; this.save(); },
+  markCodesUsed() { if (!this.d.codesUsed) { this.d.codesUsed = true; this.save(); } },
   won() {
     this.unlock('win');
     if (Player.d.hardcore) this.unlock('hardcore');

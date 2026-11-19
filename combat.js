@@ -7,7 +7,7 @@ const Combat={busy:false,guard:false,fbCd:0,
  roll(a,d,mult,acc,force,nocrit,target,actor,flat){
   /* efekt piasku na atakującym: obniża celność */
   if(actor&&actor.sand)acc*=.55;
-  if(G.event==='sandstorm'&&actor&&(actor===G.p||actor.ally))acc*=.7;   // v1.2.1: burza piaskowa – więcej pudeł po stronie bohatera
+  if((G.event==='sandstorm'||G.event==='snowstorm')&&actor&&(actor===G.p||actor.ally))acc*=.7;   // v1.2.1 / v1.2.3: burza piaskowa / śnieżna – więcej pudeł po stronie bohatera
   if(target&&target.freeze){/* zamrożony nie unika */}else if(Math.random()>acc)return{miss:1};
   else if(Math.random()<d.dodge)return{dodge:1};
   const crit=!nocrit&&(force||Math.random()<a.crit+(a===Player.d?Player.luck():0));   // v1.1: + szczęście z talizmanów wiedźmy
