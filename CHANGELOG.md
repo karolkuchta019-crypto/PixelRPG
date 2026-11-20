@@ -9,6 +9,7 @@
 - **Przed finałowym bossem:** na fali przed bossem ostatniego etapu pojawiają się zarówno zbrojmistrz, jak i handlarz.
 - **Nowe przyciski w menu (zablokowane):** „Lokalne multiplayer” oraz „Własne Poziomy” – na razie niedostępne, do późniejszej implementacji.
 - **Zmiana sterowania:** w Ustawienia → Sterowanie można przypisać własne klawisze do ruchu, skoku, sprintu, interakcji i muzyki (zapis w localStorage).
+- **Mapa bagien:** przywrócono starą mapę bagien. 
 
 ---
 
