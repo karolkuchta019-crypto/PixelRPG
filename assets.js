@@ -9,6 +9,7 @@ const ASSETS={
  hero_iron:{src:'assets/player/hero_iron',fw:32,fh:32,color:'#9aa0b0'},
  hero_steel:{src:'assets/player/hero_steel',fw:32,fh:32,color:'#6a8ab0'},
  hero_mythril:{src:'assets/player/hero_mythril',fw:32,fh:32,color:'#50b0a8'},
+ hero_dragon:{src:'assets/player/hero_dragon',fw:32,fh:32,color:'#b42a2a'},   // v1.3.0: zbroja smoka
  slime:{src:'assets/enemies/slime',fw:32,fh:32,color:'#5ccf5c'},
  goblin:{src:'assets/enemies/goblin',fw:32,fh:32,color:'#9ac43a'},
  skeleton:{src:'assets/enemies/skeleton',fw:32,fh:32,color:'#d9d9c3'},
@@ -54,7 +55,13 @@ const ASSETS={
  dwarf:{src:'assets/enemies/dwarf',fw:32,fh:32,color:'#d6652a'},            // opuszczona wioska: krasnolud
  basilisk:{src:'assets/enemies/basilisk',fw:32,fh:32,color:'#5fa84a',muz:{gaze:8}},   // otchłań: bazyliszek
  fighter:{src:'assets/enemies/fighter',fw:32,fh:32,color:'#5a6474',muz:{laser:11}},   // elektrownia: myśliwiec laserowy
- princess:{src:'assets/player/princess',fw:32,fh:32,color:'#e060a0'},
+ rudolf:{src:'assets/enemies/rudolf',fw:32,fh:32,color:'#a8743c'},   // v1.3.0: nowi przeciwnicy
+ wraith:{src:'assets/enemies/wraith',fw:32,fh:32,color:'#4a3a78'},
+ scarab:{src:'assets/enemies/scarab',fw:32,fh:32,color:'#2a7ab0'},
+ mechhand:{src:'assets/enemies/mechhand',fw:32,fh:32,color:'#a4acbc'},
+ keeper:{src:'assets/enemies/keeper',fw:32,fh:32,color:'#e8e030',extra:['kick']},
+ comp_bard:{src:'assets/player/comp_bard',fw:32,fh:32,color:'#3a8a7a'},
+ princess:{src:'assets/player/princess',fw:32,fh:48,color:'#e060a0'},
  comp_squire:{src:'assets/player/comp_squire',fw:32,fh:32,color:'#8a5a2a'},
  comp_squire_leather:{src:'assets/player/comp_squire_leather',fw:32,fh:32,color:'#8a5a2a'},   // giermek w skórzanej zbroi (kowal)
  comp_archer:{src:'assets/player/comp_archer',fw:32,fh:32,color:'#2a7a4a'},
@@ -62,7 +69,7 @@ const ASSETS={
  orc:{src:'assets/enemies/orc',fw:48,fh:48,color:'#5a8a4a'},               // boss etapu 2
  demon:{src:'assets/enemies/demon',fw:48,fh:48,color:'#a02828'},           // boss etapu 3
 };
-const EFFECTS={sword_wood:'assets/items/sword_wood.png',sword_iron:'assets/items/sword_iron.png',sword_steel:'assets/items/sword_steel.png',sword_myth:'assets/items/sword_myth.png',sword_wood_attack:'assets/items/sword_wood_attack.png',sword_iron_attack:'assets/items/sword_iron_attack.png',sword_steel_attack:'assets/items/sword_steel_attack.png',sword_myth_attack:'assets/items/sword_myth_attack.png',shield_wood:'assets/items/shield_wood.png',shield_iron:'assets/items/shield_iron.png',shield_steel:'assets/items/shield_steel.png',shield_myth:'assets/items/shield_myth.png',sword_icon:'assets/items/sword_icon.png',shield_icon:'assets/items/shield_icon.png',armor_icon:'assets/items/armor_icon.png',bottle:'assets/effects/bottle.png',bottleproj:'assets/effects/bottle_proj.png',haste:'assets/effects/haste.png',stone:'assets/effects/stone.png',poison:'assets/effects/poison.png',sun_alt:'assets/effects/sun_alt.png',burn:'assets/effects/burn.png',freeze:'assets/effects/freeze.png',sand:'assets/effects/sand.png',hit:'assets/effects/hit.png',crit:'assets/effects/crit.png'}; // paski klatek 32x32 (opcjonalne)
+const EFFECTS={sword_wood:'assets/items/sword_wood.png',sword_iron:'assets/items/sword_iron.png',sword_steel:'assets/items/sword_steel.png',sword_myth:'assets/items/sword_myth.png',sword_dragon:'assets/items/sword_dragon.png',sword_dragon_attack:'assets/items/sword_dragon_attack.png',shield_dragon:'assets/items/shield_dragon.png',sword_wood_attack:'assets/items/sword_wood_attack.png',sword_iron_attack:'assets/items/sword_iron_attack.png',sword_steel_attack:'assets/items/sword_steel_attack.png',sword_myth_attack:'assets/items/sword_myth_attack.png',shield_wood:'assets/items/shield_wood.png',shield_iron:'assets/items/shield_iron.png',shield_steel:'assets/items/shield_steel.png',shield_myth:'assets/items/shield_myth.png',sword_icon:'assets/items/sword_icon.png',shield_icon:'assets/items/shield_icon.png',armor_icon:'assets/items/armor_icon.png',bottle:'assets/effects/bottle.png',bottleproj:'assets/effects/bottle_proj.png',haste:'assets/effects/haste.png',stone:'assets/effects/stone.png',poison:'assets/effects/poison.png',sun_alt:'assets/effects/sun_alt.png',burn:'assets/effects/burn.png',freeze:'assets/effects/freeze.png',sand:'assets/effects/sand.png',hit:'assets/effects/hit.png',crit:'assets/effects/crit.png'}; // paski klatek 32x32 (opcjonalne)
 const Assets={img:{},sheets:{},fx:{},maps:{},
  _load(src,fb){return new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(fb);i.src=src;});},
  _ph(a){const c=document.createElement('canvas');c.width=a.fw;c.height=a.fh;const x=c.getContext('2d');

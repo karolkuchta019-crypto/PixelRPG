@@ -35,7 +35,7 @@ const UI = {
     const ptsLabel = G.dev ? '∞' : String(d.pending|0);
     this.$('stats').textContent =
       `HP ${d.hp}/${d.maxhp}  ATK ${atk}${gAtk ? `(+${gAtk})` : ''}  DEF ${def}${gDef ? `(+${gDef})` : ''}  ` +
-      `${trn('PUNKTY')} ${ptsLabel}  ${trn('Eliksiry')} ${d.potions|0}  ${trn('KOMPANI')} ${(d.comps || []).length}/3  ` +
+      `${trn('PUNKTY')} ${ptsLabel}  ${trn('Eliksiry')} ${d.potions|0}  ${trn('KOMPANI')} ${Player.compCount()}/3${Player.hasBard() ? ' +♪' : ''}  ` +
       `CRIT ${Math.round((d.crit + Player.luck()) * 100)}%  ${trn('UNIK')} ${Math.round(d.dodge * 100)}%` + (sk.totem ? `  ${trn('TOTEM')} ✓` : '') + (d.hardcore ? '  ☠ HARDCORE' : '') + (G.event === 'radiation' && G.radStack ? `  ☢ -${G.radStack * 6}%` : '');
   },
 
@@ -149,20 +149,14 @@ const UI = {
       const tag = trn(i === here ? '● TU JESTEŚ' : done ? '✓ UKOŃCZONY' : unlocked ? '▶ DOSTĘPNY' : '🔒 ZABLOKOWANY');
       node.innerHTML = `<span class="wm-img" style="background-image:url(${MAPS[L.map].src})"></span>` +
         `<span class="wm-num">${i + 1}</span><span class="wm-name">${trn(L.name)}</span>` +
-        `<span class="wm-boss">${trn('Boss')}: ${trn(ENEMY_DEFS[L.boss].name)}${Player.d && Player.d.witch && L.boss === 'witch' ? trn(' · 🧙 sklep') : ''}</span><span class="wm-tag">${tag}</span>`;
-      const foes = [...new Set(L.foes)].map(f => trn(ENEMY_DEFS[f].name)).join(', ');
+        `<span class="wm-boss">${trn('Boss')}: ${trn(ENEMY_DEFS[L.boss].name)}</span><span class="wm-tag">${tag}</span>`;
+      const foes = [...new Set(allFoes(L))].map(f => trn(ENEMY_DEFS[f].name)).join(', ');
       const show = () => { info.textContent = `${trn('Etap')} ${i + 1}: ${trn(L.name)} — ${trn('wrogowie')}: ${foes} · ${trn('boss')}: ${trn(ENEMY_DEFS[L.boss].name)}`; };
       node.onmouseenter = show; node.onfocus = show;
       node.onmouseleave = () => { info.textContent = defInfo; };
       if (unlocked && (!opts.fromMenu || canJump)) {
         node.onclick = () => {
           if (opts.fromMenu) {
-            /* v1.1: pokonana wiedźma czeka na Moczarach – klik w bagna = wizyta w jej chatce (poza samymi Moczarami) */
-            if (Player.d && Player.d.witch && L.boss === 'witch' && G.level !== i &&
-                confirm(trn('Odwiedzić Wiedźmę w chatce na Moczarach?\n\nOK – odwiedź ją (eliksiry i talizmany szczęścia, potem wrócisz tu, gdzie byłeś).\nAnuluj – pokaż inne opcje.'))) {
-              G.visitWitch();
-              return;
-            }
             if (!confirm(trn(`Przenieść się do etapu ${i + 1}: ${L.name}? Postęp w bieżącym etapie zostanie utracony.`))) return;
             G.jumpToStage(i);
             return;
@@ -186,6 +180,18 @@ const UI = {
         node.setAttribute('aria-disabled', 'true');
       }
       cell.append(node);
+      /* v1.3.0: pokonana wiedźma ma osobne pole na mapie – mała ikonka obok Moczarów (klik = wizyta w jej chatce, w trakcie kampanii poza walką) */
+      if (L.boss === 'witch' && Player.d && Player.d.witch) {
+        const wb = document.createElement('button');
+        wb.type = 'button';
+        wb.className = 'wm-witch' + (canJump ? '' : ' preview');
+        wb.title = trn('Wiedźma – eliksiry i talizmany (po wizycie wrócisz tam, gdzie byłeś)');
+        wb.setAttribute('aria-label', trn('Wiedźma'));
+        wb.onmouseenter = wb.onfocus = () => { info.textContent = trn('Chatka Wiedźmy: eliksiry, talizmany szczęścia i ulepszenie eliksiru (zawsze leczy 75% HP).'); };
+        wb.onmouseleave = () => { info.textContent = defInfo; };
+        if (canJump) wb.onclick = () => G.visitWitch();
+        cell.append(wb);
+      }
       if (i < CAMPAIGN.length - 1) {
         const nextRow = Math.floor((i + 1) / COLS);
         const link = document.createElement('div');
@@ -677,7 +683,7 @@ const UI = {
       label,
       items: ids.map(id => SKILLS.find(k => k.id === id)).filter(Boolean).map(k => {
         const own = d.sk[k.id] || 0, c = Player.cost(k);
-        const full = k.comp ? (d.comps || []).length >= 3 : own >= k.max;
+        const full = k.comp ? Player.compCount() >= 3 : own >= k.max;
         const need = k.req && !d.sk[k.req];            // np. moc kuli wymaga kuli ognia
         const lockN = k.need && !d[k.need];            // ulepszenia dostępne po pokonaniu Yeti
         const poor = !G.dev && d.pending < c;
@@ -702,7 +708,7 @@ const UI = {
   witch(done) {
     const d = Player.d;
     d.wi = d.wi || {};
-    const ICON = { w_potion: '🧪', w_vit: '💖', w_rabbit: '🐇', w_clover: '🍀', w_horseshoe: '🌟' };
+    const ICON = { w_potion: '🧪', w_vit: '💖', w_rabbit: '🐇', w_clover: '🍀', w_horseshoe: '🌟', w_elixir: '⚗️' };
     const sections = [['potion', 'ELIKSIRY'], ['charm', 'TALIZMANY SZCZĘŚCIA']].map(([kind, label]) => ({
       label,
       items: WITCH.filter(k => k.kind === kind).map(k => {
@@ -733,10 +739,10 @@ const UI = {
       label,
       items: GEAR.filter(it => it.slot === key).map(it => {
         const own = Player.ownedTier(it.slot), tier = Player.tier(it);
-        const owned = tier === own, worse = tier < own, poor = !G.dev && d.pending < it.cost;
-        return { icon: SLOT_ICON[key], name: trn(it.name), desc: owned || worse ? trn(it.desc) : trn(it.desc),
-          price: owned ? trn('✓ POSIADANE') : worse ? trn('(masz lepszy)') : `${it.cost} ${trn('pkt')}`, pcls: owned ? 'tag' : worse ? 'lock' : (poor ? 'poor' : ''),
-          owned, worse, disabled: owned || worse || poor,
+        const owned = tier === own, worse = tier < own, poor = !G.dev && d.pending < it.cost, lockB = !Player.unlocked(it) && !owned && !worse;   // v1.3.0: smocze zestawy po pokonaniu Królowej Pająków
+        return { icon: SLOT_ICON[key], name: trn(it.name), desc: lockB ? `${trn(it.desc)} — ${trn('najpierw pokonaj Królową Pająków')}` : trn(it.desc),
+          price: lockB ? '🔒' : owned ? trn('✓ POSIADANE') : worse ? trn('(masz lepszy)') : `${it.cost} ${trn('pkt')}`, pcls: lockB ? 'lock' : owned ? 'tag' : worse ? 'lock' : (poor ? 'poor' : ''),
+          owned, worse, locked: lockB, disabled: owned || worse || poor || lockB,
           onClick: () => { if (Player.equip(it.id)) { if (G.p) G.p.key = Player.spriteKey(); this.hud(); this.smith(done); } } };
       })
     }));

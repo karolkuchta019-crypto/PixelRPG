@@ -128,9 +128,9 @@ const Combat={busy:false,guard:false,fbCd:0,
   G.text(G.p,'☢ -'+dmg,'#7aff6a');G.p.flash=.6;UI.log(`Promieniowanie rani bohatera (-${dmg} HP, statystyki -${G.radStack*6}%).`,'bad');UI.hud();
   if(d.hp<=0)await this.kill(G.p);},
  /* v1.2.0: PIORUN – zabiera 50% maks. życia celu; bez uników, pancerza i krytyków */
- async thunderHit(t){if(t.phantom){await this.dispel(t);return;}const dmg=Math.max(1,Math.round(t.s.maxhp*.5));t.s.hp=Math.max(0,t.s.hp-dmg);
+ async thunderHit(t){if(t.phantom){await this.dispel(t);return;}const fin=t.key==='coach',frac=fin?.2:.5,dmg=Math.max(1,Math.round(t.s.maxhp*frac));t.s.hp=Math.max(0,t.s.hp-dmg);   // v1.3.0: finałowy boss dostaje tylko 20%
   G.shake=18;G.flash=1;G.text(t,'-'+dmg,'#fff27a',1);t.flash=1;G.burst(t.x,t.y-30,'#fff27a',26);
-  UI.log(`Piorun razi ${t.name} i zadaje ${dmg} obrażeń (50% życia).`,'crit');UI.hud();
+  UI.log(`Piorun razi ${t.name} i zadaje ${dmg} obrażeń (${fin?20:50}% życia).`,'crit');UI.hud();
   if(t.s.hp<=0)await this.kill(t);},
  /* v1.2.0: TOTEM NIEŚMIERTELNOŚCI – zamiast śmierci bohater odradza się z 50% HP (totem się zużywa) */
  async totem(){const d=Player.d,p=G.p;d.sk.totem--;d.hp=Math.max(1,Math.ceil(d.maxhp*.5));p.poison=p.burn=p.freeze=p.sand=null;p.pose='';p.anim='';p.alpha=1;p.rot=0;
@@ -170,7 +170,7 @@ const Combat={busy:false,guard:false,fbCd:0,
     await G.thunderStrike(t,()=>this.thunderHit(t));}
    if(kind==='shoot')await this.strike(p,t,sk.xbow?1.6:1.1,.85,false,sk.xbow?'Bohater (kusza)':'Bohater (łuk)',{rng:'arrow'});
    if(kind==='defend'){this.guard=true;UI.log('Bohater przyjmuje postawę obronną.');G.burst(p.x,p.y-30,'#4aa3ff',12);await sleep(400);}
-   if(kind==='potion'){const d=Player.d,h=Math.min(40+(sk.herb?20:0),d.maxhp-d.hp);d.potions--;d.hp+=h;G.text(p,'+'+h,'#7aff9a');
+   if(kind==='potion'){const d=Player.d,h=Math.min(Player.potionHeal(),d.maxhp-d.hp);d.potions--;d.hp+=h;G.text(p,'+'+h,'#7aff9a');
     if(p.poison||p.burn){p.poison=p.burn=null;UI.log('Eliksir gasi ogień i neutralizuje truciznę.','good');}
     if(G.event==='radiation'&&G.radStack>0){G.radStack=Math.max(0,G.radStack-3);UI.log('Eliksir łagodzi skutki promieniowania.','good');}   // v1.2.2
     G.burst(p.x,p.y-30,'#7aff9a',16);UI.log(`Eliksir leczy ${h} HP.`,'good');UI.hud();await sleep(500);}}
@@ -181,7 +181,8 @@ const Combat={busy:false,guard:false,fbCd:0,
   if(!G.enemies.length){end();return G.win();}
   for(const c of [...G.comps]){if(!G.enemies.length)break;if(c.s.hp<=0)continue;   // kompani atakują automatycznie
    if(c.freeze){await this.thaw(c);continue;}
-   await this.strike(c,G.enemies[Math.floor(Math.random()*G.enemies.length)],1,.9,false,c.name,c.s.t==='archer'?{rng:'arrow'}:{});}
+   {const tg=G.enemies.filter(e=>!G.invuln(e));if(!tg.length)break;   // v1.3.0: kompani nie biją nietykalnego bossa
+   await this.strike(c,tg[Math.floor(Math.random()*tg.length)],1,.9,false,c.name,c.s.t==='archer'?{rng:'arrow'}:c.s.t==='bard'?{rng:'note',magic:1}:{});}}
   if(!G.enemies.length){end();return G.win();}
   for(const e of [...G.enemies]){if(e.s.hp<=0||Player.d.hp<=0)break;if(e.acted){e.acted=0;continue;}await this.enemyAct(e);}
   if(Player.d.hp>0)await this.tick();

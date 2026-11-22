@@ -38,7 +38,7 @@ const Story={
 
  /* PROLOG: bardziej dynamiczne porwanie */
  async intro(){await Cut.play('castle',async c=>{
-  const h=this._hero(c,80,205),p=c.actor('princess',360,210,{face:-1}),v=c.actor('coach',760,205,{face:-1,scale:2.6});
+  const h=this._hero(c,80,205),p=c.actor('princess',360,210,{face:-1,scale:2}),v=c.actor('coach',760,205,{face:-1,scale:2.6});
   c.fadeA=1;await c.fade(0,700);
   /* spokojny spacer po dziedzińcu */
   await Promise.all([c.walk(h,160,205,1200),c.walk(p,320,210,1000)]);
@@ -64,7 +64,7 @@ const Story={
 
  /* ZAKOŃCZENIE DOBRE – bohater w pełnym ekwipunku */
  async good(){await Cut.play('castle',async c=>{
-  const h=this._hero(c,90,205),p=c.actor('princess',50,215);
+  const h=this._hero(c,90,205),p=c.actor('princess',50,215,{scale:2});
   c.fadeA=1;await c.fade(0,900);
   await c.say('Bohater','Mroczny Trener pokonany. Już po wszystkim, Wasza Wysokość.');
   await c.say('Księżniczka','Wiedziałam, że po mnie przyjdziesz. Wracajmy do domu.');
@@ -77,7 +77,7 @@ const Story={
 
  /* ZAKOŃCZENIE ZŁE – bohater w ekwipunku, leży pokonany */
  async bad(){await Cut.play('stadium',async c=>{
-  const h=this._hero(c,200,205,{alpha:.7}),v=c.actor('coach',370,205,{face:-1,scale:2.6}),p=c.actor('princess',500,215,{face:-1});
+  const h=this._hero(c,200,205,{alpha:.7}),v=c.actor('coach',370,205,{face:-1,scale:2.6}),p=c.actor('princess',500,215,{face:-1,scale:2});
   h.s.hp=0;
   c.fadeA=1;await c.fade(0,700);await c.wait(900);
   await c.say('Mroczny Trener','Koniec meczu, rycerzu. Nie dotrwałeś nawet do dogrywki.');

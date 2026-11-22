@@ -76,7 +76,7 @@ const Slots = {
     if (rec.mode === 'campaign') {
       if (!CAMPAIGN[rec.level]) return null;
       const ok = Array.isArray(rec.waves) && rec.waves.length > 0 && rec.wave <= rec.waves.length &&
-        rec.waves.every(w => w && Array.isArray(w.e) && w.e.length > 0 && w.e.every(t => ENEMY_DEFS[t]));
+        rec.waves.every(w => w && Array.isArray(w.e) && (w.minigame || w.e.length > 0) && w.e.every(t => ENEMY_DEFS[t]));
       if (!ok) return null;
     }
     d.hp = Math.max(1, Math.min(d.hp, d.maxhp));

@@ -86,7 +86,18 @@ const Player = {
 
   /* v1.0: brak sprzedaży – nowy przedmiot zastępuje stary (zostaje tylko najlepszy), starego nie da się odsprzedać ani cofnąć.
      Nie można kupić przedmiotu słabszego lub równego posiadanemu. */
-  canBuy(it) { return this.tier(it) > this.ownedTier(it.slot); },
+  canBuy(it) { return this.tier(it) > this.ownedTier(it.slot) && this.unlocked(it); },
+
+  /* v1.3.0: przedmioty z polem boss są odblokowane dopiero po pokonaniu tego bossa (d.bd[boss]) */
+  unlocked(it) { return !it.boss || G.dev || !!((this.d.bd || {})[it.boss]); },
+  /* v1.3.0: kompani poza bardem (limit 3 dotyczy tylko kupowanych; bard jest dodatkowy) */
+  compCount() { return ((this.d && this.d.comps) || []).filter(c => c.t !== 'bard').length; },
+  hasBard() { return ((this.d && this.d.comps) || []).some(c => c.t === 'bard'); },
+  /* v1.3.0: ile HP leczy eliksir (ulepszenie wiedźmy: zawsze 75% maks. HP) */
+  potionHeal() {
+    const d = this.d, base = 40 + ((d.sk || {}).herb ? 20 : 0);
+    return (d.wi || {}).w_elixir ? Math.max(base, Math.ceil(d.maxhp * .75)) : base;
+  },
 
   equip(id) {
     const it = GEAR.find(x => x.id === id);
@@ -179,7 +190,7 @@ const Player = {
     const c = this.cost(k);
     d.sk = d.sk || {};
     d.comps = d.comps || [];
-    if ((!G.dev && d.pending < c) || (d.sk[id] || 0) >= k.max || (k.comp && d.comps.length >= 3) || (k.req && !d.sk[k.req]) || (k.need && !d[k.need]))
+    if ((!G.dev && d.pending < c) || (d.sk[id] || 0) >= k.max || (k.comp && this.compCount() >= 3) || (k.req && !d.sk[k.req]) || (k.need && !d[k.need]))
       return false;
     if (!G.dev) d.pending -= c;
     d.sk[id] = (d.sk[id] || 0) + 1;
@@ -205,7 +216,7 @@ const SKILLS = [
   { id: 'resist', name: 'Odporność na efekty',  desc: '-25% szans na truciznę/ogień/zamrożenie', cost: 2, max: 3, f: () => {} },
   { id: 'fire',   name: 'Kula ognia',           desc: `jedna kula przez wszystkich wrogów (100%, 50%, 25%…), moc ${FIRE.base} niezależna od ATK, podpalenie, odnowa ${FIRE.cd} tur`, cost: 10, max: 1, f: () => {} },
   /* v1.2.0: ulepszenia odblokowane po pokonaniu Yeti (d.yetiDown) */
-  { id: 'thunder', name: 'Atak pioruna',          desc: 'czarna chmura razi wybranego wroga: 50% jego maks. życia; raz na etap', cost: 18, max: 1, need: 'yetiDown', f: () => {} },
+  { id: 'thunder', name: 'Atak pioruna',          desc: 'czarna chmura razi wybranego wroga: 50% jego maks. życia; raz na etap (finałowy boss: tylko 20%)', cost: 18, max: 1, need: 'yetiDown', f: () => {} },
   { id: 'totem',   name: 'Totem nieśmiertelności', desc: 'po śmierci odradzasz się z 50% HP (zużywa się; można kupić ponownie)', cost: 25, max: 1, need: 'yetiDown', f: () => {} },
   { id: 'fireup', name: 'Moc kuli ognia',       desc: `+${FIRE.step} mocy kuli ognia (osobno od ATK)`, cost: 2, max: 10, req: 'fire', f: () => {} },
   { id: 'double', name: 'Podwójne uderzenie',   desc: '25% szans na drugi cios przy ataku', cost: 4, max: 1, f: () => {} },
@@ -224,16 +235,19 @@ const GEAR = [
   { id: 'sw_iron',   slot: 'sword', name: 'Żelazny miecz',    desc: '+5 ATK',  atk: 5,  def: 0, cost: 3,  overlay: 'sword_iron' },
   { id: 'sw_steel',  slot: 'sword', name: 'Stalowy miecz',    desc: '+9 ATK',  atk: 9,  def: 0, cost: 6,  overlay: 'sword_steel' },
   { id: 'sw_myth',   slot: 'sword', name: 'Miecz mithrilowy', desc: '+14 ATK', atk: 14, def: 0, cost: 10, overlay: 'sword_myth' },
+  { id: 'sw_dragon', slot: 'sword', name: 'Miecz smoka',      desc: '+21 ATK', atk: 21, def: 0, cost: 16, overlay: 'sword_dragon', boss: 'spiderqueen' },   // v1.3.0: po pokonaniu Królowej Pająków
   /* zbroje – bonus DEF + zmiana sprite\'a postaci */
   { id: 'ar_leather', slot: 'armor', name: 'Skórzana zbroja',  desc: '+3 DEF',  atk: 0, def: 3,  cost: 2,  sprite: 'hero_leather' },
   { id: 'ar_iron',    slot: 'armor', name: 'Żelazna zbroja',   desc: '+6 DEF',  atk: 0, def: 6,  cost: 4,  sprite: 'hero_iron' },
   { id: 'ar_steel',   slot: 'armor', name: 'Stalowa zbroja',   desc: '+10 DEF', atk: 0, def: 10, cost: 7,  sprite: 'hero_steel' },
   { id: 'ar_myth',    slot: 'armor', name: 'Zbroja mithrilowa',desc: '+15 DEF', atk: 0, def: 15, cost: 12, sprite: 'hero_mythril' },
+  { id: 'ar_dragon',   slot: 'armor', name: 'Zbroja smoka',     desc: '+22 DEF', atk: 0, def: 22, cost: 24, sprite: 'hero_dragon', boss: 'spiderqueen' },
   /* tarcze – bonus DEF + nakładka wizualna */
   { id: 'sh_wood',  slot: 'shield', name: 'Drewniana tarcza', desc: '+2 DEF',  atk: 0, def: 2,  cost: 1, overlay: 'shield_wood' },
   { id: 'sh_iron',  slot: 'shield', name: 'Żelazna tarcza',   desc: '+4 DEF',  atk: 0, def: 4,  cost: 3, overlay: 'shield_iron' },
   { id: 'sh_steel', slot: 'shield', name: 'Stalowa tarcza',   desc: '+7 DEF',  atk: 0, def: 7,  cost: 5, overlay: 'shield_steel' },
   { id: 'sh_myth',  slot: 'shield', name: 'Tarcza mithrilowa',desc: '+11 DEF', atk: 0, def: 11, cost: 9, overlay: 'shield_myth' },
+  { id: 'sh_dragon', slot: 'shield', name: 'Tarcza smoka',     desc: '+16 DEF', atk: 0, def: 16, cost: 18, overlay: 'shield_dragon', boss: 'spiderqueen' },
   /* broń dystansowa – kupowana u zbrojmistrza, odblokowuje akcję Strzał */
   { id: 'bow',  slot: 'ranged', name: 'Łuk',   desc: 'Strzał z dystansu', skill: 'bow',  cost: 3 },
   { id: 'xbow', slot: 'ranged', name: 'Kusza', desc: 'mocniejszy Strzał (x1.6)', skill: 'xbow', cost: 6 },
@@ -246,6 +260,7 @@ const GEAR = [
 const WITCH = [
   { id: 'w_potion',   kind: 'potion', name: 'Mikstura życia',         desc: '+3 eliksiry',               cost: 2, max: 99, f: d => d.potions += 3 },
   { id: 'w_vit',      kind: 'potion', name: 'Wywar tężyzny',          desc: '+20 maks. HP',              cost: 3, max: 5,  f: d => { d.maxhp += 20; d.hp += 20; } },
+  { id: 'w_elixir',    kind: 'potion', name: 'Eliksir życia+',         desc: 'eliksir ZAWSZE leczy 75% maks. HP', cost: 10, max: 1 },   // v1.3.0
   { id: 'w_rabbit',   kind: 'charm',  name: 'Łapka królika',          desc: '+5% szczęścia (CRIT)',      cost: 3, max: 1,  luck: .05 },
   { id: 'w_clover',   kind: 'charm',  name: 'Czterolistna koniczyna', desc: '+8% szczęścia (CRIT)',      cost: 5, max: 1,  luck: .08 },
   { id: 'w_horseshoe',kind: 'charm',  name: 'Podkowa szczęścia',      desc: '+12% szczęścia (CRIT)',     cost: 8, max: 1,  luck: .12 },
@@ -258,6 +273,7 @@ const Save = {
 };
 
 const COMPS = {
+  bard:   { name: 'Bard',       hp: 0.45, atk: 0.75, def: 0.35, crit: 0.15, dodge: 0.15 },   // v1.3.0: dołącza po uratowaniu w Moczarach (nie liczy się do limitu 3)
   squire: { name: 'Giermek',    hp: 0.6,  atk: 0.6, def: 0.7, crit: 0.1, dodge: 0.05 },
   archer: { name: 'Łuczniczka', hp: 0.45, atk: 0.7, def: 0.4, crit: 0.2, dodge: 0.1  }
 };

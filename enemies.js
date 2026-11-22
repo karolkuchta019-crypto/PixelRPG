@@ -83,6 +83,8 @@ const ENEMY_DEFS={
   if(t===3)return G.enemies.length<3?[{summon:'kicker',n:2}]:[{m:.9,rng:'bullet',p:1,say:'Strzał z shotguna!'}];
   return[{m:1.9,say:'Mroczny Trener gwiżdże do ataku!'}];}},
 };
+const REPLAY_XP=.1;                      // v1.3.0: mnożnik XP w etapach „poniżej” pokonanego bossa (Wiedźma -> poniżej Moczar, Królowa Pająków -> poniżej Lodowych gór)
+const BARD_CURSE={hp:1.3,atk:1.25};      // v1.3.0: kara za zostawienie barda w bagnie (następny etap)
 function makeEnemy(type,wave,i,boss){   // v1.0
  const d=ENEMY_DEFS[type],k=wave-1,b=1;
  const map=(G.cur()||{}).map;
@@ -90,17 +92,30 @@ function makeEnemy(type,wave,i,boss){   // v1.0
  /* v1.2.3: odrobinę łatwiejsi przeciwnicy w tajdze (nie licząc bossa) */
  const tm=(!d.boss&&map==='taiga')?0.85:1;
  const D=DIFFS[G.difficulty|0]||DIFFS[1];   // v1.2.2: poziom trudności mnoży HP, ATK i XP wrogów
- const hp=Math.round(d.hp*(1+.2*k)*b*hm*tm*D.hp);
+ /* v1.3.0: po pokonaniu Wiedźmy / Królowej Pająków etapy niżej dają bardzo mało XP (koniec z farmieniem) */
+ const rank=PATH.indexOf(map),pd=(typeof Player!=='undefined'&&Player.d)||{},bd=pd.bd||{};
+ let xm=1;if(rank>=0&&((bd.witch&&rank<PATH.indexOf('swamp'))||(bd.spiderqueen&&rank<PATH.indexOf('ice'))))xm=REPLAY_XP;
+ /* v1.3.0: zostawiony w bagnie bard -> w następnym etapie (Tajga) przeciwnicy są mocniejsi */
+ const cm=(pd.bard==='left'&&G.mode==='campaign'&&G.level===CAMPAIGN.findIndex(l=>l.map==='swamp')+1)?BARD_CURSE:{hp:1,atk:1};
+ const hp=Math.round(d.hp*(1+.2*k)*b*hm*tm*D.hp*cm.hp);
  return{key:type,name:d.name,def:d,turn:1,tags:d.tags||[],air:(d.tags||[]).includes('air'),x:390+i*70,y:205+i*12,hx:0,ox:0,oy:0,alpha:1,flash:0,scale:d.scale,face:-1,ph:i,
-  xp:Math.round(d.xp*(1+.1*k)*(G.mode==='endless'?1.5:1)*D.xp),s:{hp,maxhp:hp,atk:Math.round(d.atk*(1+.15*k)*b*tm*D.atk),def:Math.round(d.def+k*.6),crit:d.crit,dodge:d.dodge}};
+  xp:Math.max(1,Math.round(d.xp*(1+.1*k)*(G.mode==='endless'?1.5:1)*D.xp*xm)),s:{hp,maxhp:hp,atk:Math.round(d.atk*(1+.15*k)*b*tm*D.atk*cm.atk),def:Math.round(d.def+k*.6),crit:d.crit,dodge:d.dodge}};
 }
 
+/* v1.3.0: NOWI PRZECIWNICY */
+Object.assign(ENEMY_DEFS,{
+ rudolf:{name:'Rudolf',hp:66,atk:14,def:4,dodge:.1,crit:.12,xp:34,scale:3.0,behave:e=>e.turn%3===0?[{m:1.8,say:'Rudolf szarżuje rogami i świecącym nosem!'}]:(Math.random()<.3?[.6,.6]:[1])},
+ wraith:{name:'Upiór',hp:54,atk:16,def:3,dodge:.22,crit:.12,xp:40,scale:2.9,drain:.35,behave:e=>e.turn%3===0?[{m:1.5,magic:1,say:'Upiór przenika przez zbroję i wysysa życie!'}]:[1]},
+ scarab:{name:'Skarabeusz',hp:40,atk:11,def:7,dodge:.05,crit:.05,xp:22,scale:2.5,behave:e=>e.turn%3===0?[{m:1.6,say:'Skarabeusz taranuje pancerzem!'}]:[1]},
+ mechhand:{name:'Mechaniczna ręka',hp:78,atk:17,def:7,dodge:.03,crit:.08,xp:46,scale:2.9,behave:e=>{const t=e.turn%3;return t===0?[{m:1.9,say:'Mechaniczna ręka chwyta i miażdży!'}]:t===2?[.8,.8]:[1];}},
+ keeper:{name:'Bramkarz',hp:60,atk:13,def:5,dodge:.12,crit:.08,xp:28,scale:2.8,behave:e=>e.turn%3===0?[{m:1.3,rng:'ball',magic:1,say:'Bramkarz wykopuje piłkę z całej siły!'}]:[1]}});
 /* TYPY: poison działa na goblin/human/elf/animal/yeti, burn na wszystkie bez 'fire', freeze na wszystkie bez 'winter'.
    'air' = lata (odporny na broń białą, x0.7); stworzenia naziemne są odporne na ataki dystansowe (x0.7). Orc liczony jako goblin. */
 const TAGS={slime:['slime'],goblin:['goblin'],skeleton:['undead'],shroom:['plant'],elf:['elf'],wolf:['animal'],spider:['animal'],drone:['machine','air'],robot:['machine'],
  imp:['fire','demon','air'],lavagolem:['fire','golem'],kicker:['human'],slimeking:['slime'],orc:['goblin'],yeti:['yeti','winter'],spiderqueen:['animal'],mech:['machine'],demon:['fire','demon','air'],coach:['human'],referee:['human'],bat:['animal','air'],snowman:['winter','snow'],dwarf:['human','dwarf'],basilisk:['animal','reptile'],fighter:['machine','air'],
  drowned:['undead','water'],mosquitos:['animal','air'],mutmosq:['animal','air'],fan:['human'],flea:['animal'],hedgehog:['animal'],dandelion:['plant'],treant:['plant'],blackcat:['animal'],silverfish:['animal'],wreck:['machine'],witch:['human','air'],
  bear:['animal'],beaver:['animal'],leshy:['plant','spirit'],scorpion:['animal'],mummy:['undead'],sphinx:['beast','spirit']};   // utopiec odporny na truciznę, komary i wiedźma latają (odporność na broń białą x0.7)
+Object.assign(TAGS,{rudolf:['animal','winter'],wraith:['undead','air'],scarab:['animal'],mechhand:['machine'],keeper:['human']});
 for(const k in ENEMY_DEFS)ENEMY_DEFS[k].tags=TAGS[k]||[];
 Object.assign(ENEMY_DEFS.imp,{burn:.3});Object.assign(ENEMY_DEFS.lavagolem,{burn:.4});Object.assign(ENEMY_DEFS.demon,{burn:.4});Object.assign(ENEMY_DEFS.yeti,{freeze:.4});
 /* OSTATECZNY BOSS: cykl 4 tur. Przyzywa 2 piłkarzy + sędziego – dopóki żyją, Trener jest NIETYKALNY (trzeba ich pokonać).
@@ -129,7 +144,7 @@ for(const k in DLG)ENEMY_DEFS[k].dlg=DLG[k];
 /* v1.2.2: ORYGINALNE ANIMACJE ATAKU – każdy wróg ma własny styl dojścia do celu (G.approach / G.retreat w game.js):
    dash (domyślny), rush (szybki sprint), leap (skok po łuku), hop (kilka podskoków), swoop (nurkowanie z góry), ram (cofnięcie i taran),
    roll (turlanie), slam (uniesienie i miażdżący upadek), pounce (przykucnięcie i skok), sway (chwiejny marsz), blink (zniknięcie i pojawienie się), scuttle (zygzak) */
-const MOVES={drowned:'sway',dandelion:'hop',slime:'leap',goblin:'rush',skeleton:'sway',shroom:'hop',elf:'blink',lavagolem:'slam',imp:'swoop',wolf:'pounce',spider:'scuttle',drone:'swoop',robot:'dash',
+const MOVES={rudolf:'ram',wraith:'blink',scarab:'roll',mechhand:'scuttle',keeper:'pounce',drowned:'sway',dandelion:'hop',slime:'leap',goblin:'rush',skeleton:'sway',shroom:'hop',elf:'blink',lavagolem:'slam',imp:'swoop',wolf:'pounce',spider:'scuttle',drone:'swoop',robot:'dash',
  mosquitos:'swoop',bear:'ram',beaver:'rush',scorpion:'scuttle',mummy:'sway',referee:'dash',bat:'swoop',snowman:'roll',dwarf:'ram',basilisk:'sway',fighter:'swoop',
  flea:'hop',hedgehog:'roll',treant:'slam',blackcat:'pounce',silverfish:'scuttle',wreck:'ram',fan:'rush',mutmosq:'swoop',
  slimeking:'slam',orc:'ram',demon:'blink',yeti:'slam',spiderqueen:'pounce',mech:'slam',witch:'swoop',leshy:'sway',sphinx:'pounce',coach:'rush'};

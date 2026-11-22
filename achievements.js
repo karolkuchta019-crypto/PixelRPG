@@ -59,7 +59,7 @@ const Prog = {
     const d = Player.d;
     if (!d) return;
     if ((d.comps || []).length >= 3) this.unlock('comps');
-    if (d.gear && d.gear.sword === 'sw_myth' && d.gear.armor === 'ar_myth') this.unlock('gear');
+    if (d.gear && ['sw_myth', 'sw_dragon'].includes(d.gear.sword) && ['ar_myth', 'ar_dragon'].includes(d.gear.armor)) this.unlock('gear');
     if ((d.sk || {}).vamp) this.unlock('vamp');
     const r = SKILLS.find(s => s.id === 'resist');
     if (r && (d.sk || {}).resist >= r.max) this.unlock('resist');

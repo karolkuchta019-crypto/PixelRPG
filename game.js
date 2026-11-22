@@ -1,4 +1,4 @@
-const VERSION='1.2.3';
+const VERSION='1.3.0';
 const MERCHANT_LINES=['Witaj, wojowniku! Mam coś dla ciebie.','Droga daleka... zajrzyj do mojego straganu!','Za twoje punkty mam same cuda!','Hmm! Dobrze wyglądasz. Handlujemy?'];
 const SMITH_LINES=['Potrzebujesz solidnej stali?','Miecze, zbroje, tarcze – wybieraj!','Moja kuźnia nigdy nie stygnie.','Za punkty dam ci najlepszy ekwipunek.'];
 const WITCH_LINES=['Hehehe… pokonałeś mnie, ale kociołek wciąż bulgocze. Kupisz coś?','Eliksiry, talizmany… na szczęście nikt jeszcze nie narzekał.','Łapka królika? Czterolistna koniczyna? Wybieraj, rycerzu.','Bez urazy za tamtą walkę. Interes to interes!'];
@@ -8,8 +8,8 @@ const EASE={out:u=>1-Math.pow(1-u,3),in:u=>u*u*u,io:u=>u<.5?2*u*u:1-Math.pow(-2*
 const AMB={leaf:{c:'#6ac050',sz:3,vx:-.7,vy:.6,y:()=>Math.random()*60},dust:{c:'#c8a878',sz:2,vx:-1,vy:.05,y:()=>120+Math.random()*180},snow:{c:'#ffffff',sz:3,vx:-.5,vy:1.1,y:()=>-4},
  ember:{c:'#ff8a30',sz:3,vx:.3,vy:-1.1,y:()=>320},spark:{c:'#60e0ff',sz:2,vx:0,vy:.2,y:()=>60+Math.random()*220},glint:{c:'#a0c8ff',sz:2,vx:0,vy:-.2,y:()=>150+Math.random()*150},
  firefly:{c:'#d8ff70',sz:2,vx:.12,vy:-.18,y:()=>130+Math.random()*150}};
-const SWING_COL={sword_wood:'#e8d4a0',sword_iron:'#e6ecf8',sword_steel:'#cfe6ff',sword_myth:'#8ffff0'};   // kolor smugi cięcia wg miecza
-const COMP_OFF=[[-48,-26],[-48,28],[-92,2]];
+const SWING_COL={sword_wood:'#e8d4a0',sword_iron:'#e6ecf8',sword_steel:'#cfe6ff',sword_myth:'#8ffff0',sword_dragon:'#ff9a4a'};   // kolor smugi cięcia wg miecza
+const COMP_OFF=[[-48,-26],[-48,28],[-92,2],[-92,-48]];   // v1.3.0: 4. miejsce dla barda
 const tween=(o,p,ms,ez)=>new Promise(r=>{const f={},e=EASE[ez]||(u=>u);for(const k in p)f[k]=o[k];const t0=performance.now();
  (function s(t){const u=Math.min(1,(t-t0)/ms);for(const k in p)o[k]=f[k]+(p[k]-f[k])*e(u);u<1?requestAnimationFrame(s):r();})(t0);});
 /* v1.2.2: animacja klatka po klatce – fn(u), u 0..1 (do łuków, podskoków, turlania itp.) */
@@ -38,7 +38,7 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
   addEventListener('keydown',e=>{const key=e.key.toLowerCase();this.keys[key]=1;
    if(this.isDown('interact'))this.interact();
    if(this.isDown('music')&&!e.repeat)Music.toggle();
-   if(e.key==='Tab'&&!e.repeat){e.preventDefault();UI.toggleMenu();return;}
+   if(e.key==='Tab'&&!e.repeat){e.preventDefault();if(this.state==='choice')return;UI.toggleMenu();return;}
    if(this.state==='cutscene'&&(e.key===' '||e.key==='Enter'))Cut.next();
    if(this.bub&&(e.key===' '||e.key==='Enter'))this.skipBub();
    this.kseq=(this.kseq||[]).concat(key).slice(-10);if(this.kseq.join()===KONAMI)this.toggleDev();if(e.key.startsWith('Arrow'))e.preventDefault();});
@@ -58,7 +58,7 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
    if(this.state==='clear'){const n=this.nearNpc();if(n&&Math.abs(x-n.x)<90)return this.interact(n);}   // v1.1: kilku NPC naraz
    if(this.clickMove&&this.moveClick(x,y))return;   // v1.1.1: klik w ziemię = bohater idzie w to miejsce (żółta otoczka)
    if(!Combat.busy){this.sel=this.enemies.reduce((b,n)=>!b||Math.abs(n.x-x)<Math.abs(b.x-x)?n:b,null);
-    if(this.invuln(this.sel)){this.text(this.sel,'NIETYKALNY!','#8ae0ff');UI.log('Mroczny Trener jest nietykalny – najpierw pokonaj piłkarzy i sędziego!','crit');}}},
+    if(this.invuln(this.sel)){this.text(this.sel,'NIETYKALNY!','#8ae0ff');UI.log(`${this.sel.name} jest nietykalny – najpierw pokonaj jego sprzymierzeńców!`,'crit');}}},
  /* v1.1.1: ruch po kliknięciu. Zwraca true, gdy kliknięcie ustawiło cel marszu (nie trafiło we wroga). */
  moveClick(x,y){const p=this.p;if(!p||p.freeze||!((this.state==='fight'&&!Combat.busy)||this.state==='clear'))return false;
   for(const e of this.enemies){if(e.s.hp<=0)continue;const h=ASSETS[e.key].fh*e.scale+(e.air?20:0);if(Math.abs(e.x+e.ox-x)<38&&y>e.y+e.oy-h-10&&y<e.y+e.oy+12)return false;}   // klik we wroga = namierzanie
@@ -111,10 +111,12 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
   real.forEach(e=>{e.s.atk=Math.round(e.s.atk*1.3);e.boost=1;});
   for(let i=0;i<2;i++){const ph=makeEnemy(real[i%real.length].key,this.diff(),real.length+i);ph.phantom=1;ph.nobar=1;ph.s.hp=ph.s.maxhp=1;this.enemies.push(ph);this.actors.push(ph);}
   this.enemies.sort(()=>Math.random()-.5);const n=this.enemies.length;this.enemies.forEach((e,i)=>{e.x=n>1?380+i*(230/(n-1)):500;});},
- begin(w){this.rollEvent(w);Music.play(w.map);Combat.busy=false;Combat.guard=false;this.mark=null;Combat.refreshHaste(true);if(this.mode==='endless')Prog.reach(this.wave);   // v1.2.0: rekord fali + osiągnięcie
+ begin(w){this.ambush=0;this.rollEvent(w);Music.play(w.minigame?'stadium':w.map);Combat.busy=false;Combat.guard=false;this.mark=null;Combat.refreshHaste(true);if(this.mode==='endless')Prog.reach(this.wave);   // v1.2.0: rekord fali + osiągnięcie
     // v1.1.1: sędzia obecny od początku fali daje piłkarzom szybkość
  
   UI.log(`--- ${UI.waveLabel()}: ${MAPS[w.map].name} ---`,'crit');
+  if(w.minigame==='pong'){UI.hud();UI.lock(true);Pong.start();return;}   // v1.3.0: minigra zamiast walki
+  if(this.mode==='campaign'&&Player.d.bard==='left'&&this.level===CAMPAIGN.findIndex(l=>l.map==='swamp')+1&&this.wave<=1)UI.log('Zostawiony w bagnie bard przepowiedział zło… W Tajdze przeciwnicy są mocniejsi (+30% HP, +25% ATK).','bad');
   if(w.boss){const b=this.enemies[0];UI.log('UWAGA! BOSS: '+b.name,'bad');this.shake=14;this.state='talk';UI.hud();UI.lock(true);this.bossIntro(b);}   // v1.0: boss najpierw obraża bohatera
   else{this.state='fight';UI.hud();UI.lock(false);}},
  async bossIntro(b){await sleep(700);const L=(b.def.dlg&&b.def.dlg.intro)||(b.def.line?[b.def.line]:[]);for(const l of L)await this.say(b,l);this.state='fight';UI.hud();UI.lock(false);},
@@ -132,9 +134,9 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
   c.fillStyle='#a02828';c.fillText(nm.toUpperCase(),bx+10,by+16);c.fillStyle='#14101f';lines.forEach((l,i)=>c.fillText(l,bx+10,by+32+i*15));
   c.fillStyle='#8a6a1c';c.textAlign='right';c.fillText('▼',bx+bw-6,by+bh-5);c.restore();},
  compPos(i,bx,by){const o=COMP_OFF[i];return{x:(bx||110)+o[0],y:(by||215)+o[1]};},
- makeComp(c,i){return{key:c.t==='archer'?'comp_archer':(Player.d&&Player.d.sqArmor?'comp_squire_leather':'comp_squire'),name:c.name,...this.compPos(i,this.p.x,this.p.y),ox:0,oy:0,alpha:1,flash:0,scale:2.3,face:1,ph:i+1,ally:1,s:c};},
+ makeComp(c,i){return{key:c.t==='archer'?'comp_archer':c.t==='bard'?'comp_bard':(Player.d&&Player.d.sqArmor?'comp_squire_leather':'comp_squire'),name:c.name,...this.compPos(i,this.p.x,this.p.y),ox:0,oy:0,alpha:1,flash:0,scale:2.3,face:1,ph:i+1,ally:1,s:c};},
  /* Mroczny Trener jest nietykalny, dopóki żyją przywołani piłkarze lub sędzia */
- invuln(e){return !!e&&e.key==='coach'&&this.enemies.some(x=>x!==e&&x.minion&&x.s.hp>0);},
+ invuln(e){return !!e&&!!(e.def&&e.def.boss)&&this.enemies.some(x=>x!==e&&x.minion&&x.s.hp>0);},   // v1.3.0: każdy boss przywołujący sojuszników jest nietykalny, dopóki żyją
  target(){const ok=this.enemies.filter(e=>!this.invuln(e));return ok.includes(this.sel)?this.sel:ok[0];},
  async dash(a,t){const dir=Math.sign(t.x-a.x)||1,dx=t.x-a.x-dir*70;a.run=1;await tween(a,{ox:-dir*14},110,'out');await tween(a,{ox:dx,oy:t.y-a.y},150,'in');a.run=0;},   // zamach + szarża
  back(a){return tween(a,{ox:0,oy:0},240,'io');},
@@ -177,18 +179,21 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
  text(a,txt,col,big){this.fx.push({txt:trn(txt),x:a.x+a.ox,y:a.y+a.oy-a.scale*32-10,c:col,life:1,big});},
  hitfx(a,k){this.fx.push({spr:k,x:a.x+a.ox,y:a.y+a.oy-a.scale*14,life:1});},
  burst(x,y,c,n){n=Math.ceil(n*[.35,1,1.5][this.quality]);for(let i=0;i<n;i++)this.fx.push({x,y,vx:(Math.random()-.5)*6,vy:-Math.random()*5,life:1,c,sz:2+Math.random()*3,pt:1});},
- async win(){this.event=null;this.radStack=0;this.state='won';UI.lock(true);const d=Player.d,heal=Math.round(d.maxhp*.3);d.hp=Math.min(d.maxhp,d.hp+heal);
-  let rw=`Fala pokonana! +${this.xpWave} XP, +${heal} HP`;if(this.wave%2===0){d.potions++;rw+=', +1 eliksir';}
-  const pts=this.cur().boss?3:1;d.pending+=pts;rw+=`, +${pts} pkt umiejętności`;
+ async win(){const amb=this.ambush;this.ambush=0;this.event=null;this.radStack=0;this.state='won';UI.lock(true);const d=Player.d,heal=Math.round(d.maxhp*.3);d.hp=Math.min(d.maxhp,d.hp+heal);
+  let rw=`Fala pokonana! +${this.xpWave} XP, +${heal} HP`;if(this.wave%2===0&&!amb){d.potions++;rw+=', +1 eliksir';}
+  const pts=amb?2:(this.cur().boss?3:1);d.pending+=pts;rw+=`, +${pts} pkt umiejętności`;
   (d.comps||[]).forEach(c=>c.hp=Math.min(c.maxhp,c.hp+Math.round(c.maxhp*.3)));[this.p,...this.comps].forEach(x=>{x.poison=x.burn=x.freeze=x.sand=null;});
   UI.log(rw,'good');UI.hud();if(this.mode==='endless')Save.set('endless',{p:d,w:this.wave+1});
-  {const wv=this.cur();if(this.mode==='campaign'&&wv.boss&&wv.e[0]==='witch'&&!d.witch){d.witch=1;UI.log('Wiedźma przeżyła i osiadła w chatce na Moczarach – możesz ją odwiedzić (mapa świata, Tab).','crit');}}   // v1.1
-  if(this.cur().boss)Prog.bossDown(this.cur().e[0]);   // v1.2.0: Król Slime / Yeti (odblokowuje ulepszenia u kupca)
+  {const wv=this.cur();if(this.mode==='campaign'&&wv.boss&&wv.e[0]==='witch'&&!d.witch){d.witch=1;UI.log('Wiedźma przeżyła i osiadła w chatce. Jej ikona pojawiła się na mapie świata obok Moczarów (Tab) – możesz ją odwiedzić. Etapy niżej niż Moczary dają teraz bardzo mało XP.','crit');}}   // v1.1
+  if(this.cur().boss){const bk=this.cur().e[0];d.bd=d.bd||{};d.bd[bk]=1;   // v1.3.0: pamiętamy pokonanych bossów (odblokowania, kary XP za farmienie)
+   if(bk==='spiderqueen')UI.log('Królowa Pająków pokonana! U zbrojmistrza czeka smoczy ekwipunek (miecz 16, tarcza 18, zbroja 24 pkt). Etapy niżej niż Lodowe góry dają teraz bardzo mało XP.','crit');
+   Prog.bossDown(bk);}   // v1.2.0: Król Slime / Yeti (odblokowuje ulepszenia u kupca)
   if(this.mode==='campaign'&&this.level>=CAMPAIGN.length-1&&this.wave>=this.waves.length){this.saveC();Prog.won();await sleep(900);return Story.good();}
-  await sleep(600);this.state='clear';this.clearNpcs();},
+  await sleep(600);if(amb)await this.bardThanks();this.state='clear';this.clearNpcs();},
  saveC(){const s=Save.get('campaign')||{cleared:0};Save.set('campaign',{p:Player.d,cleared:Math.min(CAMPAIGN.length,Math.max(s.cleared,this.level+1))});},
  /* gracz dochodzi do prawej krawędzi -> (sklep) -> płynne przejście na kolejną mapę */
- async advance(fast){if(this.state!=='clear')return;if(this.hub)return this.leaveHub();this.state='moving';
+ async advance(fast){if(this.state!=='clear')return;if(this.hub)return this.leaveHub();if(this.npcs.some(n=>n.kind==='bard'))return this.bardEvent(true);   // v1.3.0: bard czeka na decyzję
+  this.state='moving';
   const camp=this.mode==='campaign',end=camp&&this.wave>=this.waves.length;
   if(end&&this.level>=CAMPAIGN.length-1){this.saveC();Prog.won();return UI.screen('KAMPANIA UKOŃCZONA!','Pokonałeś wszystkich bossów. Gratulacje!',[{l:'Menu',f:()=>UI.title()}]);}
   await (fast?this.instant:this.travel).call(this,()=>{if(end){this.saveC();this.level++;this.wave=1;this.waves=buildWaves(this.level);this.wave=this.stageStart();Player.d.hp=Player.d.maxhp;this.snap=JSON.stringify(Player.d);}
@@ -233,16 +238,18 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
  spawnSmith(){this.spawnNpcs(['smith']);},
  /* kto czeka po wygranej fali */
  clearNpcs(){
+  if(this.bardDue())return this.spawnBard();   // v1.3.0
   if(this.mode==='endless')return this.spawnNpcs(['smith','merchant']);
-  if(this.postBoss())return this.spawnNpcs(this.witchHere()?['smith','witch']:['smith']);
+  if(this.postBoss())return this.spawnNpcs(['smith']);   // v1.3.0: wiedźma ma osobną ikonę na mapie świata
   /* v1.2.3: na 1 falę przed finałowym bossem (ostatni etap) – zbrojmistrz i handlarz */
   if(this.preBoss())return this.spawnNpcs(this.level===CAMPAIGN.length-1?['smith','merchant']:['merchant']);
  },
  witchHere(){return this.mode==='campaign'&&!!Player.d.witch&&CAMPAIGN[this.level].boss==='witch';},
  /* najbliższy NPC w zasięgu bohatera (null = żaden) */
- nearNpc(){if(!this.p)return null;let b=null,bd=130;for(const n of this.npcs){if(n.ox>5)continue;const d=Math.abs(this.p.x-n.x);if(d<bd){bd=d;b=n;}}return b;},
+ nearNpc(){if(!this.p)return null;let b=null,bd=130;for(const n of this.npcs){if(n.ox>5||n.kind==='pool')continue;const d=Math.abs(this.p.x-n.x);if(d<bd){bd=d;b=n;}}return b;},
  interact(n){
   if(this.state!=='clear')return;n=n||this.nearNpc();if(!n||n.ox>5)return;
+  if(n.kind==='bard')return this.bardEvent(false);
   this.state='shop';const back=()=>{this.state='clear';};
   if(n.kind==='smith')UI.smith(back);else if(n.kind==='witch')UI.witch(back);else UI.shop(back);
  },
@@ -308,7 +315,7 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
    for(let i=0;i<5;i++){const q=i*Math.PI*2/5-Math.PI/2;c.fillRect(Math.cos(q)*6-1,Math.sin(q)*6-1,2,2);}c.restore();}
   else if(Assets.fx.bottleproj){const im=Assets.fx.bottleproj;c.save();c.translate(x,y);c.scale(d,1);c.rotate(p.u*14);c.drawImage(im,-im.width,-im.height,im.width*2,im.height*2);c.restore();}
   else{c.save();c.translate(x,y);c.rotate(p.u*14);c.fillStyle='#3a9a5a';c.fillRect(-4,-8,8,15);c.fillStyle='#8ae0a0';c.fillRect(-2,-13,4,6);c.restore();}},
- drawNpc(a){const c=this.c,x=a.x+a.ox,y=a.y+a.oy,t=this.t;c.globalAlpha=1;c.fillStyle='rgba(0,0,0,.3)';c.beginPath();c.ellipse(x,y,70,9,0,0,7);c.fill();
+ drawNpc(a){if(a.kind==='bard'||a.kind==='pool')return this.drawBard(a);const c=this.c,x=a.x+a.ox,y=a.y+a.oy,t=this.t;c.globalAlpha=1;c.fillStyle='rgba(0,0,0,.3)';c.beginPath();c.ellipse(x,y,70,9,0,0,7);c.fill();
   const isSmith=a.kind==='smith'||a.key==='blacksmith';
   if(a.kind==='witch'){
     /* v1.1.1: nowe stoisko wiedźmy (witchstall) – wiedźma lewituje za ladą, kocioł bulgocze i świeci */
@@ -325,11 +332,11 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
     Assets.draw(c,'merchant',x,y-16+Math.sin(t/400)*1.5,2.6,t,-1);
     Assets.draw(c,'stall',x,y,2.6,t,1);
   }},
- drawBubble(c){if(this.state==='moving'||this.state==='shop'||!this.npcs.length)return;
+ drawBubble(c){if(this.state==='moving'||this.state==='shop'||this.state==='choice'||this.state==='talk'||!this.npcs.length)return;
   const dual=this.npcs.length>1,nr=this.nearNpc();c.font='bold 12px "Courier New"';
-  for(const m of this.npcs){if(m.ox>5)continue;const isN=m===nr,
-    txt=trn(dual?(isN?'[E] lub klik: '+m.title:m.title):(isN?'Chcesz zobaczyć towar? [E] lub klik':m.say));   // przy dwóch NPC krótkie podpisy, żeby się nie nakładały
-   const w=c.measureText(txt).width+16,x=Math.max(w/2+4,Math.min(636-w/2,m.x)),y=m.y-(m.kind==='witch'?210:152);   // dymek wiedźmy wyżej (ona lewituje nad stoiskiem)
+  for(const m of this.npcs){if(m.ox>5||m.kind==='pool')continue;const isN=m===nr,
+    txt=m.kind==='bard'?trn(isN?'Pomóc bardowi? [E] lub klik':['Pomocy! Tonę!','Ratunku! Moja lutnia!','Blub… blub… pomocy!'][Math.floor(this.t/1800)%3]):trn(dual?(isN?'[E] lub klik: '+m.title:m.title):(isN?'Chcesz zobaczyć towar? [E] lub klik':m.say));   // przy dwóch NPC krótkie podpisy, żeby się nie nakładały
+   const w=c.measureText(txt).width+16,x=Math.max(w/2+4,Math.min(636-w/2,m.x)),y=m.y-(m.kind==='witch'?210:m.kind==='bard'?125:152);   // dymek wiedźmy wyżej (ona lewituje nad stoiskiem)
    c.fillStyle='#000';c.fillRect(x-w/2-2,y-2,w+4,28);c.fillStyle='#f3e9d2';c.fillRect(x-w/2,y,w,24);
    c.fillStyle='#14101f';c.textAlign='center';c.fillText(txt,x,y+16);c.fillStyle='#f3e9d2';c.fillRect(m.x-4,y+24,8,6);}},
  /* v1.0: przeniesienie do odblokowanego etapu z podglądu mapy (Tab) */
@@ -375,8 +382,9 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
   if(amb&&Math.random()<.35*[0,1,1.6][this.quality]*(this.opt.ambient?1:0))this.fx.push({x:Math.random()*660,y:amb.y(),vx:amb.vx+(this.bg?-7:0),vy:amb.vy,g:0,dl:.006,life:1.2,c:amb.c,sz:amb.sz,pt:1});
   for(const a of this.actors)if(a.burn&&Math.random()<.3)this.fx.push({x:a.x+a.ox+(Math.random()-.5)*20,y:a.y+a.oy-20-Math.random()*30,vx:0,vy:-1.5,life:.8,c:'#ff9a40',sz:3,pt:1});
   if(!Combat.busy&&(this.state==='fight'||this.state==='clear'))this.comps.forEach((c,i)=>{if(c.s.hp<=0||c.alpha<1)return;const o=COMP_OFF[i],tx=p.x+o[0],ty=p.y+o[1];c.x+=(tx-c.x)*.1;c.y+=(ty-c.y)*.1;c.walk=Math.hypot(tx-c.x,ty-c.y)>6?1:0;});
-  this.fx=this.fx.filter(f=>{if(f.pt){f.x+=f.vx;f.y+=f.vy;f.vy+=f.g===undefined?.25:f.g;f.life-=f.dl||.025;}else if(f.spr||f.slash){f.life-=f.slash?.08:.05;}else{f.y-=.8;f.life-=.015;}return f.life>0;});},
- draw(){this.c.setTransform(this.S,0,0,this.S,0,0);if(this.state==='cutscene')return Cut.draw(this.c);const c=this.c,w=this.cur(),m=MAPS[w.map];c.save();c.clearRect(0,0,640,320);this.top=[];
+  this.fx=this.fx.filter(f=>{if(f.pt){f.x+=f.vx;f.y+=f.vy;f.vy+=f.g===undefined?.25:f.g;f.life-=f.dl||.025;}else if(f.spr||f.slash){f.life-=f.slash?.08:.05;}else{f.y-=.8;f.life-=.015;}return f.life>0;});
+  if(this.state==='pong')Pong.tick();},
+ draw(){this.c.setTransform(this.S,0,0,this.S,0,0);if(this.state==='cutscene')return Cut.draw(this.c);if(this.state==='pong')return Pong.draw(this.c);const c=this.c,w=this.cur(),m=MAPS[w.map];c.save();c.clearRect(0,0,640,320);this.top=[];
   if(this.shake>0){const sm=this.opt.shake?(this.quality===0?.4:1):0;c.translate((Math.random()-.5)*this.shake*sm,(Math.random()-.5)*this.shake*sm);this.shake*=.85;}
   if(this.bg)this.drawTravel(c);else this.drawMap(c,w.map,0);
   if(this.mark){const m=this.mark,u=((this.t-m.t0)/700)%1;c.save();   // v1.1.1: żółta otoczka w miejscu, do którego idzie bohater

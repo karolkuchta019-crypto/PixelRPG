@@ -1,5 +1,17 @@
 # Changelog – Monster Waves
 
+## [1.3.0]
+
+- **Bossowie przywołujący sojuszników są nietykalni**, dopóki żyją przywołani (Yeti, Wiedźma, Mroczny Trener). Kompani też nie atakują nietykalnego bossa.
+- **Nowa księżniczka** (na podstawie dostarczonego obrazka): brązowe włosy z jasnymi pasmami, korona z niebieskim kamieniem, gwiazdka we włosach, niebieska suknia z różowym przodem.
+- **Wiedźma** nie jest już kupcem na bagnach – ma osobną ikonkę na mapie świata obok Moczarów (klik w trakcie kampanii, poza walką). Po jej pokonaniu etapy niżej niż Moczary dają bardzo mało XP (×0,1). Nowe ulepszenie u wiedźmy: „Eliksir życia+” (10 pkt) – eliksir zawsze leczy 75% maks. HP.
+- **Królowa Pająków:** po pokonaniu zbrojmistrz sprzedaje zestaw smoka – zbroja 24 pkt (+22 DEF), miecz 16 pkt (+21 ATK), tarcza 18 pkt (+16 DEF). Etapy niżej niż Lodowe góry dają bardzo mało XP (×0,1).
+- **Piorun** zadaje finałowemu bossowi tylko 20% obrażeń (zamiast 50%).
+- **Minigra PONG** na stadionie, fala 6: nowa mapa „Boisko” (widok z góry, bez nieba), ruch po całym boisku, gra z bramkarzem do 5 goli. Spacja = mocny strzał. Wygrana: +2 pkt, +1 eliksir, +30% HP i przejście do fali 7; porażka = rewanż bez kary.
+- **Nowi przeciwnicy:** Rudolf (Lodowe góry), Upiór (Lawowa otchłań, fale 1–4), Skarabeusz (Pustynia, fale 1–2), Mechaniczna ręka (Stara elektrownia, 3 ostatnie zwykłe fale), Bramkarz (Stadion, od fali 7).
+- **Bard w Moczarach** (po 2. fali): tonący bard, animacje, dialogi i wybór „Pomóż / Przejdź obok”. Pomoc = zasadzka bagiennych stworów i bard w drużynie na stałe (dodatkowy kompan poza limitem 3, strzela nutami). Przejście obok = w Tajdze wrogowie mają +30% HP i +25% ATK.
+- Techniczne: nowe pliki `pong.js`, `events.js`, generatory grafik `tools/gen130_*.py`, test `tools/test_pong.js`; tłumaczenia EN/ES nowych tekstów.
+
 ## [1.2.3]
 
 - **Hardcore – start od razu:** po kliknięciu „Kampania ☠ HARDCORE” kampania rozpoczyna się natychmiast (bez mapy świata).

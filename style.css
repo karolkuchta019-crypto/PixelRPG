@@ -195,3 +195,12 @@ button.shop-card.locked,button.shop-card.worse{opacity:.5}
 #screen.shopscreen,#screen.tabmenu{justify-content:flex-start}
 #screen.shopscreen>.shop{margin:auto}
 .ach-list{max-height:min(46vh,340px)}
+
+/* v1.3.0: ikonka Wiedźmy na mapie świata (obok Moczarów) i okno wyboru w wydarzeniu z bardem */
+.wm-witch{position:absolute;top:-16px;right:-16px;width:44px;height:44px;padding:0;border-radius:50%;border:3px solid #000;outline:2px solid var(--gold);background:#2a2140 url(assets/enemies/witch.png) 0 0/200% 100% no-repeat;image-rendering:pixelated;cursor:pointer;z-index:3;box-shadow:0 3px #0009,0 0 12px #b070ff88;animation:wmw 2.2s ease-in-out infinite}
+.wm-witch:hover,.wm-witch:focus-visible{transform:scale(1.15);outline-color:#fff}
+.wm-witch.preview{cursor:default;filter:grayscale(.5);animation:none}
+@keyframes wmw{0%,100%{box-shadow:0 3px #0009,0 0 8px #b070ff66}50%{box-shadow:0 3px #0009,0 0 16px #d8a0ffcc}}
+#screen.choice{background:none;justify-content:flex-end;pointer-events:none;padding-bottom:10px}
+#screen.choice p{pointer-events:auto;background:#14101fe6;border:2px solid var(--gold-d);padding:8px 12px;max-width:560px}
+#screen.choice button{pointer-events:auto}
