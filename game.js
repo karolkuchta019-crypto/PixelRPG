@@ -1,4 +1,4 @@
-const VERSION='1.3.0';
+const VERSION='1.3.1';
 const MERCHANT_LINES=['Witaj, wojowniku! Mam coś dla ciebie.','Droga daleka... zajrzyj do mojego straganu!','Za twoje punkty mam same cuda!','Hmm! Dobrze wyglądasz. Handlujemy?'];
 const SMITH_LINES=['Potrzebujesz solidnej stali?','Miecze, zbroje, tarcze – wybieraj!','Moja kuźnia nigdy nie stygnie.','Za punkty dam ci najlepszy ekwipunek.'];
 const WITCH_LINES=['Hehehe… pokonałeś mnie, ale kociołek wciąż bulgocze. Kupisz coś?','Eliksiry, talizmany… na szczęście nikt jeszcze nie narzekał.','Łapka królika? Czterolistna koniczyna? Wybieraj, rycerzu.','Bez urazy za tamtą walkę. Interes to interes!'];
@@ -52,7 +52,7 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
   this.pclk=[];UI.$('portrait').onclick=()=>{const n=Date.now();this.pclk=this.pclk.filter(t=>n-t<3000).concat(n);if(this.pclk.length>=7){this.pclk=[];this.toggleDev();}};
   UI.title();requestAnimationFrame(t=>this.loop(t));},
  /* klik w arenę (x,y w px płótna 640x320) */
- canvasClick(x,y){if(this.state==='cutscene')return Cut.next();if(this.bub)return this.skipBub();
+ canvasClick(x,y){if(this.state==='cutscene')return Cut.next();if(this.state==='lava')return Lava.click(x,y);if(this.bub)return this.skipBub();
    if(this.state==='clear'&&x>380&&y<46)return this.advance(true);   // klik w strzałkę w rogu = natychmiastowe przejście
    const sn=(MAPS[this.cur().map]||{}).sun;if(sn&&(this.state==='fight'||this.state==='clear')&&Math.hypot(x-sn.x,y-sn.y)<sn.r+10){this.sunAlt=!this.sunAlt;this.burst(sn.x,sn.y,'#ffe070',24);return;}   // klik w słońce
    if(this.state==='clear'){const n=this.nearNpc();if(n&&Math.abs(x-n.x)<90)return this.interact(n);}   // v1.1: kilku NPC naraz
@@ -111,11 +111,11 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
   real.forEach(e=>{e.s.atk=Math.round(e.s.atk*1.3);e.boost=1;});
   for(let i=0;i<2;i++){const ph=makeEnemy(real[i%real.length].key,this.diff(),real.length+i);ph.phantom=1;ph.nobar=1;ph.s.hp=ph.s.maxhp=1;this.enemies.push(ph);this.actors.push(ph);}
   this.enemies.sort(()=>Math.random()-.5);const n=this.enemies.length;this.enemies.forEach((e,i)=>{e.x=n>1?380+i*(230/(n-1)):500;});},
- begin(w){this.ambush=0;this.rollEvent(w);Music.play(w.minigame?'stadium':w.map);Combat.busy=false;Combat.guard=false;this.mark=null;Combat.refreshHaste(true);if(this.mode==='endless')Prog.reach(this.wave);   // v1.2.0: rekord fali + osiągnięcie
+ begin(w){this.ambush=0;this.rollEvent(w);Music.play(w.minigame==='pong'?'stadium':w.map);Combat.busy=false;Combat.guard=false;this.mark=null;Combat.refreshHaste(true);if(this.mode==='endless')Prog.reach(this.wave);   // v1.2.0: rekord fali + osiągnięcie
     // v1.1.1: sędzia obecny od początku fali daje piłkarzom szybkość
  
   UI.log(`--- ${UI.waveLabel()}: ${MAPS[w.map].name} ---`,'crit');
-  if(w.minigame==='pong'){UI.hud();UI.lock(true);Pong.start();return;}   // v1.3.0: minigra zamiast walki
+  if(w.minigame){UI.hud();UI.lock(true);({pong:Pong,lava:Lava,maze:Maze})[w.minigame].start();return;}   // v1.3.0/1.3.1: minigra zamiast walki
   if(this.mode==='campaign'&&Player.d.bard==='left'&&this.level===CAMPAIGN.findIndex(l=>l.map==='swamp')+1&&this.wave<=1)UI.log('Zostawiony w bagnie bard przepowiedział zło… W Tajdze przeciwnicy są mocniejsi (+30% HP, +25% ATK).','bad');
   if(w.boss){const b=this.enemies[0];UI.log('UWAGA! BOSS: '+b.name,'bad');this.shake=14;this.state='talk';UI.hud();UI.lock(true);this.bossIntro(b);}   // v1.0: boss najpierw obraża bohatera
   else{this.state='fight';UI.hud();UI.lock(false);}},
@@ -181,7 +181,7 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
  burst(x,y,c,n){n=Math.ceil(n*[.35,1,1.5][this.quality]);for(let i=0;i<n;i++)this.fx.push({x,y,vx:(Math.random()-.5)*6,vy:-Math.random()*5,life:1,c,sz:2+Math.random()*3,pt:1});},
  async win(){const amb=this.ambush;this.ambush=0;this.event=null;this.radStack=0;this.state='won';UI.lock(true);const d=Player.d,heal=Math.round(d.maxhp*.3);d.hp=Math.min(d.maxhp,d.hp+heal);
   let rw=`Fala pokonana! +${this.xpWave} XP, +${heal} HP`;if(this.wave%2===0&&!amb){d.potions++;rw+=', +1 eliksir';}
-  const pts=amb?2:(this.cur().boss?3:1);d.pending+=pts;rw+=`, +${pts} pkt umiejętności`;
+  const pts=amb?2:(this.cur().boss?3:1);Player.addPts(pts);rw+=`, +${pts} pkt umiejętności`;
   (d.comps||[]).forEach(c=>c.hp=Math.min(c.maxhp,c.hp+Math.round(c.maxhp*.3)));[this.p,...this.comps].forEach(x=>{x.poison=x.burn=x.freeze=x.sand=null;});
   UI.log(rw,'good');UI.hud();if(this.mode==='endless')Save.set('endless',{p:d,w:this.wave+1});
   {const wv=this.cur();if(this.mode==='campaign'&&wv.boss&&wv.e[0]==='witch'&&!d.witch){d.witch=1;UI.log('Wiedźma przeżyła i osiadła w chatce. Jej ikona pojawiła się na mapie świata obok Moczarów (Tab) – możesz ją odwiedzić. Etapy niżej niż Moczary dają teraz bardzo mało XP.','crit');}}   // v1.1
@@ -310,6 +310,8 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
    for(let i=0;i<4;i++){c.fillStyle=i%2?'#ffe070':'#ff5a10';c.fillRect(x-d*(6+i*5)+Math.sin(i*3+p.u*30)*2,y+Math.cos(i*2+p.u*25)*5,3,3);}}
   else if(p.kind==='spore'){for(let i=0;i<7;i++){const q=p.u*18+i*2.1,sx=x-d*i*5+Math.sin(q)*3,sy=y+Math.cos(q*1.3)*4;   // v1.2.0: nasiona dmuchawca
    c.globalAlpha=.9-i*.1;c.fillStyle='#f4f4ff';c.beginPath();c.arc(sx,sy,3.2-i*.2,0,7);c.fill();c.fillStyle='#c8c8dc';c.fillRect(sx-1,sy+3,2,3);}c.globalAlpha=1;}
+  else if(p.kind==='note'){const gold=Player.d&&Player.d.bardUp;   // v1.3.0/1.3.1: nuty barda (złote po kupieniu Złotej lutni)
+   for(let i=0;i<3;i++){const q=Math.max(0,p.u-i*.07),nx=p.ax+(p.bx-p.ax)*q,ny=p.ay+(p.by-p.ay)*q+Math.sin(q*18+i)*8;c.globalAlpha=1-i*.32;c.font=`bold ${24-i*4}px "Courier New"`;c.textAlign='center';c.fillStyle='#14101f';c.fillText(i%2?'♫':'♪',nx+1.5,ny+1.5);c.fillStyle=gold?(i?'#ffe9a0':'#ffd24a'):(i?'#bff2e6':'#7affd8');c.fillText(i%2?'♫':'♪',nx,ny);}c.globalAlpha=1;}
   else if(p.kind==='ball'){c.save();c.translate(x,y);c.rotate(p.u*16*d);c.fillStyle='#14101f';c.beginPath();c.arc(0,0,8.5,0,7);c.fill();c.fillStyle='#f6f6f6';c.beginPath();c.arc(0,0,7,0,7);c.fill();   // piłka nożna
    c.fillStyle='#2a2a38';c.beginPath();for(let i=0;i<5;i++){const q=i*Math.PI*2/5-Math.PI/2;c.lineTo(Math.cos(q)*3,Math.sin(q)*3);}c.closePath();c.fill();
    for(let i=0;i<5;i++){const q=i*Math.PI*2/5-Math.PI/2;c.fillRect(Math.cos(q)*6-1,Math.sin(q)*6-1,2,2);}c.restore();}
@@ -344,12 +346,14 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
   const d=Player.d;d.hp=d.maxhp;(d.comps||[]).forEach(c=>c.hp=c.maxhp);
   this.mode='campaign';this.level=i;this.wave=1;this.waves=buildWaves(i);this.wave=this.stageStart();this.snap=JSON.stringify(d);this.npcs=[];this.bg=null;this.banner=null;Combat.busy=false;this.newRun();
   this.banner={txt:CAMPAIGN[i].name,t:0};},
+ /* v1.3.1: PUNKTY ZOSTAJĄ PO ŚMIERCI – zdobyte w tym etapie (d.earned) dopisujemy do migawki, z której wczyta się „Spróbuj ponownie” */
+ keepPoints(){try{if(!this.snap)return;const s=JSON.parse(this.snap),d=Player.d,gain=(d.earned||0)-(s.earned||0);if(gain>0){s.pending=(s.pending||0)+gain;UI.log(`Zdobyte punkty (${gain}) zostają po śmierci.`,'good');}s.earned=d.earned||0;this.snap=JSON.stringify(s);}catch(e){}},
  /* v1.2.0: licznik śmierci zapisany też w migawce etapu i autozapisie – „Spróbuj ponownie” nie kasuje śmierci (osiągnięcie „bez jednej rysy”) */
  syncDeaths(){const n=Player.d.deaths;try{if(this.snap){const s=JSON.parse(this.snap);s.deaths=n;this.snap=JSON.stringify(s);}const sv=Save.get('campaign');if(sv&&sv.p){sv.p.deaths=n;Save.set('campaign',sv);}}catch(e){}},
  /* v1.2.2: HARDCORE – śmierć kończy kampanię: autozapis znika, zapisy w slotach tej kampanii są usuwane i nie da się ich wczytać */
  async hardcoreOver(){const run=Player.d.runId;Prog.markDead(run);Save.clear('campaign');try{Slots.burn(run);}catch(e){}
   UI.screen('☠ HARDCORE – KONIEC GRY',`Poległeś na etapie ${this.level+1} (poziom ${Player.d.level}). Ta kampania jest zamknięta – nie można jej kontynuować.`,[{l:'Menu główne',f:()=>UI.title()}]);},
- async lose(){this.event=null;this.radStack=0;this.state='over';Player.d.deaths=(Player.d.deaths||0)+1;this.syncDeaths();
+ async lose(){this.event=null;this.radStack=0;this.state='over';Player.d.deaths=(Player.d.deaths||0)+1;this.syncDeaths();this.keepPoints();
   if(this.mode==='campaign'&&this.level>=CAMPAIGN.length-1)await Story.bad();
   if(this.mode==='campaign'&&Player.d.hardcore)return this.hardcoreOver();   // v1.2.2
   if(this.mode==='campaign'){
@@ -383,8 +387,8 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
   for(const a of this.actors)if(a.burn&&Math.random()<.3)this.fx.push({x:a.x+a.ox+(Math.random()-.5)*20,y:a.y+a.oy-20-Math.random()*30,vx:0,vy:-1.5,life:.8,c:'#ff9a40',sz:3,pt:1});
   if(!Combat.busy&&(this.state==='fight'||this.state==='clear'))this.comps.forEach((c,i)=>{if(c.s.hp<=0||c.alpha<1)return;const o=COMP_OFF[i],tx=p.x+o[0],ty=p.y+o[1];c.x+=(tx-c.x)*.1;c.y+=(ty-c.y)*.1;c.walk=Math.hypot(tx-c.x,ty-c.y)>6?1:0;});
   this.fx=this.fx.filter(f=>{if(f.pt){f.x+=f.vx;f.y+=f.vy;f.vy+=f.g===undefined?.25:f.g;f.life-=f.dl||.025;}else if(f.spr||f.slash){f.life-=f.slash?.08:.05;}else{f.y-=.8;f.life-=.015;}return f.life>0;});
-  if(this.state==='pong')Pong.tick();},
- draw(){this.c.setTransform(this.S,0,0,this.S,0,0);if(this.state==='cutscene')return Cut.draw(this.c);if(this.state==='pong')return Pong.draw(this.c);const c=this.c,w=this.cur(),m=MAPS[w.map];c.save();c.clearRect(0,0,640,320);this.top=[];
+  if(this.state==='pong')Pong.tick();else if(this.state==='lava')Lava.tick();else if(this.state==='maze')Maze.tick();},
+ draw(){this.c.setTransform(this.S,0,0,this.S,0,0);if(this.state==='cutscene')return Cut.draw(this.c);if(this.state==='pong')return Pong.draw(this.c);if(this.state==='lava')return Lava.draw(this.c);if(this.state==='maze')return Maze.draw(this.c);const c=this.c,w=this.cur(),m=MAPS[w.map];c.save();c.clearRect(0,0,640,320);this.top=[];
   if(this.shake>0){const sm=this.opt.shake?(this.quality===0?.4:1):0;c.translate((Math.random()-.5)*this.shake*sm,(Math.random()-.5)*this.shake*sm);this.shake*=.85;}
   if(this.bg)this.drawTravel(c);else this.drawMap(c,w.map,0);
   if(this.mark){const m=this.mark,u=((this.t-m.t0)/700)%1;c.save();   // v1.1.1: żółta otoczka w miejscu, do którego idzie bohater

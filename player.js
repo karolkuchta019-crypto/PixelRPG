@@ -13,6 +13,7 @@ const DIFFS = [
 ];
 const FIRE = { base: 70, step: 15, cd: 5 };            // moc bazowa, +moc za ulepszenie, odnowa w turach
 /* v1.1: skórzana zbroja giermka (kowal) – +DEF dla każdego giermka, także późniejszego */
+const BARD_LUTE = { id: 'bd_lute', name: 'Złota lutnia', desc: 'bard zadaje +60% obrażeń, a jego nuty mają złoty blask', cost: 12, mult: 1.6 };   // v1.3.1: instrument barda u zbrojmistrza
 const SQ_ARMOR = { id: 'sq_leather', name: 'Skórzana zbroja giermka', desc: '+4 DEF giermka', cost: 3, def: 4 };   // v1.2.0: do kupienia tylko, gdy masz giermka
 
 const Player = {
@@ -147,6 +148,15 @@ const Player = {
     return true;
   },
 
+  /* v1.3.1: punkty zdobyte za fale/minigry/skarby liczymy osobno (d.earned) – po śmierci zostają (patrz G.lose); punkty za poziom wracają z poziomem */
+  addPts(n) { const d = this.d; d.pending += n; d.earned = (d.earned || 0) + n; },
+  buyBardLute() {
+    const d = this.d;
+    if (d.bardUp || !this.hasBard()) return false;
+    if (!G.dev && d.pending < BARD_LUTE.cost) return false;
+    if (!G.dev) d.pending -= BARD_LUTE.cost;
+    d.bardUp = 1; return true;
+  },
   hasSquire() { return ((this.d && this.d.comps) || []).some(k => k.t === 'squire'); },
 
   /* v1.2.0: czy bohater ma jakiekolwiek kupione ulepszenia (umiejętności, ekwipunek, wiedźma, zbroja giermka)? – osiągnięcie „Yeti bez ulepszeń” */

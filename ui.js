@@ -483,7 +483,7 @@ const UI = {
   /* v1.2.2: HARDCORE – nowa kampania, w której śmierć kończy grę (zapisu nie da się kontynuować) */
   /* v1.2.3: po kliknięciu przycisku kampania hardcore startuje od razu (bez mapy świata) */
   newHardcore() {
-    if (Save.get('campaign') && !confirm(trn('Rozpocząć NOWĄ kampanię HARDCORE? Obecny zapis kampanii zostanie usunięty.\nW trybie hardcore śmierć kończy grę, a zapisów tej kampanii nie da się wczytać.'))) return;
+    if (Save.get('campaign') && !confirm(trn('Rozpocząć NOWĄ kampanię HARDCORE? Obecny zapis kampanii zostanie usunięty.\nW trybie hardcore śmierć kończy grę, a zapisów tej kampanii nie da się wczytać.'))) { this.title(); return; }   // v1.3.1: „Anuluj” wraca do menu głównego (wcześniej zostawał pusty ekran)
     Save.clear('campaign');
     G.nextHardcore = true;
     const s = this.$('screen');
@@ -752,6 +752,14 @@ const UI = {
       price: d.sqArmor ? trn('✓ POSIADANE') : noSq ? '🔒' : `${SQ_ARMOR.cost} ${trn('pkt')}`, pcls: d.sqArmor ? 'tag' : noSq ? 'lock' : ((!G.dev && d.pending < SQ_ARMOR.cost) ? 'poor' : ''),
       owned: !!d.sqArmor, locked: noSq && !d.sqArmor, disabled: !!d.sqArmor || noSq || (!G.dev && d.pending < SQ_ARMOR.cost),
       onClick: () => { if (Player.buySqArmor()) { G.comps.forEach(a => { if (a.s.t === 'squire') a.key = 'comp_squire_leather'; }); this.hud(); this.smith(done); } }
+    }] });
+    /* v1.3.1: instrument barda (dostępny, gdy bard jest w drużynie) */
+    const noBard = !Player.hasBard();
+    sections.push({ label: 'BARD  (instrument)', items: [{
+      icon: '🎻', name: trn(BARD_LUTE.name), desc: noBard && !d.bardUp ? `${trn(BARD_LUTE.desc)} — ${trn('najpierw uratuj barda')}` : trn(BARD_LUTE.desc),
+      price: d.bardUp ? trn('✓ POSIADANE') : noBard ? '🔒' : `${BARD_LUTE.cost} ${trn('pkt')}`, pcls: d.bardUp ? 'tag' : noBard ? 'lock' : ((!G.dev && d.pending < BARD_LUTE.cost) ? 'poor' : ''),
+      owned: !!d.bardUp, locked: noBard && !d.bardUp, disabled: !!d.bardUp || noBard || (!G.dev && d.pending < BARD_LUTE.cost),
+      onClick: () => { if (Player.buyBardLute()) { this.hud(); this.smith(done); } }
     }] });
     this.shopFrame({
       sprite: 'blacksmith', title: 'Zbrojmistrz', sections,

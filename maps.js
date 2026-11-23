@@ -66,8 +66,8 @@ const CAMPAIGN=[
  {name:'Tajga',map:'taiga',foes:['bear','beaver','hedgehog','treant'],boss:'leshy'},
  {name:'Lodowe góry',map:'ice',foes:['wolf','goblin','snowman'],boss:'yeti'},
  {name:'Kryształowa jaskinia',map:'cave',foes:['spider','imp','bat','silverfish'],boss:'spiderqueen'},
- {name:'Pustynia',map:'desert',foes:['scorpion','mummy'],boss:'sphinx'},
- {name:'Stara elektrownia',map:'plant',foes:['drone','robot','fighter','wreck'],boss:'mech'},
+ {name:'Pustynia',map:'desert',foes:['scorpion','mummy'],boss:'sphinx',minigame:{kind:'maze',wave:5,map:'desert'}},
+ {name:'Stara elektrownia',map:'plant',foes:['drone','robot','fighter','wreck'],boss:'mech',minigame:{kind:'lava',wave:5,map:'plant'}},
  {name:'Lawowa otchłań',map:'lava',foes:['imp','lavagolem','skeleton','basilisk'],boss:'demon'},
  {name:'Mroczny stadion',map:'stadium',foes:['kicker','kicker','kicker','fan','fan','referee'],boss:'coach',minigame:{kind:'pong',wave:6,map:'pitch'}},   // v1.1.1: sędzia i kibic też na wcześniejszych falach
 ];

@@ -1,5 +1,16 @@
 # Changelog – Monster Waves
 
+## [1.3.1]
+
+- **Podpalenie** jest SUPER skuteczne na drzewce/rośliny (Drzewiec, Leszy, grzyby, dmuchawce): 3× obrażeń od płomieni, większa szansa na podpalenie.
+- **Hardcore:** „Anuluj” przy rozpoczynaniu kampanii wraca do menu głównego (wcześniej zostawał pusty ekran).
+- **Burza śnieżna (Lodowe góry):** co rundę każdy, kto nie jest ze śniegu (wilki, gobliny, bohater i kompani), ma 20% szans na zamrożenie.
+- **Punkty zostają po śmierci:** punkty zdobyte w etapie (za fale, minigry, skarb) dopisują się do migawki, z której wczytuje się „Spróbuj ponownie”.
+- **Bard:** u zbrojmistrza można kupić „Złotą lutnię” (12 pkt): +60% obrażeń barda i złote nuty. Nuty barda mają teraz własną animację.
+- **Stara elektrownia – lawowa zagadka** (połowa etapu, zamiast 5. fali): obracaj sześciokąty z rurami, aż lawa popłynie od źródła do drzwi. Zawsze rozwiązywalna. Nagroda: +2 pkt i +30% HP.
+- **Pustynia – labirynt w piramidzie** (połowa etapu, zamiast 5. fali): ciemny labirynt (widać okolicę bohatera, odwiedzone korytarze tylko blado), mały bohater. Cel główny: wyjście; cel poboczny: skarb (+15 pkt) w ślepym rozwidleniu. Nagroda: +2 pkt i +30% HP.
+- Techniczne: `minigames.js`, `tools/test_minigames.js`; tłumaczenia EN/ES.
+
 ## [1.3.0]
 
 - **Bossowie przywołujący sojuszników są nietykalni**, dopóki żyją przywołani (Yeti, Wiedźma, Mroczny Trener). Kompani też nie atakują nietykalnego bossa.

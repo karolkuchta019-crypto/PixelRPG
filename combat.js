@@ -27,8 +27,8 @@ const Combat={busy:false,guard:false,fbCd:0,
   if(kind==='burn'&&t.freeze){t.freeze=null;UI.log(`${t.name}: zamrożenie znika w ogniu!`,'good');}
   if(kind==='freeze'&&t.burn){t.burn=null;UI.log(`${t.name}: ogień gaśnie od mrozu!`,'good');}
   if(kind==='freeze'){t.freeze={t:2};G.text(t,'ZAMROŻONY','#8ae0ff');UI.log(`${t.name} zostaje zamrożony (traci 2 tury)!`,'bad');return;}
-  const b=kind==='burn',dm=Math.max(b?3:2,Math.round(src.atk*(b?.35:.3)));t[kind]={t:3,d:dm};
-  G.text(t,b?'PODPALONY':'TRUCIZNA',b?'#ff9a40':'#7aff6a');UI.log(`${t.name} ${b?'płonie':'zostaje zatruty'} (3 tury, ${dm} HP/turę)!`,'bad');},
+  const b=kind==='burn',plant=b&&tg.includes('plant'),dm=Math.max(b?3:2,Math.round(src.atk*(b?.35:.3)))*(plant?3:1);t[kind]={t:3,d:dm};   // v1.3.1: ogień jest SUPER skuteczny na drzewce/rośliny (x3 obrażeń od płomieni)
+  G.text(t,plant?'SUPER SKUTECZNE!':b?'PODPALONY':'TRUCIZNA',b?'#ff9a40':'#7aff6a');UI.log(`${t.name} ${b?'płonie':'zostaje zatruty'} (3 tury, ${dm} HP/turę)!`,'bad');if(plant)UI.log('Ogień jest SUPER skuteczny na rośliny!','good');},
  async strike(a,t,mult,acc,force,name,o={}){
   if(t.phantom){await this.dispel(t);return;}   // v1.2.1: miraż
   if(o.say)UI.log(o.say,'bad');
@@ -38,7 +38,7 @@ const Combat={busy:false,guard:false,fbCd:0,
   if(!o.pass)a.pose='attack';
   if(!o.rng&&a===G.p&&Player.d.gear&&Player.d.gear.sword){a.sw={t0:G.t,dur:force?400:340,big:!!force};await sleep(force?170:150);}   // SWING: trafienie przypada na środek cięcia
   else await sleep(o.rng?60:90);
-  let res=0;if(!o.magic){if(o.rng&&!t.air){mult*=.7;res=1;}else if(!o.rng&&t.air){mult*=.7;res=1;}}if(o.fire&&(t.tags||[]).includes('fire')){mult*=.5;res=1;}   // naziemni vs dystans, latający vs broń biała
+  if(o.boost)mult*=o.boost;let res=0;if(!o.magic){if(o.rng&&!t.air){mult*=.7;res=1;}else if(!o.rng&&t.air){mult*=.7;res=1;}}if(o.fire&&(t.tags||[]).includes('fire')){mult*=.5;res=1;}   // naziemni vs dystans, latający vs broń biała
   const one=G.dev&&(a===G.p||a.ally)&&!t.ally&&t!==G.p;   // tryb dev: zabicie jednym atakiem
   const r=one?{dmg:t.s.hp,crit:1}:this.roll(a.s,t.s,mult,acc,force,o.nocrit,t,a,o.flat);
   if(r.miss){G.text(t,'PUDŁO','#ccc');UI.log(`${name} pudłuje.`);}
@@ -50,7 +50,7 @@ const Combat={busy:false,guard:false,fbCd:0,
    if(!o.rng)G.slash(t,dir);await sleep(60);if(t.s.hp>0)G.knock(t,dir);   // hit-stop + odrzut
    UI.log(`${name} zadaje ${r.dmg} obrażeń${r.crit?' (KRYTYK!)':''}${res?' (odporność)':''}.`,r.crit?'crit':(t===G.p?'bad':''));
    const k=[];if(o.pois||(df.pois&&Math.random()<df.pois)||(a===G.p&&sk.venom&&Math.random()<.35))k.push('poison');
-   if((df.burn&&Math.random()<df.burn)||(a===G.p&&sk.flame&&Math.random()<.35)||(o.burn&&Math.random()<.6))k.push('burn');
+   if((df.burn&&Math.random()<df.burn)||(a===G.p&&sk.flame&&Math.random()<((t.tags||[]).includes('plant')?.75:.35))||(o.burn&&Math.random()<((t.tags||[]).includes('plant')?1:.6))||(o.fire&&(t.tags||[]).includes('plant')))k.push('burn');
    if(!o.fire&&!o.burn&&((df.freeze&&Math.random()<df.freeze)||(a===G.p&&sk.frost&&Math.random()<.3)))k.push('freeze');
    if(o.sand)k.push('sand');if(o.freeze&&!k.includes('freeze'))k.push('freeze');if(o.stone||(df.stone&&Math.random()<df.stone))k.push('stone');
    if(df.drain&&a.s.hp>0){const v=Math.max(1,Math.round(r.dmg*df.drain));a.s.hp=Math.min(a.s.maxhp,a.s.hp+v);G.text(a,'+'+v,'#d890e8');UI.log(`${a.name} wysysa życie (+${v} HP).`,'bad');}
@@ -124,6 +124,11 @@ const Combat={busy:false,guard:false,fbCd:0,
   UI.log('[DEV] Fala pominięta.','crit');G.enemies.forEach(e=>G.burst(e.x,e.y-30,'#f2c14e',14));
   G.actors=G.actors.filter(a=>!G.enemies.includes(a));G.enemies=[];this.busy=false;return G.win();},
  /* v1.2.2: PROMIENIOWANIE (elektrownia) – co rundę bohater traci 3% maks. HP, a jego ATK i DEF spadają o kolejne 6% (do −42%); po fali wracają do normy */
+ /* v1.3.1: BURZA ŚNIEŻNA mrozi wszystko, co nie jest ze śniegu (wilki, gobliny… oraz bohatera i kompanów): 20% szans na zamrożenie każdego co rundę */
+ async blizzard(){let first=true;
+  for(const a of [G.p,...G.comps,...G.enemies]){if(a.s.hp<=0||a.freeze||(a.tags||['human']).includes('winter'))continue;if(Math.random()>=.2)continue;
+   if(first){UI.log('Burza śnieżna mrozi wszystko, co nie jest ze śniegu!','crit');first=false;}
+   this.status(a,'freeze',{atk:0});await sleep(300);}},
  async radiate(){G.radStack=Math.min(7,(G.radStack||0)+1);const d=Player.d,dmg=Math.max(2,Math.round(d.maxhp*.03));d.hp=Math.max(0,d.hp-dmg);
   G.text(G.p,'☢ -'+dmg,'#7aff6a');G.p.flash=.6;UI.log(`Promieniowanie rani bohatera (-${dmg} HP, statystyki -${G.radStack*6}%).`,'bad');UI.hud();
   if(d.hp<=0)await this.kill(G.p);},
@@ -182,11 +187,12 @@ const Combat={busy:false,guard:false,fbCd:0,
   for(const c of [...G.comps]){if(!G.enemies.length)break;if(c.s.hp<=0)continue;   // kompani atakują automatycznie
    if(c.freeze){await this.thaw(c);continue;}
    {const tg=G.enemies.filter(e=>!G.invuln(e));if(!tg.length)break;   // v1.3.0: kompani nie biją nietykalnego bossa
-   await this.strike(c,tg[Math.floor(Math.random()*tg.length)],1,.9,false,c.name,c.s.t==='archer'?{rng:'arrow'}:c.s.t==='bard'?{rng:'note',magic:1}:{});}}
+   await this.strike(c,tg[Math.floor(Math.random()*tg.length)],1,.9,false,c.name,c.s.t==='archer'?{rng:'arrow'}:c.s.t==='bard'?{rng:'note',magic:1,boost:Player.d.bardUp?BARD_LUTE.mult:1}:{});}}
   if(!G.enemies.length){end();return G.win();}
   for(const e of [...G.enemies]){if(e.s.hp<=0||Player.d.hp<=0)break;if(e.acted){e.acted=0;continue;}await this.enemyAct(e);}
   if(Player.d.hp>0)await this.tick();
   if(Player.d.hp>0&&G.event==='radiation'&&G.enemies.length)await this.radiate();   // v1.2.2
+  if(Player.d.hp>0&&G.event==='snowstorm'&&G.enemies.length)await this.blizzard();   // v1.3.1
   if(Player.d.hp<=0){end();return G.lose();}
   if(!G.enemies.length){end();return G.win();}
   this.guard=false;end();UI.lock(false);}
