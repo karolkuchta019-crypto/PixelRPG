@@ -1,5 +1,16 @@
 # Changelog – Monster Waves
 
+## [1.3.2]
+
+- **Labirynt:** po wyjściu z piramidy (oraz po pongu) bohater od razu wraca do normalnego wzrostu i na miejsce startowe (wcześniej zostawał pomniejszony).
+- **Favicon:** dodany i podpięty (`favicon.ico`, `assets/ui/favicon*.png`, `apple-touch-icon.png`) – ikona z głową bohatera.
+- **Zbrojmistrz:** „Okulary przeciwburzowe” (6 pkt) – znoszą spadek celności bohatera w burzy śnieżnej i piaskowej.
+- **Pong → hokej na lodzie z piłką:** nowa mapa „Lodowisko” (zaokrąglone bandy, trybuny), postacie ślizgają się po lodzie (przyspieszenie i poślizg), ślady łyżew, lodowy pył, odbicia od rogów, odliczanie 3-2-1, konfetti i wstrząs po golu, miganie tablicy wyników.
+- **Animacje minigier:** lawowa zagadka (sprężyste obroty, stopniowe wypełnianie rur lawą, para przy rozłączeniu, drzwi z iskrami i migającą lampką, pojawianie się kafelków); labirynt (płynne wejście, kurz spod stóp, otwierana skrzynia ze skarbem, wiązka światła z wyjścia).
+- **Ustawienia:** „Pokaż aktualny utwór” – nazwa granego utworu w lewym górnym rogu ekranu.
+- **Wybór pomocy bardowi** (i inne wybory) pojawia się na środku ekranu.
+- Tłumaczenia EN/ES nowych tekstów.
+
 ## [1.3.1]
 
 - **Podpalenie** jest SUPER skuteczne na drzewce/rośliny (Drzewiec, Leszy, grzyby, dmuchawce): 3× obrażeń od płomieni, większa szansa na podpalenie.

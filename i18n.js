@@ -382,6 +382,20 @@ const DICT={};
 `+15 pkt!`,`+15 pts!`,`¡+15 pts!`,
 `WYJŚCIE!`,`EXIT!`,`¡SALIDA!`,
 ];for(let i=0;i<B2.length;i+=3)DICT[B2[i]]=[B2[i+1],B2[i+2]];}   // v1.3.1
+{const B3=[
+`Lodowisko – hokej z piłką przeciwko bramkarzowi!`,`Ice rink – hockey with a ball against the goalkeeper!`,`Pista de hielo: ¡hockey con balón contra el portero!`,
+`MINIGRA: hokej na lodzie… z piłką! Ślizgasz się po lodzie: strzałki/WASD – ruch, Shift – sprint, Spacja – mocny strzał. Kto pierwszy zdobędzie 5 goli?`,`MINIGAME: ice hockey… with a ball! You glide on the ice: arrows/WASD – move, Shift – sprint, Space – power shot. First to score 5 goals wins!`,`MINIJUEGO: ¡hockey sobre hielo… con balón! Te deslizas por el hielo: flechas/WASD: moverse, Shift: correr, Espacio: tiro potente. ¡El primero en marcar 5 goles gana!`,
+`WASD / strzałki – ślizg · Shift – sprint · Spacja – mocny strzał`,`WASD / arrows – glide · Shift – sprint · Space – power shot`,`WASD / flechas: deslizarse · Shift: correr · Espacio: tiro potente`,
+`Lodowisko`,`Ice rink`,`Pista de hielo`,
+`Okulary przeciwburzowe`,`Storm goggles`,`Gafas antitormenta`,
+`znoszą spadek celności bohatera w burzy śnieżnej i piaskowej`,`cancel the hero’s accuracy loss in snowstorms and sandstorms`,`anulan la pérdida de puntería del héroe en ventiscas y tormentas de arena`,
+`OKULARY`,`GOGGLES`,`GAFAS`,
+`♪ cisza – brak utworu dla tego miejsca`,`♪ silence – no track for this place`,`♪ silencio: sin pista para este lugar`,
+`muzyka wyłączona – M`,`music off – M`,`música apagada – M`,
+`brak pliku`,`file missing`,`falta el archivo`,
+`Pokaż aktualny utwór`,`Show current track`,`Mostrar la pista actual`,
+`W lewym górnym rogu ekranu pojawia się nazwa utworu, który właśnie leci.`,`The name of the track that is playing appears in the top-left corner.`,`En la esquina superior izquierda aparece el nombre de la pista que está sonando.`,
+];for(let i=0;i<B3.length;i+=3)DICT[B3[i]]=[B3[i+1],B3[i+2]];}   // v1.3.2
 /* wzorce komunikatów (kolejność ma znaczenie: bardziej szczegółowe wcześniej) */
 const PAT=[
  [/^Zdobyte punkty \((\d+)\) zostają po śmierci\.$/,`Points earned ($1) stay after death.`,`Los puntos ganados ($1) se conservan tras morir.`],

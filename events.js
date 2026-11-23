@@ -115,8 +115,12 @@ Object.assign(G, {
     if (Math.random() < (a.sinking ? .08 : .05)) this.fx.push({ x: x + (Math.random() - .5) * 50, y, vx: 0, vy: -.6, g: -.02, dl: .03, life: .8, c: '#a89a5c', sz: 3, pt: 1 });
   },
 
+  /* v1.3.2: po minigrze bohater od razu wraca do normalnego wzrostu i na miejsce startowe (wcześniej zostawał pomniejszony / w pozycji minigry) */
+  restoreHero() { const p = this.p; if (!p) return; p.scale = 3; p.nobar = 0; p.x = 110; p.y = 215; p.ox = p.oy = 0; p.pose = ''; p.walk = 0; p.face = 1; p.alpha = 1; p.anim = ''; },
+
   /* ---------- v1.3.1: wspólne zakończenie minigier (lawowa zagadka, labirynt): nagroda i przejście do następnej fali ---------- */
   async miniWin(title, pts, extra) {
+    this.restoreHero();
     const d = Player.d, heal = Math.round(d.maxhp * .3);
     d.hp = Math.min(d.maxhp, d.hp + heal); Player.addPts(pts);
     (d.comps || []).forEach(c => c.hp = Math.min(c.maxhp, c.hp + Math.round(c.maxhp * .3)));
@@ -128,6 +132,7 @@ Object.assign(G, {
 
   /* ---------- nagroda za wygraną minigrę pong ---------- */
   async pongWin(me, ai) {
+    this.restoreHero();
     const d = Player.d, heal = Math.round(d.maxhp * .3);
     d.hp = Math.min(d.maxhp, d.hp + heal); Player.addPts(2); d.potions++;
     (d.comps || []).forEach(c => c.hp = Math.min(c.maxhp, c.hp + Math.round(c.maxhp * .3)));

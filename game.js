@@ -1,4 +1,4 @@
-const VERSION='1.3.1';
+const VERSION='1.3.2';
 const MERCHANT_LINES=['Witaj, wojowniku! Mam coś dla ciebie.','Droga daleka... zajrzyj do mojego straganu!','Za twoje punkty mam same cuda!','Hmm! Dobrze wyglądasz. Handlujemy?'];
 const SMITH_LINES=['Potrzebujesz solidnej stali?','Miecze, zbroje, tarcze – wybieraj!','Moja kuźnia nigdy nie stygnie.','Za punkty dam ci najlepszy ekwipunek.'];
 const WITCH_LINES=['Hehehe… pokonałeś mnie, ale kociołek wciąż bulgocze. Kupisz coś?','Eliksiry, talizmany… na szczęście nikt jeszcze nie narzekał.','Łapka królika? Czterolistna koniczyna? Wybieraj, rycerzu.','Bez urazy za tamtą walkę. Interes to interes!'];
@@ -15,14 +15,14 @@ const tween=(o,p,ms,ez)=>new Promise(r=>{const f={},e=EASE[ez]||(u=>u);for(const
 /* v1.2.2: animacja klatka po klatce – fn(u), u 0..1 (do łuków, podskoków, turlania itp.) */
 const anim=(ms,fn)=>new Promise(r=>{const t0=performance.now();(function s(t){const u=Math.min(1,(t-t0)/ms);fn(u);u<1?requestAnimationFrame(s):r();})(t0);});
 const DEFAULT_BINDS={left:['a','arrowleft'],right:['d','arrowright'],up:['w','arrowup'],down:['s','arrowdown'],jump:[' ','space'],sprint:['shift'],interact:['e'],music:['m']};
-const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,ambient:true,hpbars:true},quality:1,S:1,flash:0,cloud:null,fxTotem:null,sunAlt:false,clickMove:false,devBoss:false,mark:null,npcs:[],hub:null,hubReturn:null,waves:[],top:[],comps:[],state:'title',mode:'endless',level:0,wave:1,p:null,actors:[],enemies:[],fx:[],keys:{},binds:null,shake:0,fade:0,t:0,sel:null,xpWave:0,
+const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,ambient:true,hpbars:true,nowPlaying:false},quality:1,S:1,flash:0,cloud:null,fxTotem:null,sunAlt:false,clickMove:false,devBoss:false,mark:null,npcs:[],hub:null,hubReturn:null,waves:[],top:[],comps:[],state:'title',mode:'endless',level:0,wave:1,p:null,actors:[],enemies:[],fx:[],keys:{},binds:null,shake:0,fade:0,t:0,sel:null,xpWave:0,
  /* v1.2.0: JAKOŚĆ GRAFIKI 0=niska, 1=średnia, 2=wysoka. Wysoka: płótno 2x (ostrzejsze kształty i napisy), więcej cząsteczek i winieta. Niska: mniej efektów, rysowanie co drugą klatkę, mniejsze wstrząsy. */
  /* v1.2.1: dodatkowe opcje grafiki (Tab -> Ustawienia -> Grafika), zapamiętywane w localStorage (mw_opt) */
  /* v1.2.2: poziom trudności 0..3 (Łatwy / Normalny / Trudny / Koszmar), zapamiętywany w localStorage (mw_diff) */
  /* v1.2.3: sterowanie – możliwe do zmiany w Ustawieniach (mw_binds) */
  setDifficulty(i){this.difficulty=Math.max(0,Math.min(3,i|0));try{localStorage.setItem('mw_diff',String(this.difficulty));}catch(e){}},
  setOpt(k,v){this.opt[k]=!!v;try{localStorage.setItem('mw_opt',JSON.stringify(this.opt));}catch(e){}},
- resetOpt(){this.opt={shake:true,ambient:true,hpbars:true};try{localStorage.removeItem('mw_opt');}catch(e){}},
+ resetOpt(){this.opt={shake:true,ambient:true,hpbars:true,nowPlaying:false};Music.showNow();try{localStorage.removeItem('mw_opt');}catch(e){}},
  setQuality(q,noSave){q=Math.max(0,Math.min(2,q|0));this.quality=q;this.S=q===2?2:1;
   if(this.cv){this.cv.width=640*this.S;this.cv.height=320*this.S;this.c.imageSmoothingEnabled=false;}
   try{if(!noSave)localStorage.setItem('mw_quality',String(q));}catch(e){}},

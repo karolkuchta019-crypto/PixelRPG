@@ -127,10 +127,18 @@ const Lava = {
   tick() {
     const st = this.S; if (!st || G.state !== 'lava' || UI.menuOpen) return;
     st.t++; if (st.hint > 0) st.hint--;
-    for (const row of st.grid) for (const c of row) {                              // animacja obrotu
-      const target = c.ta !== undefined ? c.ta : c.a;
-      if (Math.abs(target - c.a) > .01) c.a += (target - c.a) * .3; else { c.a = target; }
+    const fl = this.flowOf(st); st.D = fl.dist;
+    const front = 1e9;
+    for (const row of st.grid) for (const c of row) {
+      /* sprężysty obrót (lekkie „przestrzelenie” i wahnięcie) */
+      const target = c.ta !== undefined ? c.ta : c.a; c.va = (c.va || 0) + (target - c.a) * .24; c.va *= .72; c.a += c.va;
+      if (Math.abs(target - c.a) < .004 && Math.abs(c.va) < .004) { c.a = target; c.va = 0; }
+      /* lawa wpływa do rury stopniowo (z opóźnieniem wg odległości od źródła) i wycofuje się z sykiem pary */
+      const k = c.q + ',' + c.r, d = st.D[k], was = c.f || 0;
+      if (d !== undefined && d <= front) { if (c.rt === undefined) c.rt = st.t; if (st.t - c.rt >= d * 5) c.f = Math.min(1, was + .07); }
+      else { c.rt = undefined; c.f = Math.max(0, was - .12); if (was > .5 && (c.f || 0) <= .5) for (let i = 0; i < 6; i++) G.fx.push({ x: this.cx(c.q, c.r) + (Math.random() - .5) * 20, y: this.cy(c.r), vx: (Math.random() - .5), vy: -.8 - Math.random(), g: -.02, dl: .03, life: .8, c: '#d8dce8', sz: 3, pt: 1 }); }
     }
+    if (Math.random() < .06) G.fx.push({ x: 40 + Math.random() * 70, y: this.cy(st.rs) - 20, vx: (Math.random() - .5), vy: -1.4 - Math.random(), g: .06, life: .8, c: '#ffb040', sz: 3, pt: 1 });   // pluski lawy w źródle
     /* sterowanie klawiaturą: strzałki przesuwają kursor, Spacja/Enter obraca */
     const dn = a => G.isDown(a), edge = (n, v) => { const r = v && !this._kd[n]; this._kd[n] = v; return r; };
     if (!st.done) {
@@ -141,7 +149,8 @@ const Lava = {
       if (edge('k', dn('jump') || dn('interact'))) this.rotate(q, r);
     } else {
       st.flow = Math.min(1, st.flow + .012);
-      if (st.flow >= 1) st.door = Math.min(1, st.door + .02);
+      const last = st.grid[st.rd][this.COLS - 1];
+      if ((last.f || 0) >= .99) { st.door = Math.min(1, st.door + .02); if (st.door < 1 && Math.random() < .5) G.fx.push({ x: this.cx(this.COLS - 1, st.rd) + 58 + (Math.random() - .5) * 40, y: this.cy(st.rd) - 52 + Math.random() * 12, vx: (Math.random() - .5) * 2, vy: -1 - Math.random(), g: .05, life: .7, c: '#ffd890', sz: 2, pt: 1 }); }
       if (st.door >= 1 && ++st.end > 70 && !st.fin) { st.fin = true; G.miniWin('Lawa otworzyła drzwi elektrowni!', 2, 'Zagadka rozwiązana w ' + st.moves + ' ruchach.'); }
       if (Math.random() < .3) G.fx.push({ x: this.cx(this.COLS - 1, st.rd) + 30 + Math.random() * 20, y: this.cy(st.rd) + (Math.random() - .5) * 40, vx: 1 + Math.random(), vy: -1.2, life: .8, c: '#ffb040', sz: 3, pt: 1 });
     }
@@ -156,8 +165,7 @@ const Lava = {
     const bg = c.createLinearGradient(0, 0, 0, 320); bg.addColorStop(0, '#1b1a24'); bg.addColorStop(1, '#2c2a36'); c.fillStyle = bg; c.fillRect(0, 0, 640, 320);
     c.fillStyle = '#22212c'; for (let x = 0; x < 640; x += 64) c.fillRect(x, 0, 2, 320); for (let y = 30; y < 320; y += 64) c.fillRect(0, y, 640, 2);
     c.fillStyle = '#3a3846'; c.fillRect(0, 0, 640, 26); c.fillStyle = '#ffd24a'; for (let x = 0; x < 640; x += 40) c.fillRect(x, 22, 20, 4);   // pasy ostrzegawcze
-    const fl = this.flowOf(st), D = fl.dist, maxD = Math.max(0, ...Object.values(D));
-    const front = st.done ? st.flow * (maxD + 1) : 1e9;
+    const D = st.D || {};
     /* źródło lawy (po lewej) */
     const sy = this.cy(st.rs), sx = this.cx(0, st.rs) - Math.sqrt(3) * R / 2;
     const lg = c.createLinearGradient(40, 0, 130, 0); lg.addColorStop(0, '#ff7a20'); lg.addColorStop(1, '#ffd24a');
@@ -172,29 +180,31 @@ const Lava = {
       this.hexPath(c, x, y, R - 1); c.fillStyle = sel || hov ? '#4c4a5c' : '#383646'; c.fill();
       this.hexPath(c, x, y, R - 1); c.lineWidth = 2; c.strokeStyle = sel ? '#f2c14e' : '#14121a'; c.stroke();
       this.hexPath(c, x, y, R - 6); c.lineWidth = 1; c.strokeStyle = '#46445a'; c.stroke();
-      const lava = D[q + ',' + r] !== undefined && D[q + ',' + r] <= front;
+      const lf = cell.f || 0, lava = lf > .02, pop = Math.min(1, Math.max(0, (st.t - (q + r) * 3) / 16));
+      if (pop <= 0) continue;
+      c.save(); c.translate(x, y); const ps = pop < 1 ? .3 + .7 * (1 - Math.pow(1 - pop, 3)) : 1; c.scale(ps, ps); c.translate(-x, -y);
       for (let d = 0; d < 6; d++) {
         if (!(cell.mask & (1 << d))) continue;
         const ang = d * Math.PI / 3 + cell.a, L = Math.sqrt(3) * R / 2, ex = x + Math.cos(ang) * L, ey = y + Math.sin(ang) * L;
         c.lineCap = 'round'; c.strokeStyle = '#5a5a6c'; c.lineWidth = 12; c.beginPath(); c.moveTo(x, y); c.lineTo(ex, ey); c.stroke();
         c.strokeStyle = '#1c1a22'; c.lineWidth = 7; c.beginPath(); c.moveTo(x, y); c.lineTo(ex, ey); c.stroke();
-        if (lava) { c.strokeStyle = `rgb(255,${150 + 40 * Math.sin(t / 150 + q + r) | 0},40)`; c.lineWidth = 5; c.beginPath(); c.moveTo(x, y); c.lineTo(ex, ey); c.stroke(); c.strokeStyle = '#ffe9a0'; c.lineWidth = 1.5; c.stroke(); }
+        if (lava) { const fx = x + (ex - x) * lf, fy = y + (ey - y) * lf; c.strokeStyle = `rgb(255,${150 + 40 * Math.sin(t / 150 + q + r) | 0},40)`; c.lineWidth = 5; c.beginPath(); c.moveTo(x, y); c.lineTo(fx, fy); c.stroke(); c.strokeStyle = '#ffe9a0'; c.lineWidth = 1.5; c.stroke(); }
       }
       c.fillStyle = lava ? '#ffb040' : '#5a5a6c'; c.beginPath(); c.arc(x, y, 6.5, 0, 7); c.fill(); c.fillStyle = lava ? '#ffe9a0' : '#2a2832'; c.beginPath(); c.arc(x, y, 3.2, 0, 7); c.fill();
-      c.lineCap = 'butt';
+      c.lineCap = 'butt'; c.restore();
     }
     /* drzwi (po prawej) */
     const dy = this.cy(st.rd), dx = this.cx(this.COLS - 1, st.rd) + Math.sqrt(3) * R / 2;
     c.strokeStyle = '#4a4a58'; c.lineWidth = 12; c.beginPath(); c.moveTo(dx, dy); c.lineTo(dx + 30, dy); c.stroke();
-    const wl = fl.win && D[(this.COLS - 1) + ',' + st.rd] <= front;
+    const wl = (st.grid[st.rd][this.COLS - 1].f || 0) >= .99;
     c.strokeStyle = wl ? '#ff9a30' : '#201c24'; c.lineWidth = 6; c.beginPath(); c.moveTo(dx, dy); c.lineTo(dx + 30, dy); c.stroke();
     c.fillStyle = '#0c0a10'; c.fillRect(dx + 30, dy - 52, 52, 104);                                          // wnęka
     const open = st.door * 96;
     if (st.door > 0) { const gg = c.createLinearGradient(dx + 30, 0, dx + 82, 0); gg.addColorStop(0, '#ffd890'); gg.addColorStop(1, '#fff6d0'); c.fillStyle = gg; c.fillRect(dx + 32, dy - 50, 48, 100); }
-    c.save(); c.beginPath(); c.rect(dx + 30, dy - 52, 52, 104); c.clip();
+    c.save(); if (st.door > 0 && st.door < 1) c.translate((Math.random() - .5) * 1.6, 0); c.beginPath(); c.rect(dx + 28, dy - 52, 56, 104); c.clip();
     c.fillStyle = '#5a5668'; c.fillRect(dx + 32, dy - 50 - open, 48, 100); c.fillStyle = '#6e6a80'; c.fillRect(dx + 32, dy - 50 - open, 48, 6);
     c.fillStyle = '#3c394a'; for (let i = 0; i < 5; i++) c.fillRect(dx + 32, dy - 40 - open + i * 20, 48, 3);
-    c.fillStyle = wl ? '#ff9a30' : '#7a1a1a'; c.beginPath(); c.arc(dx + 56, dy - open, 8, 0, 7); c.fill();       // lampka
+    c.fillStyle = st.door >= 1 ? '#5aff7a' : wl ? '#ff9a30' : (t % 800 < 400 ? '#7a1a1a' : '#3a0c0c'); c.beginPath(); c.arc(dx + 56, dy - open, 8, 0, 7); c.fill();       // lampka
     c.restore();
     mgText(c, trn(st.door >= 1 ? 'OTWARTE' : 'DRZWI'), dx + 56, dy - 60, st.door >= 1 ? '#7aff9a' : '#ffb060', 10);
     /* teksty */
@@ -260,7 +270,7 @@ const Maze = {
     const p = G.p; G.state = 'maze'; G.sel = null; G.nextBub();
     const M = this.gen(), T = this.T;
     this.ox = Math.round((640 - M.W * T) / 2); this.oy = Math.round((320 - M.H * T) / 2);
-    this.S = { M, x: this.ox + T / 2, y: this.oy + (2 * M.sy + 1) * T + T / 2, face: 1, walk: 0, got: false, found: false, t: 0, exit: 0, hint: 420, seen: {} };
+    this.S = { M, x: this.ox + T / 2, y: this.oy + (2 * M.sy + 1) * T + T / 2, face: 1, walk: 0, got: false, found: false, t: 0, exit: 0, hint: 420, seen: {}, step: 0, chest: 0 };
     p.alpha = 1; p.nobar = 1; p.scale = .5; p.pose = ''; p.ox = p.oy = 0; p.freeze = null; p.dest = null; G.mark = null; G.actors = []; G.enemies = [];
     if (!this.dark) { this.dark = document.createElement('canvas'); this.dark.width = 640; this.dark.height = 320; }
     G.banner = { txt: 'Piramida – labirynt w ciemności!', t: 0 };
@@ -288,6 +298,9 @@ const Maze = {
     /* odkryte kafelki (blada pamięć) */
     const tx = Math.floor((st.x - this.ox) / T), ty = Math.floor((st.y - this.oy) / T), R = Math.ceil(this.VIS / T);
     for (let yy = ty - R; yy <= ty + R; yy++) for (let xx = tx - R; xx <= tx + R; xx++) if (Math.hypot((xx + .5) * T - (st.x - this.ox), (yy + .5) * T - (st.y - this.oy)) < this.VIS - 6) st.seen[xx + ',' + yy] = 1;
+    /* kurz spod stóp */
+    if ((dx || dy) && ++st.step % 9 === 0) G.fx.push({ x: st.x - st.face * 3 + (Math.random() - .5) * 3, y: st.y + 6, vx: -st.face * .3, vy: -.25, g: -.005, dl: .05, life: .7, c: '#8a6a38', sz: 2, pt: 1 });
+    if (st.got && st.chest < 60) st.chest++;
     /* skarb */
     if (M.treasure && !st.got) {
       const cx = this.ox + (2 * M.treasure[0] + 1) * T + T / 2, cy = this.oy + (2 * M.treasure[1] + 1) * T + T / 2;
@@ -322,13 +335,17 @@ const Maze = {
     /* wejście i wyjście */
     const ex = ox + (M.W - 1) * T, ey = oy + (2 * M.ey + 1) * T;
     const eg = c.createLinearGradient(ex, 0, ex + T, 0); eg.addColorStop(0, '#ffe9a0'); eg.addColorStop(1, '#fff8dc'); c.fillStyle = eg; c.fillRect(ex, ey, T, T);
+    c.globalAlpha = .35 + .15 * Math.sin(st.t / 12); c.fillStyle = '#fff8dc'; c.fillRect(ex - 22, ey - 4, 22, T + 8); c.globalAlpha = 1;   // wiązka światła z wyjścia
     mgText(c, '►', ex + 8, ey + 12, '#7a4a10', 12);
     mgText(c, '►', ox + 8, oy + (2 * M.sy + 1) * T + 12, '#c8a05a', 10);
     /* skarb */
-    if (M.treasure && !st.got) {
-      const cx = ox + (2 * M.treasure[0] + 1) * T + T / 2, cy = oy + (2 * M.treasure[1] + 1) * T + T / 2, bob = Math.sin(st.t / 15) * 1;
-      c.fillStyle = '#5a3412'; c.fillRect(cx - 6, cy - 3 + bob, 12, 8); c.fillStyle = '#8a5a22'; c.fillRect(cx - 6, cy - 5 + bob, 12, 3); c.fillStyle = '#ffd24a'; c.fillRect(cx - 1, cy - 2 + bob, 2, 3); c.fillRect(cx - 6, cy + 1 + bob, 12, 1);
-      if (st.t % 40 < 8) { c.fillStyle = '#fff'; c.fillRect(cx + 4, cy - 7, 2, 2); }
+    if (M.treasure) {                                                              // skrzynia: po zebraniu otwiera się wieko i leci złoto
+      const cx = ox + (2 * M.treasure[0] + 1) * T + T / 2, cy = oy + (2 * M.treasure[1] + 1) * T + T / 2, bob = st.got ? 0 : Math.sin(st.t / 15) * 1, op = st.got ? Math.min(1, st.chest / 14) : 0;
+      c.fillStyle = '#5a3412'; c.fillRect(cx - 6, cy - 3 + bob, 12, 8); c.fillStyle = '#ffd24a'; c.fillRect(cx - 6, cy + 1 + bob, 12, 1);
+      if (st.got) { c.fillStyle = '#ffd24a'; c.fillRect(cx - 5, cy - 3, 10, 2); c.fillStyle = '#fff0a0'; c.fillRect(cx - 3, cy - 4, 2, 1); c.fillRect(cx + 1, cy - 4, 2, 1); }
+      c.save(); c.translate(cx - 6, cy - 3 + bob); c.rotate(-op * 1.4); c.fillStyle = '#8a5a22'; c.fillRect(0, -2, 12, 3); c.fillStyle = '#ffd24a'; c.fillRect(5, -1, 2, 3); c.restore();
+      if (!st.got && st.t % 40 < 8) { c.fillStyle = '#fff'; c.fillRect(cx + 4, cy - 7, 2, 2); }
+      if (st.got && st.chest < 40) { const g = c.createRadialGradient(cx, cy, 2, cx, cy, 30); g.addColorStop(0, `rgba(255,230,120,${.5 * (1 - st.chest / 40)})`); g.addColorStop(1, 'rgba(255,230,120,0)'); c.fillStyle = g; c.fillRect(cx - 30, cy - 30, 60, 60); }
     }
     /* bohater (pomniejszona wersja) */
     const p = G.p; p.x = st.x; p.y = st.y + 7; p.ox = p.oy = 0; p.scale = .5; p.face = st.face; p.walk = st.walk;
@@ -348,6 +365,7 @@ const Maze = {
     mgText(c, `${trn('Skarb')} (15 ${trn('pkt')}): ${st.got ? '✓' : '?'}`, 632, 316, st.got ? '#7aff9a' : '#c8a05a', 11, 'right');
     if (st.hint > 0) { c.globalAlpha = Math.min(1, st.hint / 40); c.fillStyle = '#000b'; c.fillRect(150, 296, 340, 18); mgText(c, trn('WASD / strzałki – ruch · Shift – szybciej'), 320, 309, '#f3e9d2', 11); c.globalAlpha = 1; }
     mgBanner(c, 40);
+    if (st.t < 30) { c.fillStyle = `rgba(0,0,0,${1 - st.t / 30})`; c.fillRect(0, 0, 640, 320); }   // płynne wejście do piramidy
     if (st.exit > 0) { c.fillStyle = `rgba(255,248,220,${Math.min(1, st.exit / 40)})`; c.fillRect(0, 0, 640, 320); }
     c.restore(); c.globalAlpha = 1;
     if (G.fade > 0) { c.fillStyle = `rgba(0,0,0,${G.fade})`; c.fillRect(0, 0, 640, 320); }

@@ -16,7 +16,15 @@ const Music={on:false,id:null,cur:null,cache:{},warned:{},vol:.5,
   if(Math.abs(d)<=.04){a.volume=to;clearInterval(a._f);if(done)done();}else a.volume=Math.max(0,Math.min(1,a.volume+Math.sign(d)*.04));},50);},
  /* ustaw utwór świata (null = cisza). Przy wyłączonej muzyce tylko zapamiętuje, co zagrać po włączeniu. */
  play(id){this.id=id||null;this.apply();},
- apply(){const want=this.on&&this.id?this.get(this.id):null;
+ /* v1.3.2: informacja o bieżącym utworze (lewy górny róg) – włączana w Ustawieniach */
+ showNow(){const el=document.getElementById('nowplaying');if(!el)return;
+  if(!(G.opt&&G.opt.nowPlaying)){el.classList.add('hidden');return;}
+  const cv=document.getElementById('cv');if(cv){el.style.left=(cv.offsetLeft+10)+'px';el.style.top=(cv.offsetTop+8)+'px';}
+  const nm=this.id&&((MAPS[this.id]||{}).name||(this.id==='castle'?'Zamek':''));
+  let t;if(!this.id)t=trn('♪ cisza – brak utworu dla tego miejsca');else if(!this.on)t=`♪ ${this.id}.mp3 (${trn('muzyka wyłączona – M')})`;
+  else if(this.cur&&this.cur.bad)t=`♪ ${this.id}.mp3 (${trn('brak pliku')})`;else t=`♪ ${this.id}.mp3`+(nm?` · ${trn(nm)}`:'');
+  el.textContent=t;el.classList.remove('hidden');},
+ apply(){this.showNow();const want=this.on&&this.id?this.get(this.id):null;
   if(this.cur&&this.cur!==want){const o=this.cur;this.fade(o,0,()=>o.pause());}
   this.cur=want;
   if(want&&!want.bad){const p=want.play();if(p&&p.catch)p.catch(()=>{});this.fade(want,this.vol);}

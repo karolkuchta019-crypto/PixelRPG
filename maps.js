@@ -17,6 +17,7 @@ const MAPS={
  lava:{amb:'ember',name:'Lawowa otchłań',src:'assets/maps/lava.png',sky:'#0a0303',ground:'#241010',decor:'#0e0505',tone:.1,foes:['imp','lavagolem','skeleton','basilisk'],boss:'demon'},
  ruins:{amb:'dust',name:'Mroczne ruiny',src:'assets/maps/ruins.png',sky:'#2a2040',ground:'#3a3550',decor:'#1c1830',tone:.3},
  castle:{name:'Zamek',src:'assets/maps/castle.png',sky:'#3a2a5a',ground:'#6a6070',decor:'#7a6a8a',tone:.6},
+ rink:{name:'Lodowisko',src:'assets/maps/rink.png',sky:'#b8d8f0',ground:'#c8e0f4',decor:'#7898c0',tone:.25},   // v1.3.2: minigra hokej z piłką (widok z góry, bez nieba)
  pitch:{name:'Boisko',src:'assets/maps/pitch.png',sky:'#2f7a3a',ground:'#2f7a3a',decor:'#1f4a2a',tone:.25},   // v1.3.0: minigra pong (widok z góry, bez nieba)
  stadium:{hpMul:1.5,name:'Mroczny stadion',src:'assets/maps/stadium.png',sky:'#1a0e18',ground:'#1f4a2a',decor:'#2a2a30',tone:.2},
  volcano:{amb:'ember',name:'Kraina wulkanów',src:'assets/maps/volcano.png',sky:'#8a2a10',ground:'#3a2020',decor:'#2a1210',tone:.2},
@@ -69,7 +70,7 @@ const CAMPAIGN=[
  {name:'Pustynia',map:'desert',foes:['scorpion','mummy'],boss:'sphinx',minigame:{kind:'maze',wave:5,map:'desert'}},
  {name:'Stara elektrownia',map:'plant',foes:['drone','robot','fighter','wreck'],boss:'mech',minigame:{kind:'lava',wave:5,map:'plant'}},
  {name:'Lawowa otchłań',map:'lava',foes:['imp','lavagolem','skeleton','basilisk'],boss:'demon'},
- {name:'Mroczny stadion',map:'stadium',foes:['kicker','kicker','kicker','fan','fan','referee'],boss:'coach',minigame:{kind:'pong',wave:6,map:'pitch'}},   // v1.1.1: sędzia i kibic też na wcześniejszych falach
+ {name:'Mroczny stadion',map:'stadium',foes:['kicker','kicker','kicker','fan','fan','referee'],boss:'coach',minigame:{kind:'pong',wave:6,map:'rink'}},   // v1.1.1: sędzia i kibic też na wcześniejszych falach
 ];
 const MAX_FOES=4;                                   // tyle potworów mieści się na arenie
 const stageWaveCount=i=>i+3;                        // etap 0 -> 3 fale, etap 1 -> 4 fale, ...

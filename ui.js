@@ -353,6 +353,7 @@ const UI = {
         vol.oninput = () => { Music.vol = vol.value / 100; if (Music.cur) Music.cur.volume = Music.vol; val.textContent = vol.value + '%'; };
         const box = document.createElement('span'); box.className = 'opt-ctl'; box.append(vol, val);
         row('Głośność', null, box);
+        row('Pokaż aktualny utwór', 'W lewym górnym rogu ekranu pojawia się nazwa utworu, który właśnie leci.', toggle(G.opt.nowPlaying, v => { G.setOpt('nowPlaying', v); Music.showNow(); rerender(); }));   // v1.3.2
       }
       if (this.setCat === 'gfx') {
         row('Jakość grafiki', ['Mniej efektów, rysowanie co drugą klatkę, słabsze wstrząsy – dla wolniejszych komputerów.', 'Standardowa jakość (zalecana).', 'Ostrzejsza grafika (2× rozdzielczość), więcej cząsteczek i delikatna winieta.'][G.quality],
@@ -752,6 +753,13 @@ const UI = {
       price: d.sqArmor ? trn('✓ POSIADANE') : noSq ? '🔒' : `${SQ_ARMOR.cost} ${trn('pkt')}`, pcls: d.sqArmor ? 'tag' : noSq ? 'lock' : ((!G.dev && d.pending < SQ_ARMOR.cost) ? 'poor' : ''),
       owned: !!d.sqArmor, locked: noSq && !d.sqArmor, disabled: !!d.sqArmor || noSq || (!G.dev && d.pending < SQ_ARMOR.cost),
       onClick: () => { if (Player.buySqArmor()) { G.comps.forEach(a => { if (a.s.t === 'squire') a.key = 'comp_squire_leather'; }); this.hud(); this.smith(done); } }
+    }] });
+    /* v1.3.2: okulary przeciwburzowe (burza śnieżna i piaskowa nie obniżają celności bohatera) */
+    sections.push({ label: 'OKULARY', items: [{
+      icon: '🥽', name: trn(GOGGLES.name), desc: trn(GOGGLES.desc),
+      price: d.goggles ? trn('✓ POSIADANE') : `${GOGGLES.cost} ${trn('pkt')}`, pcls: d.goggles ? 'tag' : ((!G.dev && d.pending < GOGGLES.cost) ? 'poor' : ''),
+      owned: !!d.goggles, disabled: !!d.goggles || (!G.dev && d.pending < GOGGLES.cost),
+      onClick: () => { if (Player.buyGoggles()) { this.hud(); this.smith(done); } }
     }] });
     /* v1.3.1: instrument barda (dostępny, gdy bard jest w drużynie) */
     const noBard = !Player.hasBard();
