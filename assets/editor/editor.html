@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Kreator modów – Monster Waves 1.4.0</title>
+  <link rel="stylesheet" href="editor.css">
+</head>
+<body>
+<header>
+  <h1>🛠 Kreator modów</h1>
+  <button type="button" id="btn-new">Nowy mod</button>
+  <button type="button" id="btn-save" class="btn-ok">Zapisz</button>
+  <button type="button" id="btn-export">Eksportuj .mwmod</button>
+  <label class="btn" style="display:inline-block;cursor:pointer">Importuj<input type="file" id="btn-import" accept=".mwmod,.json" hidden></label>
+  <a href="../index.html">← Powrót do gry</a>
+</header>
+<main>
+  <!-- LEWA: lista + dane moda -->
+  <aside class="sidebar">
+    <h3>Mod</h3>
+    <label>Nazwa świata</label>
+    <input type="text" id="mod-name" placeholder="Mój świat">
+    <label>Autor</label>
+    <input type="text" id="mod-author" placeholder="Ty">
+    <label>Wersja</label>
+    <input type="text" id="mod-ver" value="1.0">
+
+    <div class="tabs" style="margin-top:12px">
+      <button type="button" class="tab active" data-tab="maps">Mapy</button>
+      <button type="button" class="tab" data-tab="enemies">Wrogowie</button>
+    </div>
+
+    <div id="panel-maps">
+      <h3>Mapy <button type="button" class="btn" id="add-map" style="float:right;padding:2px 8px">+</button></h3>
+      <div id="map-list"></div>
+    </div>
+    <div id="panel-enemies" class="hidden">
+      <h3>Wrogowie <button type="button" class="btn" id="add-enemy" style="float:right;padding:2px 8px">+</button></h3>
+      <div id="enemy-list"></div>
+    </div>
+  </aside>
+
+  <!-- ŚRODEK: canvas rysowania -->
+  <section class="workspace">
+    <h2 id="ws-title">Wybierz mapę lub wroga</h2>
+    <div class="tools" id="tools">
+      <button type="button" data-tool="pencil" class="active" title="Ołówek">✏️</button>
+      <button type="button" data-tool="eraser" title="Gumka">🧹</button>
+      <button type="button" data-tool="fill" title="Wypełnij">🪣</button>
+      <button type="button" data-tool="picker" title="Pipeta">💉</button>
+      <span class="sep"></span>
+      <label style="font-size:11px">Rozmiar <input type="range" id="brush" min="1" max="8" value="1" style="width:60px;vertical-align:middle"></label>
+      <span class="sep"></span>
+      <button type="button" id="btn-undo" title="Ctrl+Z">↶ Cofnij</button>
+      <button type="button" id="btn-clear" class="btn-danger">Wyczyść</button>
+      <button type="button" id="btn-grid">Siatka</button>
+    </div>
+    <div class="palette" id="palette"></div>
+    <div class="canvas-wrap" id="canvas-wrap">
+      <canvas id="draw" width="160" height="80"></canvas>
+    </div>
+    <p class="hint" id="ws-hint">Rysuj tło mapy (160×80 → skalowane do 640×320) albo sprite wroga (32×32 / 48×48).</p>
+  </section>
+
+  <!-- PRAWA: właściwości wybranego obiektu -->
+  <aside class="rightbar">
+    <div id="props-empty"><p class="hint">Wybierz mapę lub wroga z listy po lewej.</p></div>
+
+    <div id="props-map" class="hidden">
+      <h3>Właściwości mapy</h3>
+      <label>Nazwa</label>
+      <input type="text" id="m-name">
+      <label>Kolor nieba</label>
+      <input type="color" id="m-sky" value="#6ec6f0">
+      <label>Kolor ziemi</label>
+      <input type="color" id="m-ground" value="#4a9a3a">
+      <label>Dekor</label>
+      <input type="color" id="m-decor" value="#2c6b2c">
+      <label>Klimat (amb)</label>
+      <select id="m-amb">
+        <option value="">— brak —</option>
+        <option value="leaf">Liście</option>
+        <option value="dust">Kurz</option>
+        <option value="snow">Śnieg</option>
+        <option value="ember">Iskry</option>
+        <option value="spark">Iskry niebieskie</option>
+        <option value="firefly">Świetliki</option>
+        <option value="glint">Błyski</option>
+      </select>
+      <label>Tone (0–1)</label>
+      <input type="number" id="m-tone" min="0" max="1" step="0.05" value="0.8">
+      <h3 style="margin-top:12px">Animacja sprite’a</h3>
+      <p class="hint">Dla mapy rysujesz tylko tło. Przypisz wrogów w kampanii (sekcja poniżej po zapisaniu wrogów).</p>
+      <label>Klucz mapy (id)</label>
+      <input type="text" id="m-key" readonly>
+    </div>
+
+    <div id="props-enemy" class="hidden">
+      <h3>Właściwości wroga</h3>
+      <label>Nazwa</label>
+      <input type="text" id="e-name">
+      <label>HP</label>
+      <input type="number" id="e-hp" min="1" value="40">
+      <label>ATK</label>
+      <input type="number" id="e-atk" min="1" value="12">
+      <label>DEF</label>
+      <input type="number" id="e-def" min="0" value="2">
+      <label>Dodge (0–1)</label>
+      <input type="number" id="e-dodge" min="0" max="1" step="0.05" value="0.1">
+      <label>Crit (0–1)</label>
+      <input type="number" id="e-crit" min="0" max="1" step="0.05" value="0.1">
+      <label>XP</label>
+      <input type="number" id="e-xp" min="1" value="20">
+      <label>Skala</label>
+      <input type="number" id="e-scale" min="1" max="5" step="0.1" value="2.8">
+      <label>Rozmiar klatki</label>
+      <select id="e-size">
+        <option value="32">32×32</option>
+        <option value="48">48×48 (boss)</option>
+      </select>
+      <label><input type="checkbox" id="e-boss"> Boss</label>
+      <label>Zachowanie w walce</label>
+      <select id="e-behave">
+        <option value="normal">Zwykły</option>
+        <option value="multi">Podwójne uderzenie</option>
+        <option value="heavy">Ciężki (mocny cios co 3 turę)</option>
+        <option value="boss">Boss (mocny co 2 turę)</option>
+        <option value="ranged">Strzelec (strzały z dystansu)</option>
+        <option value="fireball">Ognisty (kule ognia, podpalenie)</option>
+        <option value="poison">Jadowity (trucizna co 3 turę)</option>
+      </select>
+      <label>Animacja ataku (dojście do celu)</label>
+      <select id="e-move">
+        <option value="dash">dash – zwykły rzut do przodu</option><option value="rush">rush – szybki sprint</option><option value="leap">leap – skok po łuku</option>
+        <option value="hop">hop – podskoki</option><option value="swoop">swoop – nurkowanie z góry</option><option value="ram">ram – cofnięcie i taran</option>
+        <option value="roll">roll – turlanie</option><option value="slam">slam – miażdżący upadek</option><option value="pounce">pounce – skok drapieżnika</option>
+        <option value="sway">sway – chwiejny marsz</option><option value="blink">blink – teleportacja</option><option value="scuttle">scuttle – zygzak</option>
+      </select>
+      <label>Typ (odporności) – Ctrl+klik</label>
+      <select id="e-tags" multiple size="8">
+        <option value="human">człowiek</option><option value="animal">zwierzę</option><option value="goblin">goblin</option><option value="elf">elf</option>
+        <option value="plant">roślina (ogień x3)</option><option value="undead">nieumarły</option><option value="machine">maszyna</option><option value="golem">golem</option>
+        <option value="fire">ognisty (odporny na ogień)</option><option value="winter">zimowy (odporny na mróz)</option><option value="air">latający</option>
+        <option value="reptile">gad</option><option value="demon">demon</option><option value="slime">slime</option><option value="water">wodny</option><option value="spirit">duch</option>
+      </select>
+      <label>Szansa zatrucia (0–1)</label>
+      <input type="number" id="e-pois" min="0" max="1" step="0.05" value="0">
+      <label>Szansa podpalenia (0–1)</label>
+      <input type="number" id="e-burn" min="0" max="1" step="0.05" value="0">
+      <label>Szansa zamrożenia (0–1)</label>
+      <input type="number" id="e-freeze" min="0" max="1" step="0.05" value="0">
+      <label>Dialog bossa</label>
+      <input type="text" id="e-line" placeholder="„…!”">
+      <label>Klatka animacji</label>
+      <select id="e-anim">
+        <option value="idle">Idle</option>
+        <option value="attack">Attack</option>
+        <option value="hurt">Hurt</option>
+        <option value="death">Death</option>
+      </select>
+      <div class="preview-box">
+        <canvas id="preview" width="96" height="96"></canvas>
+        <p class="hint">Podgląd (×3)</p>
+      </div>
+      <label>Klucz (id)</label>
+      <input type="text" id="e-key" readonly>
+    </div>
+
+    <h3 style="margin-top:16px">Kampania moda</h3>
+    <p class="hint">Etapy = mapy w kolejności. Ustaw foes i bossa po dodaniu wrogów.</p>
+    <div id="campaign-editor"></div>
+  </aside>
+</main>
+<div class="status" id="status"></div>
+
+<script src="../mod-api.js"></script>
+<script src="editor.js"></script>
+</body>
+</html>
