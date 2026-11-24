@@ -207,3 +207,27 @@ button.shop-card.locked,button.shop-card.worse{opacity:.5}
 
 #nowplaying{position:absolute;z-index:7;pointer-events:none;background:#000b;border:2px solid var(--gold-d);padding:3px 8px;font-size:12px;color:#f3e9d2;max-width:34%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #nowplaying.hidden{display:none}
+
+/* ===== v1.4.0 ===== */
+.wm2-wrap{width:100%;max-width:900px;border:3px solid var(--gold);background:#1c1430;margin:4px 0 8px;box-shadow:inset 0 0 0 2px #000}
+.wm2-canvas{display:block;width:100%;height:auto;image-rendering:pixelated}
+.wm2-prompt{max-width:900px;width:100%;margin:0 0 8px;padding:8px 12px;background:#14101f;border:2px solid var(--gold);display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center}
+.wm2-prompt p{margin:0;font-size:12px;max-width:none;flex:1 1 100%}
+.wm2-prompt.hidden{display:none}
+#screen.team,#screen.mods{display:flex;flex-direction:column;align-items:center;gap:10px;padding:20px;background:rgba(15,11,26,.95)}
+.team-sec{width:100%;max-width:760px}
+.team-sec h3{margin:0 0 6px;color:var(--gold);font-size:13px;border-bottom:1px solid #5a4a20;padding-bottom:4px;text-align:left}
+.team-grid,.mod-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;width:100%;max-width:760px}
+.mod-list{grid-template-columns:1fr}
+.team-card,.mod-card{display:flex;align-items:center;gap:10px;padding:8px;background:#2a2140;border:2px solid #000;outline:2px solid var(--gold-d,#8a6a1c);text-align:left}
+.team-card.res{opacity:.8;outline-color:#555}
+.team-portrait{width:64px;height:64px;image-rendering:pixelated;background:#14101f;border:2px solid #000}
+.team-info,.mod-info{flex:1;display:flex;flex-direction:column;gap:4px;font-size:11px;min-width:0}
+.team-info b,.mod-info b{color:var(--gold);font-size:13px}
+.team-card button{min-width:120px;padding:6px 8px;font-size:11px}
+.team-empty{opacity:.7;font-size:11px;margin:4px 0}
+.mod-card{justify-content:space-between}
+@media(max-width:720px){.team-grid{grid-template-columns:1fr}}
+
+.lan-input{font:inherit;padding:8px 10px;background:#14101f;color:#f3e9d2;border:2px solid var(--gold);text-align:center;width:220px;margin:4px 0}
+.lan-code{font-size:44px;letter-spacing:10px;color:var(--gold);border:3px solid var(--gold);padding:6px 24px;background:#14101f;margin:6px 0}

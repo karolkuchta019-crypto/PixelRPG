@@ -15,7 +15,8 @@ const Music={on:false,id:null,cur:null,cache:{},warned:{},vol:.5,
  fade(a,to,done){clearInterval(a._f);a._f=setInterval(()=>{const d=to-a.volume;
   if(Math.abs(d)<=.04){a.volume=to;clearInterval(a._f);if(done)done();}else a.volume=Math.max(0,Math.min(1,a.volume+Math.sign(d)*.04));},50);},
  /* ustaw utwór świata (null = cisza). Przy wyłączonej muzyce tylko zapamiętuje, co zagrać po włączeniu. */
- play(id){this.id=id||null;this.apply();},
+ play(id){if(id&&MAPS[id]&&MAPS[id].mod)id=MAPS[id].music||null;   // v1.4.0: mapy z modów nie mają plików muzyki
+  this.id=id||null;this.apply();},
  /* v1.3.2: informacja o bieżącym utworze (lewy górny róg) – włączana w Ustawieniach */
  showNow(){const el=document.getElementById('nowplaying');if(!el)return;
   if(!(G.opt&&G.opt.nowPlaying)){el.classList.add('hidden');return;}

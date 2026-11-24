@@ -1,5 +1,16 @@
 # Changelog – Monster Waves
 
+## [1.4.0]
+
+- **Multiplayer LAN** (menu główne → Multiplayer → 🌐 LAN): kampania dla 2–3 graczy, **każdy steruje swoją postacią na swoim komputerze** w tej samej sieci. Gospodarz uruchamia `start-lan.bat` / `start-lan.sh` (serwer bez bazy danych, `lan/`), zakłada pokój i podaje kod; reszta dołącza z przeglądarki. Gospodarz liczy grę, pozostali dostają jej obraz na żywo i wysyłają swoje akcje; sklepy otwierają się wszystkim naraz. Instrukcja: `lan/README.md`. Ten sam tryb jest też dostępny naprzemiennie przy jednym komputerze:
+- **Multiplayer na jednym komputerze:** kampania dla 2–3 graczy przy jednym komputerze. Każdy gracz ma własnego bohatera (HP, ekwipunek, umiejętności, punkty, eliksiry), swoją turę i **po jej wykonaniu atakują go wszyscy wrogowie**. Im więcej graczy, tym więcej przeciwników (boss ma więcej HP); postacie są pomniejszone, a wrogowie stoją w siatce. XP dostają wszyscy żywi gracze, poległy wraca na kolejnej fali z 25% HP, sklepy otwierają się po kolei dla każdego gracza. W tym trybie nie ma kompanów, minigier, zapisów w slotach ani osiągnięć.
+- **Mody:** menu „Mody (własne kampanie)” + **Kreator modów** (`editor/editor.html`) przeniesiony ze starej wersji i rozbudowany: własne mapy, przeciwnicy (statystyki, zachowanie w walce, animacja ataku, typ/odporności, trucizna/ogień/mróz) i bossowie, własna kampania z użyciem także wbudowanych map i wrogów, opcjonalna minigra w etapie. Pliki `.mwmod` (import/eksport), przykład w `mods/przyklad.mwmod`. Mody nie ruszają zapisów gry.
+- **Minigra w Tajdze – bobrza tama** (fala 3): pionowy pasek czerwono-zielony, wskaźnik biega góra–dół (z każdym trafieniem szybciej, a zielone pole się zmniejsza). Trzy trafienia w zielone rozwalają tamę (+10 pkt od mieszkańców). Pudło **łamie miecz** – nowy kupisz u zbrojmistrza.
+- **Drużyna (klawisz T):** do 4 postaci w drużynie, reszta w rezerwie (można mieć łącznie 6 kompanów). Przenoszenie przyciskiem na karcie; informacja w Ustawieniach → Sterowanie (klawisz można zmienić).
+- **Rework mapy świata:** „mała wersja świata” – ciągły ląd z biomami (zamek i zielony las → ścieżka → wioska → moczary → most nad rzeką → tajga → …), po którym chodzi mała wersja bohatera (WASD / strzałki, Shift). Poza lądem, ścieżkami i mostami przejść się nie da; kamera podąża za bohaterem. Po wejściu na biom pojawia się pytanie o przeniesienie do etapu (jeśli poprzednie pokonane). Kolejność „wężykiem” bez zmian (1–5 w prawo, 6–10 w lewo); chatka wiedźmy pojawia się na moczarach po jej pokonaniu.
+- Pod otwartym oknem (mapa, drużyna, menu) bohater już nie chodzi i nie otwiera sklepów.
+- Tłumaczenia EN/ES nowych tekstów (`i18n14.js`).
+
 ## [1.3.2]
 
 - **Labirynt:** po wyjściu z piramidy (oraz po pongu) bohater od razu wraca do normalnego wzrostu i na miejsce startowe (wcześniej zostawał pomniejszony).

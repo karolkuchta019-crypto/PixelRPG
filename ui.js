@@ -35,7 +35,7 @@ const UI = {
     const ptsLabel = G.dev ? '∞' : String(d.pending|0);
     this.$('stats').textContent =
       `HP ${d.hp}/${d.maxhp}  ATK ${atk}${gAtk ? `(+${gAtk})` : ''}  DEF ${def}${gDef ? `(+${gDef})` : ''}  ` +
-      `${trn('PUNKTY')} ${ptsLabel}  ${trn('Eliksiry')} ${d.potions|0}  ${trn('KOMPANI')} ${Player.compCount()}/3${Player.hasBard() ? ' +♪' : ''}  ` +
+      `${trn('PUNKTY')} ${ptsLabel}  ${trn('Eliksiry')} ${d.potions|0}  ${G.mp ? trn('GRACZ') + ' ' + (G.mp.cur + 1) : trn('DRUŻYNA') + ' ' + Player.active().length + '/' + TEAM_MAX + (Player.reserve().length ? ' (+' + Player.reserve().length + ' ' + trn('rez.') + ')' : '')}  ` +
       `CRIT ${Math.round((d.crit + Player.luck()) * 100)}%  ${trn('UNIK')} ${Math.round(d.dodge * 100)}%` + (sk.totem ? `  ${trn('TOTEM')} ✓` : '') + (d.hardcore ? '  ☠ HARDCORE' : '') + (G.event === 'radiation' && G.radStack ? `  ☢ -${G.radStack * 6}%` : '');
   },
 
@@ -71,23 +71,25 @@ const UI = {
 
   waveLabel() {
     if (G.hub) return 'Chatka wiedźmy';
-    return G.mode === 'campaign'
+    const base = G.mode === 'campaign'
       ? `Etap ${G.level + 1}, fala ${G.wave}/${G.waves.length}`
       : 'Fala ' + G.wave;
+    return G.mp ? `${base} · ${trn('Gracz')} ${G.mp.cur + 1}` : base;   // v1.4.0
   },
 
   title() {
     Music.play(null);   // w menu cisza
+    Net.leave(); ModAPI.exit(); G.mp = null; G.heroes = null; G.netClient = false;   // v1.4.0: wyjście z modu / multiplayera / pokoju LAN
     G.nextHardcore = false;
     this.screen('MONSTER WAVES  v' + VERSION,
-      'Wybierz tryb. WASD / strzałki – ruch, Spacja – skok, M – muzyka, Tab – ustawienia, kliknij wroga, by go namierzyć.',
+      'Wybierz tryb. WASD / strzałki – ruch, Spacja – skok, M – muzyka, T – drużyna, Tab – ustawienia, kliknij wroga, by go namierzyć.',
       [{ l: 'Kampania', f: () => this.campaign() },
        { l: 'Kampania ☠ HARDCORE', f: () => this.newHardcore() },
        { l: 'Tryb nieskończony', f: () => this.endless() },
        { l: 'Wczytaj grę (sloty)', f: () => this.slots('load', 'title') },
        /* v1.2.3: zablokowane na razie – do późniejszej implementacji */
-       { l: '🔒 Lokalne multiplayer', f: () => {}, disabled: true },
-       { l: '🔒 Własne Poziomy', f: () => {}, disabled: true }]);
+       { l: 'Multiplayer (LAN / jeden komputer)', f: () => this.mpMenu() },
+       { l: 'Mody (własne kampanie)', f: () => this.mods() }]);
   },
 
   endless() {
@@ -365,7 +367,7 @@ const UI = {
       if (this.setCat === 'ctrl') {
         row('Ruch po kliknięciu (żółta otoczka)', 'Klik w ziemię: bohater idzie w to miejsce. Klik we wroga nadal go namierza.', toggle(G.clickMove, v => { G.setClickMove(v); rerender(); }));
         /* v1.2.3: zmiana sterowania – kliknij przycisk i naciśnij nowy klawisz */
-        const BIND_LABELS = { left: 'W lewo', right: 'W prawo', up: 'W górę', down: 'W dół', jump: 'Skok', sprint: 'Sprint', interact: 'Rozmowa / sklep', music: 'Muzyka' };
+        const BIND_LABELS = { left: 'W lewo', right: 'W prawo', up: 'W górę', down: 'W dół', jump: 'Skok', sprint: 'Sprint', interact: 'Rozmowa / sklep', music: 'Muzyka', team: 'Drużyna' };
         const pretty = k => {
           if (k === ' ') return 'Spacja';
           if (k === 'arrowleft') return '←';
@@ -406,6 +408,7 @@ const UI = {
         });
         row('Przywróć domyślne sterowanie', null, btn('Domyślne', 'ghost sm', () => { G.resetBinds(); rerender(); }));
         row('Tab', 'Menu (niezmienne)', text('Tab'));
+        row('Drużyna (T)', 'Klawisz T otwiera ekran drużyny: w drużynie może być maksymalnie 4 postaci, pozostałe czekają w rezerwie. Postać przenosisz między drużyną a rezerwą przyciskiem na jej karcie.', text(((G.binds && G.binds.team) || ['t'])[0].toUpperCase()));   // v1.4.0
       }
       if (this.setCat === 'play') {
         row('Poziom trudności', DIFFS[G.difficulty].desc, seg(DIFFS.map((d, i) => [i, d.name]), G.difficulty, v => { G.setDifficulty(v); rerender(); }));
@@ -495,6 +498,7 @@ const UI = {
   },
 
   newGame(kind) {
+    ModAPI.exit(); G.mp = null; G.heroes = null;   // v1.4.0
     if (kind === 'hardcore' && !confirm(trn('Rozpocząć NOWĄ kampanię HARDCORE? Obecny zapis kampanii zostanie usunięty.\nW trybie hardcore śmierć kończy grę, a zapisów tej kampanii nie da się wczytać.'))) return;
     const txt = kind === 'campaign' ? 'Rozpocząć NOWĄ kampanię?' : 'Rozpocząć NOWY tryb nieskończony?';
     if (kind !== 'hardcore' && !confirm(trn(txt) + trn('\nNiezapisany postęp zostanie utracony (zapisy w slotach zostają).'))) return;
@@ -641,7 +645,7 @@ const UI = {
     if (o.sub) { const p = document.createElement('p'); p.className = 'shop-sub'; p.textContent = o.sub; tt.append(p); }
     const chips = document.createElement('div');
     chips.className = 'shop-chips';
-    (o.chips || []).forEach(c => { const e = document.createElement('span'); e.className = 'chip' + (c.cls ? ' ' + c.cls : ''); e.textContent = c.text; chips.append(e); });
+    (G.mp ? [{ cls: 'pts', text: `👤 ${trn('Gracz')} ${G.mp.cur + 1}` }] : []).concat(o.chips || []).forEach(c => { const e = document.createElement('span'); e.className = 'chip' + (c.cls ? ' ' + c.cls : ''); e.textContent = c.text; chips.append(e); });
     head.append(cv, tt, chips);
     wrap.append(head);
 
@@ -680,17 +684,17 @@ const UI = {
       resist: '🔰', fire: '🔥', fireup: '☄️', thunder: '⚡', totem: '🗿', double: '🗡️', compS: '🛡️', compA: '🏹' };
     const CATS = [['Statystyki', ['atk', 'def', 'hp', 'crit', 'dodge']], ['Przetrwanie', ['potion', 'herb', 'vamp', 'resist', 'totem']],
       ['Walka i magia', ['double', 'venom', 'flame', 'frost', 'fire', 'fireup', 'thunder']], ['Kompani', ['compS', 'compA']]];
-    const sections = CATS.map(([label, ids]) => ({
+    const sections = CATS.filter(c => !(G.mp && c[0] === 'Kompani')).map(([label, ids]) => ({   // v1.4.0: w multiplayerze bez kompanów
       label,
       items: ids.map(id => SKILLS.find(k => k.id === id)).filter(Boolean).map(k => {
         const own = d.sk[k.id] || 0, c = Player.cost(k);
-        const full = k.comp ? Player.compCount() >= 3 : own >= k.max;
+        const full = k.comp ? Player.compCount() >= COMP_OWN_MAX : own >= k.max;
         const need = k.req && !d.sk[k.req];            // np. moc kuli wymaga kuli ognia
         const lockN = k.need && !d[k.need];            // ulepszenia dostępne po pokonaniu Yeti
         const poor = !G.dev && d.pending < c;
         const cnt = (!k.comp && own && k.max > 1) ? ` ×${own}` : '';
         let price = `${c} ${trn('pkt')}`, pcls = poor ? 'poor' : '';
-        if (lockN) { price = '🔒'; pcls = 'lock'; } else if (need) { price = '🔒'; pcls = 'lock'; } else if (full) { price = trn(k.comp ? 'DRUŻYNA PEŁNA' : 'MAX'); pcls = 'tag'; }
+        if (lockN) { price = '🔒'; pcls = 'lock'; } else if (need) { price = '🔒'; pcls = 'lock'; } else if (full) { price = trn(k.comp ? 'LIMIT KOMPANÓW' : 'MAX'); pcls = 'tag'; }
         const note = lockN ? ` — ${trn('najpierw pokonaj Yeti')}` : need ? ` — ${trn('najpierw: Kula ognia')}` : '';
         return { icon: ICON[k.id], name: trn(k.name) + cnt, desc: trn(k.desc) + note, price, pcls, owned: full && !k.comp && k.max === 1,
           locked: lockN || need, disabled: full || need || lockN || poor, onClick: () => { Player.buy(k.id); this.hud(); this.shop(done); } };
@@ -699,7 +703,7 @@ const UI = {
     this.shopFrame({
       sprite: 'merchant', title: 'Wędrowny Kupiec', sections,
       sub: trn('Wymień punkty poziomu na umiejętności.'),
-      chips: [{ cls: 'pts', text: `★ ${G.dev ? '∞' : d.pending} ${trn('pkt')}` }, { text: `${trn('Kompani:')} ${(d.comps || []).length}/3` }]
+      chips: [{ cls: 'pts', text: `★ ${G.dev ? '∞' : d.pending} ${trn('pkt')}` }, { text: `${trn('Kompani:')} ${(d.comps || []).length}/${COMP_OWN_MAX} · ${trn('drużyna')} ${Player.active(d).length}/${TEAM_MAX}` }]
         .concat(d.sk.fire ? [{ text: `${trn('Moc kuli ognia:')} ${Player.fireDmg()}` }] : []),
       onExit: () => { this.$('screen').classList.add('hidden'); G.syncComps(); done(); }
     });

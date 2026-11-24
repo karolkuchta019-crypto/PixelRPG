@@ -64,7 +64,7 @@ const CAMPAIGN=[
  {name:'Zielony las',map:'forest',foes:['slime','shroom','dandelion'],boss:'slimeking'},
  {name:'Opuszczona wioska',map:'village',foes:['goblin','elf','dwarf'],boss:'orc'},
  {name:'Moczary',map:'swamp',foes:['drowned','mosquitos','mutmosq','blackcat'],boss:'witch'},
- {name:'Tajga',map:'taiga',foes:['bear','beaver','hedgehog','treant'],boss:'leshy'},
+ {name:'Tajga',map:'taiga',foes:['bear','beaver','hedgehog','treant'],boss:'leshy',minigame:{kind:'dam',wave:3,map:'taiga'}},   // v1.4.0: minigra – bobrza tama
  {name:'Lodowe góry',map:'ice',foes:['wolf','goblin','snowman'],boss:'yeti'},
  {name:'Kryształowa jaskinia',map:'cave',foes:['spider','imp','bat','silverfish'],boss:'spiderqueen'},
  {name:'Pustynia',map:'desert',foes:['scorpion','mummy'],boss:'sphinx',minigame:{kind:'maze',wave:5,map:'desert'}},

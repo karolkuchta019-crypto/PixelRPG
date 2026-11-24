@@ -11,13 +11,13 @@ const Combat={busy:false,guard:false,fbCd:0,
   if(target&&target.freeze){/* zamrożony nie unika */}else if(Math.random()>acc)return{miss:1};
   else if(Math.random()<d.dodge)return{dodge:1};
   const crit=!nocrit&&(force||Math.random()<a.crit+(a===Player.d?Player.luck():0));   // v1.1: + szczęście z talizmanów wiedźmy
-  const atk=(flat!=null?flat:(a===Player.d?Player.atk():a.atk)),def=   /* flat = własna moc kuli ognia, bez ATK */(d===Player.d?Player.def():d.def);return{crit,dmg:Math.max(1,Math.round(atk*mult*(crit?1.8:1)*(.9+Math.random()*.2)-def))};},
+  const atk=(flat!=null?flat:(a&&a.gear?Player.atk(a):a.atk)),def=   /* flat = własna moc kuli ognia, bez ATK */(d&&d.gear?Player.def(d):d.def);return{crit,dmg:Math.max(1,Math.round(atk*mult*(crit?1.8:1)*(.9+Math.random()*.2)-def))};},
  /* efekty: gracz i kompani = 'human'. Odporności wg tagów (enemies.js) */
  status(t,kind,src,fromFire=false){const tg=t.tags||['human'];
   if(kind==='sand'){t.sand={t:3};G.text(t,'PIASEK','#e8d090');UI.log(`${t.name} jest oślepiony piaskiem (niższa celność, 3 tury)!`,'bad');return;}
   const imm=kind==='poison'?!tg.some(x=>POISONABLE.includes(x)):kind==='burn'?tg.includes('fire'):kind==='stone'?(tg.includes('golem')||tg.includes('reptile')||tg.includes('machine')):tg.includes('winter');
   if(imm){G.text(t,'ODPORNY','#ccc');UI.log(`${t.name} jest odporny na ${NAMES[kind]}!`);return;}
-  if((t===G.p||t.ally)&&Math.random()<.25*((Player.d.sk||{}).resist||0)){G.text(t,'ODPARTE!','#fff');UI.log(`${t.name} opiera się efektowi (odporność)!`,'good');return;}
+  if((G.isHero(t)||t.ally)&&Math.random()<.25*((Player.d.sk||{}).resist||0)){G.text(t,'ODPARTE!','#fff');UI.log(`${t.name} opiera się efektowi (odporność)!`,'good');return;}
   /* v1.0: KAMIEŃ (bazyliszek) działa jak zamrożenie: 2 tury bez ruchu, brak uników; zamieniony nie płonie i nie zamarza */
   if(t.freeze&&t.freeze.stone&&(kind==='freeze'||kind==='burn'||kind==='stone'))return;
   if(kind==='stone'){t.burn=null;t.freeze={t:2,stone:1};G.text(t,'KAMIEŃ','#b8bcc8');UI.log(`${t.name} zamienia się w kamień (traci 2 tury)!`,'bad');return;}
@@ -67,18 +67,17 @@ const Combat={busy:false,guard:false,fbCd:0,
   if(Assets.sheets[t.key]&&Assets.sheets[t.key].death)await sleep(480);
   else await tween(t,{rot:-(t.face||1)*1.35,oy:t.oy+10},380,'in');
   if(t===G.p){const bs=G.enemies.find(e=>e.def&&e.def.boss&&e.def.dlg&&e.s.hp>0);if(bs)await G.say(bs,bs.def.dlg.win);}   // boss wyśmiewa pokonanego bohatera
-  await tween(t,{alpha:0},420,'in');
+  await tween(t,{alpha:(G.mp&&t===G.p)?.4:0},420,'in');   // v1.4.0: w multiplayerze poległy gracz zostaje na planszy (półprzezroczysty)
   if(t===G.p)return;
   G.actors=G.actors.filter(e=>e!==t);
   if(t.ally){G.comps=G.comps.filter(c=>c!==t);Player.d.comps=Player.d.comps.filter(c=>c!==t.s);return;}   // kompan ginie na zawsze
-  G.enemies=G.enemies.filter(e=>e!==t);this.refreshHaste();G.xpWave+=t.xp;Player.d.kills=(Player.d.kills||0)+1;
-  if(Player.gainXp(t.xp))UI.log('AWANS na poziom '+Player.d.level+'! +1 punkt umiejętności (do wydania u kupca)','crit');UI.hud();
+  G.enemies=G.enemies.filter(e=>e!==t);this.refreshHaste();G.xpAward(t.xp);
   await this.split(t);
   if(G.enemies.length&&!G.enemies.some(e=>!e.phantom)){G.enemies.forEach(p=>G.burst(p.x,p.y-30,'#ffe9a0',12));G.actors=G.actors.filter(a=>!a.phantom);G.enemies=[];G.sel=null;}},   // v1.2.1: po prawdziwych wrogach znikają też miraże
  /* v1.2.1: RYBIK CUKROWY – po zabiciu 25% szans na rozdwojenie: dwa nowe rybiki z 50% maks. HP poprzedniego (do 2 pokoleń, o ile jest miejsce na arenie) */
  async split(t){
   if(t.key!=='silverfish'||t.phantom||(t.gen||0)>=2||Math.random()>=.25)return;
-  const free=MAX_FOES-G.enemies.length;if(free<=0)return;
+  const free=G.maxFoes()-G.enemies.length;if(free<=0)return;
   UI.log('Rybik cukrowy rozdwaja się!','crit');G.text(t,'ROZDWOJENIE!','#cfe8ff');
   const hp=Math.max(1,Math.round(t.s.maxhp*.5)),jobs=[];
   for(let i=0;i<Math.min(2,free);i++){const k=makeEnemy('silverfish',G.diff(),G.enemies.length);k.gen=(t.gen||0)+1;k.minion=1;k.s.hp=k.s.maxhp=hp;k.xp=Math.round(t.xp*.5);
@@ -89,7 +88,7 @@ const Combat={busy:false,guard:false,fbCd:0,
   await tween(t,{alpha:0},380,'in');G.enemies=G.enemies.filter(e=>e!==t);G.actors=G.actors.filter(e=>e!==t);if(G.sel===t)G.sel=null;},
  async summon(e,type,n,msg,txt){UI.log(msg||`${e.name} przywołuje pomocników!`,'bad');G.text(e,txt||'DO MNIE!','#f2c14e');e.anim='jump';e.pose='attack';
   const list=Array.isArray(type)?type:Array.from({length:n||2},()=>type);
-  for(const ty of list){if(G.enemies.length>=4)break;const k=makeEnemy(ty,G.diff(),G.enemies.length);k.minion=1;k.alpha=0;k.ox=80;G.enemies.push(k);G.actors.push(k);G.burst(k.x,k.y-20,'#fff',10);await tween(k,{alpha:1,ox:0},400,'out');}
+  for(const ty of list){if(G.enemies.length>=G.maxFoes())break;const k=makeEnemy(ty,G.diff(),G.enemies.length);k.minion=1;k.alpha=0;k.ox=80;G.enemies.push(k);G.actors.push(k);G.layoutFoes();G.burst(k.x,k.y-20,'#fff',10);await tween(k,{alpha:1,ox:0},400,'out');}
   e.pose='';e.anim='';this.refreshHaste(true);},
  /* SZYBKOŚĆ (but): dopóki żyje sędzia, piłkarze mają efekt haste – atakują jako pierwsi (przed ruchem gracza) i o 40% mocniej */
  refreshHaste(say){const ref=G.enemies.some(x=>x.def&&x.def.support&&x.s.hp>0);
@@ -141,13 +140,14 @@ const Combat={busy:false,guard:false,fbCd:0,
  async totem(){const d=Player.d,p=G.p;d.sk.totem--;d.hp=Math.max(1,Math.ceil(d.maxhp*.5));p.poison=p.burn=p.freeze=p.sand=null;p.pose='';p.anim='';p.alpha=1;p.rot=0;
   UI.log('TOTEM NIEŚMIERTELNOŚCI! Bohater powstaje z martwych z 50% HP.','crit');G.text(p,'TOTEM!','#ffd24a',1);G.totemFx(p);UI.hud();await sleep(1100);},
  async act(kind){
+  if(G.netClient){if(G.mp.cur===G.mp.me&&G.state==='fight'&&!Net.sent&&!Net.shopping){Net.sent=true;UI.lock(true);Net.up({t:'act',kind});}return;}   // v1.4.0 LAN: gracz wysyła akcję do gospodarza
   if(kind==='skipwave')return this.skipWave();
   if(kind==='toboss')return G.jumpToBoss();   // v1.1.1 (dev)
   if(this.busy||G.state!=='fight')return;
   const p=G.p,t=G.target(),sk=Player.d.sk||{};if(!t)return;
   if(!p.freeze){if(kind==='potion'&&Player.d.potions<1){UI.log('Brak eliksirów!');return;}if(kind==='shoot'&&!(sk.bow||sk.xbow))return;if(kind==='fire'&&(!sk.fire||this.fbCd>0))return;if(kind==='thunder'&&(!sk.thunder||G.thunderUsed()))return;}
   this.busy=true;UI.lock(true);this.guard=false;
-  if(G.enemies.some(e=>e.haste&&e.s.hp>0)){await this.initiative();if(Player.d.hp<=0){this.busy=false;return G.lose();}}   // v1.0: szybcy atakują pierwsi
+  if(G.enemies.some(e=>e.haste&&e.s.hp>0)){await this.initiative();if(Player.d.hp<=0){this.busy=false;return G.heroDead();}}   // v1.0: szybcy atakują pierwsi
   if(p.freeze)await this.thaw(p);
   else{
    if(kind==='attack'){
@@ -193,7 +193,8 @@ const Combat={busy:false,guard:false,fbCd:0,
   if(Player.d.hp>0)await this.tick();
   if(Player.d.hp>0&&G.event==='radiation'&&G.enemies.length)await this.radiate();   // v1.2.2
   if(Player.d.hp>0&&G.event==='snowstorm'&&G.enemies.length)await this.blizzard();   // v1.3.1
-  if(Player.d.hp<=0){end();return G.lose();}
+  if(Player.d.hp<=0){end();return G.heroDead();}
   if(!G.enemies.length){end();return G.win();}
-  this.guard=false;end();UI.lock(false);}
+  this.guard=false;if(G.mp)await G.mpNext();end();UI.lock(false);}   // v1.4.0: multiplayer – po turze gracza i ataku wrogów zaczyna się tura następnego
+
 };

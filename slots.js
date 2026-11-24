@@ -29,8 +29,8 @@ const Slots = {
   del(n) { return this.api('DELETE', 'saves/' + n); },
 
   /* zapis możliwy tylko w stabilnym momencie: walka (nic się nie animuje) lub po wygranej fali; nie w chatce wiedźmy */
-  canSave() { return !!G.p && !G.hub && ['fight', 'clear'].includes(G.state) && !Combat.busy && !G.bub; },
-  canLoad() { return !Combat.busy && ['title', 'fight', 'clear', 'over'].includes(G.state); },
+  canSave() { return !!G.p && !G.hub && !G.mp && !G.modRun && ['fight', 'clear'].includes(G.state) && !Combat.busy && !G.bub; },
+  canLoad() { return !Combat.busy && !G.mp && !G.modRun && ['title', 'fight', 'clear', 'over'].includes(G.state); },
 
   meta(rec) {
     const d = rec.player, camp = rec.mode === 'campaign';

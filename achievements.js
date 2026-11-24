@@ -39,7 +39,7 @@ const Prog = {
   has(id) { return !!this.d.ach[id]; },
   count() { return ACH.filter(a => this.has(a.id)).length; },
   /* v1.2.3: po jednorazowym odpaleniu kodów (dev) osiągnięcia nie są już przyznawane */
-  codesBlocked() { return !!G.dev || !!this.d.codesUsed; },
+  codesBlocked() { return !!G.dev || !!this.d.codesUsed || !!G.mp || !!G.modRun; },   // v1.4.0: multiplayer i mody nie dają osiągnięć
   unlock(id) {
     if (this.codesBlocked() || this.d.ach[id]) return false;
     const a = ACH.find(x => x.id === id);

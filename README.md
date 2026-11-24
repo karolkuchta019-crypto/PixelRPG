@@ -108,3 +108,17 @@ Język zmieniasz w menu Tab → Ustawienia. Ruch po kliknięciu włączysz tam s
 
 ## Wersja 1.2.0
 Osiągnięcia, język, jakość grafiki i ruch po kliknięciu są w menu Tab (zakładki Menu / Ustawienia / Osiągnięcia). Postęp osiągnięć i rekord trybu nieskończonego zapisują się lokalnie w przeglądarce.
+
+## Nowe w 1.4.0
+- **Multiplayer LAN** (2–3 graczy, każdy na swoim komputerze; tury, atak wrogów po turze gracza) – `start-lan.bat` / `start-lan.sh`, patrz `lan/README.md`. Dostępny też naprzemiennie na jednym komputerze.
+- **Mody** – menu „Mody (własne kampanie)” i Kreator modów (`editor/editor.html`), patrz `mods/README.md`.
+- **Bobrza tama** – minigra w Tajdze (Spacja / Enter / klik na zielonym polu).
+- **Drużyna** – klawisz **T** (do 4 postaci, reszta w rezerwie).
+- **Mapa świata** – mała wersja świata: bohater chodzi po lądzie, ścieżkach i mostach między biomami (Tab → Mapa świata).
+
+## Nowe w 1.4.0
+- **Multiplayer LAN** (2–3 graczy, każdy na swoim komputerze; tury, atak wrogów po turze gracza) – `start-lan.bat` / `start-lan.sh`, patrz `lan/README.md`. Dostępny też naprzemiennie na jednym komputerze.
+- **Mody** – menu „Mody (własne kampanie)” i Kreator modów (`editor/editor.html`), patrz `mods/README.md`.
+- **Bobrza tama** – minigra w Tajdze (Spacja / Enter / klik na zielonym polu).
+- **Drużyna** – klawisz **T** (do 4 postaci, reszta w rezerwie).
+- **Mapa świata** – mała wersja świata: bohater chodzi po lądzie, ścieżkach i mostach między biomami (Tab → Mapa świata).

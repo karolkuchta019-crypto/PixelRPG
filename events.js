@@ -8,7 +8,7 @@ Object.assign(G, {
   /* czy po wygranej fali ma się pojawić bard (połowa etapu Moczary, jeszcze bez decyzji) */
   bardDue() {
     const d = Player.d;
-    return this.mode === 'campaign' && CAMPAIGN[this.level].map === 'swamp' && !d.bard && this.wave === Math.floor(this.waves.length / 2) && !(this.cur() || {}).boss;
+    return this.mode === 'campaign' && !this.mp && !this.modRun && CAMPAIGN[this.level].map === 'swamp' && !d.bard && this.wave === Math.floor(this.waves.length / 2) && !(this.cur() || {}).boss;
   },
 
   spawnBard() {

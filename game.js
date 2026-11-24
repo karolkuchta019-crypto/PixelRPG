@@ -1,4 +1,4 @@
-const VERSION='1.3.2';
+const VERSION='1.4.0';
 const MERCHANT_LINES=['Witaj, wojowniku! Mam coś dla ciebie.','Droga daleka... zajrzyj do mojego straganu!','Za twoje punkty mam same cuda!','Hmm! Dobrze wyglądasz. Handlujemy?'];
 const SMITH_LINES=['Potrzebujesz solidnej stali?','Miecze, zbroje, tarcze – wybieraj!','Moja kuźnia nigdy nie stygnie.','Za punkty dam ci najlepszy ekwipunek.'];
 const WITCH_LINES=['Hehehe… pokonałeś mnie, ale kociołek wciąż bulgocze. Kupisz coś?','Eliksiry, talizmany… na szczęście nikt jeszcze nie narzekał.','Łapka królika? Czterolistna koniczyna? Wybieraj, rycerzu.','Bez urazy za tamtą walkę. Interes to interes!'];
@@ -14,7 +14,7 @@ const tween=(o,p,ms,ez)=>new Promise(r=>{const f={},e=EASE[ez]||(u=>u);for(const
  (function s(t){const u=Math.min(1,(t-t0)/ms);for(const k in p)o[k]=f[k]+(p[k]-f[k])*e(u);u<1?requestAnimationFrame(s):r();})(t0);});
 /* v1.2.2: animacja klatka po klatce – fn(u), u 0..1 (do łuków, podskoków, turlania itp.) */
 const anim=(ms,fn)=>new Promise(r=>{const t0=performance.now();(function s(t){const u=Math.min(1,(t-t0)/ms);fn(u);u<1?requestAnimationFrame(s):r();})(t0);});
-const DEFAULT_BINDS={left:['a','arrowleft'],right:['d','arrowright'],up:['w','arrowup'],down:['s','arrowdown'],jump:[' ','space'],sprint:['shift'],interact:['e'],music:['m']};
+const DEFAULT_BINDS={left:['a','arrowleft'],right:['d','arrowright'],up:['w','arrowup'],down:['s','arrowdown'],jump:[' ','space'],sprint:['shift'],interact:['e'],music:['m'],team:['t']};   // v1.4.0: T = drużyna
 const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,ambient:true,hpbars:true,nowPlaying:false},quality:1,S:1,flash:0,cloud:null,fxTotem:null,sunAlt:false,clickMove:false,devBoss:false,mark:null,npcs:[],hub:null,hubReturn:null,waves:[],top:[],comps:[],state:'title',mode:'endless',level:0,wave:1,p:null,actors:[],enemies:[],fx:[],keys:{},binds:null,shake:0,fade:0,t:0,sel:null,xpWave:0,
  /* v1.2.0: JAKOŚĆ GRAFIKI 0=niska, 1=średnia, 2=wysoka. Wysoka: płótno 2x (ostrzejsze kształty i napisy), więcej cząsteczek i winieta. Niska: mniej efektów, rysowanie co drugą klatkę, mniejsze wstrząsy. */
  /* v1.2.1: dodatkowe opcje grafiki (Tab -> Ustawienia -> Grafika), zapamiętywane w localStorage (mw_opt) */
@@ -38,6 +38,8 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
   addEventListener('keydown',e=>{const key=e.key.toLowerCase();this.keys[key]=1;
    if(this.isDown('interact'))this.interact();
    if(this.isDown('music')&&!e.repeat)Music.toggle();
+   if(this.isDown('team')&&!e.repeat)UI.toggleTeam();   // v1.4.0: ekran drużyny
+   if(this.state==='dam'&&(e.key===' '||e.key==='Enter')){e.preventDefault();Dam.press();}   // v1.4.0: minigra z bobrami
    if(e.key==='Tab'&&!e.repeat){e.preventDefault();if(this.state==='choice')return;UI.toggleMenu();return;}
    if(this.state==='cutscene'&&(e.key===' '||e.key==='Enter'))Cut.next();
    if(this.bub&&(e.key===' '||e.key==='Enter'))this.skipBub();
@@ -52,12 +54,12 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
   this.pclk=[];UI.$('portrait').onclick=()=>{const n=Date.now();this.pclk=this.pclk.filter(t=>n-t<3000).concat(n);if(this.pclk.length>=7){this.pclk=[];this.toggleDev();}};
   UI.title();requestAnimationFrame(t=>this.loop(t));},
  /* klik w arenę (x,y w px płótna 640x320) */
- canvasClick(x,y){if(this.state==='cutscene')return Cut.next();if(this.state==='lava')return Lava.click(x,y);if(this.bub)return this.skipBub();
+ canvasClick(x,y){if(this.state==='cutscene')return Cut.next();if(this.state==='lava')return Lava.click(x,y);if(this.state==='dam')return Dam.press();if(this.netClient&&this.state!=='fight')return;if(this.bub)return this.skipBub();
    if(this.state==='clear'&&x>380&&y<46)return this.advance(true);   // klik w strzałkę w rogu = natychmiastowe przejście
    const sn=(MAPS[this.cur().map]||{}).sun;if(sn&&(this.state==='fight'||this.state==='clear')&&Math.hypot(x-sn.x,y-sn.y)<sn.r+10){this.sunAlt=!this.sunAlt;this.burst(sn.x,sn.y,'#ffe070',24);return;}   // klik w słońce
    if(this.state==='clear'){const n=this.nearNpc();if(n&&Math.abs(x-n.x)<90)return this.interact(n);}   // v1.1: kilku NPC naraz
    if(this.clickMove&&this.moveClick(x,y))return;   // v1.1.1: klik w ziemię = bohater idzie w to miejsce (żółta otoczka)
-   if(!Combat.busy){this.sel=this.enemies.reduce((b,n)=>!b||Math.abs(n.x-x)<Math.abs(b.x-x)?n:b,null);
+   if(!Combat.busy){const dist=n=>Math.hypot(n.x+n.ox-x,(n.y+n.oy-ASSETS[n.key].fh*n.scale*.4)-y);this.sel=this.enemies.reduce((b,n)=>!b||dist(n)<dist(b)?n:b,null);if(this.netClient)Net.up({t:'sel',i:this.enemies.indexOf(this.sel)});   // v1.4.0: odległość w 2D (siatka wrogów w multiplayerze)
     if(this.invuln(this.sel)){this.text(this.sel,'NIETYKALNY!','#8ae0ff');UI.log(`${this.sel.name} jest nietykalny – najpierw pokonaj jego sprzymierzeńców!`,'crit');}}},
  /* v1.1.1: ruch po kliknięciu. Zwraca true, gdy kliknięcie ustawiło cel marszu (nie trafiło we wroga). */
  moveClick(x,y){const p=this.p;if(!p||p.freeze||!((this.state==='fight'&&!Combat.busy)||this.state==='clear'))return false;
@@ -72,9 +74,9 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
   if(this.wave===target)return UI.log('[DEV] To już walka z bossem.','crit');
   UI.log('[DEV] Skok do bossa.','crit');this.nextBub();this.state='moving';
   await this.instant(()=>{this.wave=target;if(!camp)Save.set('endless',{p:Player.d,w:this.wave});});},
- startEndless(nw){this.mode='endless';if(nw)Save.clear('endless');const s=Save.get('endless');
+ startEndless(nw){ModAPI.exit();this.mp=null;this.heroes=null;this.mode='endless';if(nw)Save.clear('endless');const s=Save.get('endless');
   Player.d=s?s.p:Player.base();Player.d.gear=Player.d.gear||{sword:null,armor:null,shield:null};this.wave=s?s.w:1;Player.d.hp=Math.max(Player.d.hp,1);this.newRun();},
- async startCampaign(i,skipMap){this.mode='campaign';const s=Save.get('campaign');Player.d=s?s.p:Player.base();
+ async startCampaign(i,skipMap){ModAPI.exit();this.mp=null;this.heroes=null;this.mode='campaign';const s=Save.get('campaign');Player.d=s?s.p:Player.base();
   if(!s&&this.nextHardcore){Player.d.hardcore=1;Player.d.runId=Math.random().toString(36).slice(2,10)+Date.now().toString(36);}this.nextHardcore=false;   // v1.2.2: tryb hardcore
   Player.d.gear=Player.d.gear||{sword:null,armor:null,shield:null};Player.d.hp=Player.d.maxhp;
   Player.d.kills=Player.d.kills||0;Player.d.deaths=Player.d.deaths||0;
@@ -92,11 +94,14 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
   if(!travel){
    /* kula ognia: odnawia się tylko przy nowym etapie (wave 1) lub walce z bossem – nie przy każdej fali */
    const ww=this.cur();if(ww.boss||this.wave===1)Combat.fbCd=0;
-   Player.d.comps=Player.d.comps||[];Player.d.sk=Player.d.sk||{};this.comps=Player.d.comps.map((c,i)=>this.makeComp(c,i));
+   if(this.mp&&(ww.boss||this.wave===1))this.mp.players.forEach(d=>d._fb=0);
+   if(this.mp)this.mpHeroes();   // v1.4.0: bohaterowie wszystkich graczy
+   Player.d.comps=Player.d.comps||[];Player.d.sk=Player.d.sk||{};this.comps=Player.active().map((c,i)=>this.makeComp(c,i));   // v1.4.0: tylko drużyna (rezerwa nie walczy)
   }
-  this.enemies=w.e.map((t,i)=>makeEnemy(t,this.diff(),i,w.boss&&i===0));
+  this.enemies=(this.mp?this.mpList(w):w.e).map((t,i)=>makeEnemy(t,this.diff(),i,w.boss&&i===0));
+  if(this.mp)this.mpLayout(w);
   if(travel)this.enemies.forEach(e=>e.ox=D||640);   // wrogowie wjeżdżą razem z nową mapą
-  this.actors=[this.p,...this.comps,...this.enemies,...(travel?this.npcs:[])];if(!travel){this.npcs=[];if(!quiet)this.begin(w);}},
+  this.actors=[...this.hl(),...this.comps,...this.enemies,...(travel?this.npcs:[])];if(!travel){this.npcs=[];if(!quiet)this.begin(w);}},
  /* ===== v1.2.1: EVENTY PUSTYNI – raz na falę (poza bossem): normalnie 50% / burza piaskowa 25% / fatamorgana 25% ===== */
  /* v1.2.3: LODOWE GÓRY – burza śnieżna na tej samej zasadzie co burza piaskowa (25%) */
  rollEvent(w){this.event=null;this.radStack=0;if(w.boss||(w.map!=='desert'&&w.map!=='plant'&&w.map!=='ice'))return;
@@ -115,7 +120,8 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
     // v1.1.1: sędzia obecny od początku fali daje piłkarzom szybkość
  
   UI.log(`--- ${UI.waveLabel()}: ${MAPS[w.map].name} ---`,'crit');
-  if(w.minigame){UI.hud();UI.lock(true);({pong:Pong,lava:Lava,maze:Maze})[w.minigame].start();return;}   // v1.3.0/1.3.1: minigra zamiast walki
+  if(this.mp)this.mpPlace();
+  if(w.minigame){if(this.mp){UI.log('Minigra pominięta w trybie multiplayer.','crit');UI.hud();this.win();return;}UI.hud();UI.lock(true);({pong:Pong,lava:Lava,maze:Maze,dam:Dam})[w.minigame].start();return;}   // v1.3.0/1.3.1: minigra zamiast walki
   if(this.mode==='campaign'&&Player.d.bard==='left'&&this.level===CAMPAIGN.findIndex(l=>l.map==='swamp')+1&&this.wave<=1)UI.log('Zostawiony w bagnie bard przepowiedział zło… W Tajdze przeciwnicy są mocniejsi (+30% HP, +25% ATK).','bad');
   if(w.boss){const b=this.enemies[0];UI.log('UWAGA! BOSS: '+b.name,'bad');this.shake=14;this.state='talk';UI.hud();UI.lock(true);this.bossIntro(b);}   // v1.0: boss najpierw obraża bohatera
   else{this.state='fight';UI.hud();UI.lock(false);}},
@@ -174,12 +180,12 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
   a.ox=0;a.oy=0;a.sqy=0;a.rotc=0;a.run=0;a.alpha=1;},
  knock(t,dir){const o=t.ox;tween(t,{ox:o+dir*12},70,'out').then(()=>tween(t,{ox:o},170,'io'));},
  slash(t,dir){this.fx.push({slash:1,x:t.x+t.ox,y:t.y+t.oy-t.scale*16,d:dir,life:1});},
- syncComps(){Player.d.comps.forEach(c=>{if(this.comps.some(a=>a.s===c))return;const a=this.makeComp(c,this.comps.length);a.alpha=0;this.comps.push(a);this.actors.push(a);
+ syncComps(){Player.active().forEach(c=>{if(this.comps.some(a=>a.s===c))return;const a=this.makeComp(c,this.comps.length);a.alpha=0;this.comps.push(a);this.actors.push(a);
    this.burst(a.x,a.y-20,'#fff',16);this.text(a,'DOŁĄCZA!','#f2c14e');tween(a,{alpha:1},700);});},
  text(a,txt,col,big){this.fx.push({txt:trn(txt),x:a.x+a.ox,y:a.y+a.oy-a.scale*32-10,c:col,life:1,big});},
  hitfx(a,k){this.fx.push({spr:k,x:a.x+a.ox,y:a.y+a.oy-a.scale*14,life:1});},
  burst(x,y,c,n){n=Math.ceil(n*[.35,1,1.5][this.quality]);for(let i=0;i<n;i++)this.fx.push({x,y,vx:(Math.random()-.5)*6,vy:-Math.random()*5,life:1,c,sz:2+Math.random()*3,pt:1});},
- async win(){const amb=this.ambush;this.ambush=0;this.event=null;this.radStack=0;this.state='won';UI.lock(true);const d=Player.d,heal=Math.round(d.maxhp*.3);d.hp=Math.min(d.maxhp,d.hp+heal);
+ async win(){if(this.mp)return this.mpWin();const amb=this.ambush;this.ambush=0;this.event=null;this.radStack=0;this.state='won';UI.lock(true);const d=Player.d,heal=Math.round(d.maxhp*.3);d.hp=Math.min(d.maxhp,d.hp+heal);
   let rw=`Fala pokonana! +${this.xpWave} XP, +${heal} HP`;if(this.wave%2===0&&!amb){d.potions++;rw+=', +1 eliksir';}
   const pts=amb?2:(this.cur().boss?3:1);Player.addPts(pts);rw+=`, +${pts} pkt umiejętności`;
   (d.comps||[]).forEach(c=>c.hp=Math.min(c.maxhp,c.hp+Math.round(c.maxhp*.3)));[this.p,...this.comps].forEach(x=>{x.poison=x.burn=x.freeze=x.sand=null;});
@@ -188,22 +194,22 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
   if(this.cur().boss){const bk=this.cur().e[0];d.bd=d.bd||{};d.bd[bk]=1;   // v1.3.0: pamiętamy pokonanych bossów (odblokowania, kary XP za farmienie)
    if(bk==='spiderqueen')UI.log('Królowa Pająków pokonana! U zbrojmistrza czeka smoczy ekwipunek (miecz 16, tarcza 18, zbroja 24 pkt). Etapy niżej niż Lodowe góry dają teraz bardzo mało XP.','crit');
    Prog.bossDown(bk);}   // v1.2.0: Król Slime / Yeti (odblokowuje ulepszenia u kupca)
-  if(this.mode==='campaign'&&this.level>=CAMPAIGN.length-1&&this.wave>=this.waves.length){this.saveC();Prog.won();await sleep(900);return Story.good();}
+  if(this.mode==='campaign'&&this.level>=CAMPAIGN.length-1&&this.wave>=this.waves.length){this.saveC();Prog.won();await sleep(900);if(this.modRun)return this.modEnd();return Story.good();}
   await sleep(600);if(amb)await this.bardThanks();this.state='clear';this.clearNpcs();},
- saveC(){const s=Save.get('campaign')||{cleared:0};Save.set('campaign',{p:Player.d,cleared:Math.min(CAMPAIGN.length,Math.max(s.cleared,this.level+1))});},
+ saveC(){if(this.mp)return;if(this.modRun){this.modCleared=Math.max(this.modCleared||0,Math.min(CAMPAIGN.length,this.level+1));return;}const s=Save.get('campaign')||{cleared:0};Save.set('campaign',{p:Player.d,cleared:Math.min(CAMPAIGN.length,Math.max(s.cleared,this.level+1))});},
  /* gracz dochodzi do prawej krawędzi -> (sklep) -> płynne przejście na kolejną mapę */
  async advance(fast){if(this.state!=='clear')return;if(this.hub)return this.leaveHub();if(this.npcs.some(n=>n.kind==='bard'))return this.bardEvent(true);   // v1.3.0: bard czeka na decyzję
   this.state='moving';
   const camp=this.mode==='campaign',end=camp&&this.wave>=this.waves.length;
   if(end&&this.level>=CAMPAIGN.length-1){this.saveC();Prog.won();return UI.screen('KAMPANIA UKOŃCZONA!','Pokonałeś wszystkich bossów. Gratulacje!',[{l:'Menu',f:()=>UI.title()}]);}
-  await (fast?this.instant:this.travel).call(this,()=>{if(end){this.saveC();this.level++;this.wave=1;this.waves=buildWaves(this.level);this.wave=this.stageStart();Player.d.hp=Player.d.maxhp;this.snap=JSON.stringify(Player.d);}
+  await (fast?this.instant:this.travel).call(this,()=>{if(end){this.saveC();this.level++;this.wave=1;this.waves=buildWaves(this.level);this.wave=this.stageStart();this.stageHeal();}
    else{this.wave++;if(!camp)Save.set('endless',{p:Player.d,w:this.wave});}});},
  async instant(setup){await tween(this,{fade:1},220);setup();this.npcs=[];this.loadWave();this.banner={txt:MAPS[this.cur().map].name,t:0};await tween(this,{fade:0},260);},
  async travel(setup){const from=this.cur().map;setup();const to=this.cur().map;Music.play(to);const path=[from,...route(from,to),to],segs=path.length-1,D=640*segs,T=1800*segs+600;
   this.bg={path,x:0};this.banner={txt:MAPS[to].name,t:0};this.loadWave(true,D);
   const p=this.p,w=this.cur();p.auto=1;p.face=1;
-  await Promise.all([tween(this.bg,{x:D},T,'io'),tween(p,{x:130,y:215},T,'io'),...this.comps.map((c,i)=>{c.walk=1;return tween(c,this.compPos(i,130,215),T,'io');}),...this.enemies.map(e=>tween(e,{ox:0},T,'io')),...this.npcs.map(n=>tween(n,{ox:-D},T,'io'))]);
-  this.bg=null;p.auto=0;this.comps.forEach(c=>c.walk=0);this.npcs=[];this.actors=this.actors.filter(a=>!a.npc);this.begin(w);},
+  await Promise.all([tween(this.bg,{x:D},T,'io'),tween(p,{x:130,y:215},T,'io'),...this.comps.map((c,i)=>{c.walk=1;return tween(c,this.compPos(i,130,215),T,'io');}),...(this.heroes||[]).filter(h=>h!==p).map((h,i)=>{h.walk=1;return tween(h,this.mpFollow(i,130,215),T,'io');}),...this.enemies.map(e=>tween(e,{ox:0},T,'io')),...this.npcs.map(n=>tween(n,{ox:-D},T,'io'))]);
+  this.bg=null;p.auto=0;this.comps.forEach(c=>c.walk=0);(this.heroes||[]).forEach(h=>h.walk=0);this.npcs=[];this.actors=this.actors.filter(a=>!a.npc);this.begin(w);},
  drawMap(c,id,ox){const m=MAPS[id],im=Assets.maps[id];c.save();c.translate(ox,0);
   if(im)c.drawImage(im,0,0,640,320);else{c.fillStyle=m.sky;c.fillRect(0,0,640,170);c.fillStyle=m.ground;c.fillRect(0,170,640,150);
    c.fillStyle=m.decor;for(let i=0;i<9;i++)c.fillRect(i*80+20,150+(i*37%20),24,20+(i*13%25));}
@@ -248,8 +254,9 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
  /* najbliższy NPC w zasięgu bohatera (null = żaden) */
  nearNpc(){if(!this.p)return null;let b=null,bd=130;for(const n of this.npcs){if(n.ox>5||n.kind==='pool')continue;const d=Math.abs(this.p.x-n.x);if(d<bd){bd=d;b=n;}}return b;},
  interact(n){
-  if(this.state!=='clear')return;n=n||this.nearNpc();if(!n||n.ox>5)return;
+  if(this.netClient||this.state!=='clear'||UI.overlay())return;n=n||this.nearNpc();if(!n||n.ox>5)return;
   if(n.kind==='bard')return this.bardEvent(false);
+  if(this.mp)return this.mpShop(n.kind);   // v1.4.0: sklep po kolei dla każdego gracza
   this.state='shop';const back=()=>{this.state='clear';};
   if(n.kind==='smith')UI.smith(back);else if(n.kind==='witch')UI.witch(back);else UI.shop(back);
  },
@@ -258,7 +265,7 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
   if(camp){rec.level=this.level;rec.waves=this.waves;rec.snap=this.snap||null;rec.cleared=(Save.get('campaign')||{}).cleared||0;}
   return rec;},
  /* 'fight' = wczytanie zaczyna bieżącą falę od nowa (z zapisanym bohaterem); 'clear' = fala wygrana, wracasz do sklepów przed przejściem dalej */
- restore(rec){const sc=UI.$('screen');sc.classList.add('hidden');sc.innerHTML='';UI.menuOpen=false;this.nextBub();
+ restore(rec){ModAPI.exit();this.mp=null;this.heroes=null;const sc=UI.$('screen');sc.classList.add('hidden');sc.innerHTML='';UI.menuOpen=false;this.nextBub();
   this.npcs=[];this.bg=null;this.banner=null;this.hub=null;this.proj=null;this.mark=null;Combat.busy=false;Combat.guard=false;
   const d=Player.d=rec.player;d.gear=d.gear||{sword:null,armor:null,shield:null};d.comps=d.comps||[];d.sk=d.sk||{};
   this.mode=rec.mode;this.wave=rec.wave;this.level=rec.mode==='campaign'?rec.level:0;this.waves=rec.mode==='campaign'?rec.waves:[];this.snap=rec.snap||null;
@@ -354,7 +361,7 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
  async hardcoreOver(){const run=Player.d.runId;Prog.markDead(run);Save.clear('campaign');try{Slots.burn(run);}catch(e){}
   UI.screen('☠ HARDCORE – KONIEC GRY',`Poległeś na etapie ${this.level+1} (poziom ${Player.d.level}). Ta kampania jest zamknięta – nie można jej kontynuować.`,[{l:'Menu główne',f:()=>UI.title()}]);},
  async lose(){this.event=null;this.radStack=0;this.state='over';Player.d.deaths=(Player.d.deaths||0)+1;this.syncDeaths();this.keepPoints();
-  if(this.mode==='campaign'&&this.level>=CAMPAIGN.length-1)await Story.bad();
+  if(this.mode==='campaign'&&!this.modRun&&this.level>=CAMPAIGN.length-1)await Story.bad();
   if(this.mode==='campaign'&&Player.d.hardcore)return this.hardcoreOver();   // v1.2.2
   if(this.mode==='campaign'){
     /* po śmierci – mapa świata (cofnięcie do odblokowanych etapów) */
@@ -362,15 +369,16 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
   }
   Save.clear('endless');UI.screen('GAME OVER',`Pokonane fale: ${this.wave-1}. Poziom: ${Player.d.level}.`,
    [{l:'Zagraj ponownie',f:()=>this.startEndless(true)},{l:'Menu',f:()=>UI.title()}]);},
- loop(t){const dt=t-this.t;this.t=t;this.update();if(this.quality>0||((this.fr=(this.fr||0)+1)%2===0))this.draw();requestAnimationFrame(x=>this.loop(x));},
+ loop(t){this._raw=t;Net._raw=t;this.t=t+(this.tOff||0);this.update();if(this.quality>0||((this.fr=(this.fr||0)+1)%2===0))this.draw();requestAnimationFrame(x=>this.loop(x));},
  toggleDev(){this.dev=!this.dev;if(Player.d&&this.p){Player.d.hp=Player.d.maxhp;UI.hud();}
   /* v1.2.3: jednorazowe odpalenie kodów (Konami / 7× portret) – osiągnięcia wyłączone na stałe */
   if(typeof Prog!=='undefined'&&Prog.markCodesUsed)Prog.markCodesUsed();
   UI.log('Tryb deweloperski: '+(this.dev?'WŁĄCZONY (nieskończone HP)':'wyłączony'),'crit');},
- update(){const p=this.p;if(!p)return;if(this.dev)Player.d.hp=Player.d.maxhp;p.walk=p.auto?1:0;
+ update(){if(this.netClient)return this.netUpdate();const p=this.p;if(!p)return;if(this.dev)Player.d.hp=Player.d.maxhp;p.walk=p.auto?1:0;
   const clr=this.state==='clear';
   /* zamrożony gracz nie może się ruszać */
-  const canMove=((this.state==='fight'&&!Combat.busy)||clr)&&!p.freeze;
+  const ov=UI.overlay(),canMove=((this.state==='fight'&&!Combat.busy&&!this.mp)||clr)&&!p.freeze&&!ov;   // v1.4.0: pod otwartym oknem (mapa, drużyna, menu) bohater stoi; w multiplayerze w walce stoją na miejscach
+  if(this.mp&&clr&&this.heroes)this.heroes.forEach(h=>{if(h===p)return;const k=this.heroes.filter(x=>x!==p).indexOf(h),f=this.mpFollow(k,p.x,p.y);h.x+=(f.x-h.x)*.1;h.y+=(f.y-h.y)*.1;h.walk=Math.hypot(f.x-h.x,f.y-h.y)>6?1:0;h.face=1;});
   if(canMove){const sp=this.isDown('sprint')?4.2:2.2;   // sprint (domyślnie Shift)
    let dx=(this.isDown('right')?1:0)-(this.isDown('left')?1:0),dy=(this.isDown('down')?1:0)-(this.isDown('up')?1:0);
    /* SKOK */
@@ -387,8 +395,8 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
   for(const a of this.actors)if(a.burn&&Math.random()<.3)this.fx.push({x:a.x+a.ox+(Math.random()-.5)*20,y:a.y+a.oy-20-Math.random()*30,vx:0,vy:-1.5,life:.8,c:'#ff9a40',sz:3,pt:1});
   if(!Combat.busy&&(this.state==='fight'||this.state==='clear'))this.comps.forEach((c,i)=>{if(c.s.hp<=0||c.alpha<1)return;const o=COMP_OFF[i],tx=p.x+o[0],ty=p.y+o[1];c.x+=(tx-c.x)*.1;c.y+=(ty-c.y)*.1;c.walk=Math.hypot(tx-c.x,ty-c.y)>6?1:0;});
   this.fx=this.fx.filter(f=>{if(f.pt){f.x+=f.vx;f.y+=f.vy;f.vy+=f.g===undefined?.25:f.g;f.life-=f.dl||.025;}else if(f.spr||f.slash){f.life-=f.slash?.08:.05;}else{f.y-=.8;f.life-=.015;}return f.life>0;});
-  if(this.state==='pong')Pong.tick();else if(this.state==='lava')Lava.tick();else if(this.state==='maze')Maze.tick();},
- draw(){this.c.setTransform(this.S,0,0,this.S,0,0);if(this.state==='cutscene')return Cut.draw(this.c);if(this.state==='pong')return Pong.draw(this.c);if(this.state==='lava')return Lava.draw(this.c);if(this.state==='maze')return Maze.draw(this.c);const c=this.c,w=this.cur(),m=MAPS[w.map];c.save();c.clearRect(0,0,640,320);this.top=[];
+  if(this.state==='pong')Pong.tick();else if(this.state==='lava')Lava.tick();else if(this.state==='maze')Maze.tick();else if(this.state==='dam')Dam.tick();},
+ draw(){this.c.setTransform(this.S,0,0,this.S,0,0);if(this.state==='cutscene')return Cut.draw(this.c);if(this.state==='pong')return Pong.draw(this.c);if(this.state==='lava')return Lava.draw(this.c);if(this.state==='maze')return Maze.draw(this.c);if(this.state==='dam')return Dam.draw(this.c);const c=this.c,w=this.cur(),m=MAPS[w.map];c.save();c.clearRect(0,0,640,320);this.top=[];
   if(this.shake>0){const sm=this.opt.shake?(this.quality===0?.4:1):0;c.translate((Math.random()-.5)*this.shake*sm,(Math.random()-.5)*this.shake*sm);this.shake*=.85;}
   if(this.bg)this.drawTravel(c);else this.drawMap(c,w.map,0);
   if(this.mark){const m=this.mark,u=((this.t-m.t0)/700)%1;c.save();   // v1.1.1: żółta otoczka w miejscu, do którego idzie bohater
@@ -402,6 +410,7 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
    else{c.font=`bold ${Math.round((f.big?26:18)*(f.life>.85?1+(f.life-.85)*5:1))}px "Courier New"`;c.textAlign='center';c.fillStyle='#000';c.fillText(f.txt,f.x+2,f.y+2);c.fillStyle=f.c;c.fillText(f.txt,f.x,f.y);}});
   if(this.state==='clear'){c.globalAlpha=.6+.4*Math.sin(this.t/200);c.font='bold 16px "Courier New"';c.textAlign='right';c.fillStyle='#000';c.fillText(trn(this.hub?'Wróć na szlak ▶ (lub kliknij)':'Idź w prawo ▶ (lub kliknij)'),634,32);c.fillStyle='#f2c14e';c.fillText(trn(this.hub?'Wróć na szlak ▶ (lub kliknij)':'Idź w prawo ▶ (lub kliknij)'),632,30);c.globalAlpha=1;}
   if(this.banner){const b=this.banner;b.t++;const al=Math.min(1,b.t/25,(170-b.t)/30);if(al<=0)this.banner=null;else{c.globalAlpha=al;c.font='bold 22px "Courier New"';c.textAlign='center';c.fillStyle='#000';c.fillText(trn(b.txt),322,72);c.fillStyle='#f2c14e';c.fillText(trn(b.txt),320,70);c.globalAlpha=1;}}
+  if(this.mp&&!this.bg)this.drawMpHud(c);
   if(this.dev){c.font='bold 12px "Courier New"';c.textAlign='left';c.fillStyle='#000';c.fillText('DEV ∞HP',9,17);c.fillStyle='#7aff9a';c.fillText('DEV ∞HP',8,16);}
   c.restore();c.globalAlpha=1;
   if(this.event==='sandstorm'){c.fillStyle='rgba(222,178,60,.2)';c.fillRect(0,0,640,320);   // v1.2.1: burza piaskowa – żółty odcień + wiejący piasek
@@ -471,7 +480,7 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
   if(a.freeze&&a.flash<=0)c.filter=a.freeze.stone?'grayscale(1) brightness(.85) contrast(1.2)':'hue-rotate(170deg) brightness(1.3)';
   if(a.rot||a.rotc){const pv=a.rotc?y-h*.5:y;c.save();c.translate(x,pv);c.rotate(a.rot||a.rotc);c.translate(-x,-pv);}   // rotc = obrót wokół środka (turlanie, chwiejny marsz)
   /* warstwy: ciało → tarcza z boku (osłania, nie zasłania) → miecz */
-  const gear=((a===this.p||a.hero)&&Player.d)?(Player.d.gear||{}):null;
+  const gear=((a===this.p||a.hero)&&a.s&&a.s.gear)?a.s.gear:null;   // v1.4.0: ekwipunek konkretnego bohatera (multiplayer)
   const face=a.face||1;
   /* 1) ciało */
   Assets.draw(c,a.key,x,y+bob+air,s,t,a.face,st,a.at,sq);
@@ -507,8 +516,10 @@ const G={event:null,radStack:0,difficulty:1,nextHardcore:false,opt:{shake:true,a
   }
   if(a.rot||a.rotc)c.restore();c.filter='none';
   if(this.invuln(a)){c.globalAlpha=.4+.15*Math.sin(t/180);c.strokeStyle='#8ae0ff';c.lineWidth=3;c.beginPath();c.ellipse(x,y-h*.45,ASSETS[a.key].fw*a.scale*.4,h*.55,0,0,7);c.stroke();c.globalAlpha=.1;c.fillStyle='#8ae0ff';c.fill();c.globalAlpha=a.alpha;}   // tarcza ochronna
-  if(a.s.hp>0&&!a.nobar&&this.opt.hpbars){c.fillStyle='#000';c.fillRect(x-22,y-h-14,44,7);c.fillStyle=(a===this.p||a.ally)?'#4ad66a':this.invuln(a)?'#8a93a8':'#d64545';c.fillRect(x-20,y-h-12,40*a.s.hp/a.s.maxhp,3);
-   if(a===this.target()&&a!==this.p&&!a.ally){c.fillStyle='#f2c14e';c.fillRect(x-4,y-h-24,8,6);}}
+  if(a.s.hp>0&&!a.nobar&&this.opt.hpbars){c.fillStyle='#000';c.fillRect(x-22,y-h-14,44,7);c.fillStyle=(a===this.p||a.hero||a.ally)?'#4ad66a':this.invuln(a)?'#8a93a8':'#d64545';c.fillRect(x-20,y-h-12,40*a.s.hp/a.s.maxhp,3);
+   if(a===this.target()&&a!==this.p&&!a.ally&&!a.hero){c.fillStyle='#f2c14e';c.fillRect(x-4,y-h-24,8,6);}}
+  if(a.pi!=null){const col=['#4aa3ff','#ff6a5a','#7aff9a'][a.pi]||'#fff';c.font='bold 11px "Courier New"';c.textAlign='center';c.fillStyle='#000';c.fillText('P'+(a.pi+1),x+1,y-h-37);c.fillStyle=col;c.fillText('P'+(a.pi+1),x,y-h-38);   // v1.4.0: znacznik gracza
+   if(a===this.p&&a.s.hp>0&&this.state==='fight'&&!Combat.busy){c.fillStyle='#000';c.fillRect(x-6,y-h-54,12,8);c.fillStyle='#f2c14e';c.fillRect(x-5,y-h-53,10,6);c.fillRect(x-3,y-h-47,6,3);c.fillRect(x-1,y-h-44,2,2);}}
   if(a.s.hp>0&&!a.nobar){let k=0;for(const[n,col]of[['poison','#7aff6a'],['burn','#ff9a40'],['freeze','#8ae0ff'],['sand','#e8d090'],['haste','#ffd24a']]){const q=a[n];if(!q)continue;const ix=x-22+k*30,ic=Assets.fx[n==='freeze'&&q.stone?'stone':n];
    if(ic)c.drawImage(ic,ix,y-h-32,16,16);else{c.fillStyle=col;c.fillRect(ix,y-h-30,10,10);}
    c.font='bold 11px "Courier New"';c.textAlign='left';c.fillStyle='#000';c.fillText(q.t,ix+17,y-h-18);c.fillStyle=col;c.fillText(q.t,ix+16,y-h-19);k++;}}

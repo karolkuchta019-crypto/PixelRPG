@@ -11,6 +11,7 @@ const DIFFS = [
   { id: 'hard',      name: 'Trudny',   hp: 1.3, atk: 1.25, xp: .9,  desc: 'Mocniejsi wrogowie (+30% HP, +25% ATK), nieco mniej XP.' },
   { id: 'nightmare', name: 'Koszmar',  hp: 1.7, atk: 1.5, xp: .8,  desc: 'Bardzo silni wrogowie (+70% HP, +50% ATK), mniej XP. Tylko dla wytrwałych.' },
 ];
+const TEAM_MAX = 4, COMP_OWN_MAX = 6;   // v1.4.0: do 4 postaci w drużynie (klawisz T), łącznie można mieć 6 kompanów (reszta w rezerwie)
 const FIRE = { base: 70, step: 15, cd: 5 };            // moc bazowa, +moc za ulepszenie, odnowa w turach
 /* v1.1: skórzana zbroja giermka (kowal) – +DEF dla każdego giermka, także późniejszego */
 const BARD_LUTE = { id: 'bd_lute', name: 'Złota lutnia', desc: 'bard zadaje +60% obrażeń, a jego nuty mają złoty blask', cost: 12, mult: 1.6 };   // v1.3.1: instrument barda u zbrojmistrza
@@ -32,14 +33,14 @@ const Player = {
     };
   },
 
-  xpNext() { return 30 + this.d.level * 20; },
+  xpNext(dd) { return 30 + (dd || this.d).level * 20; },
 
-  gainXp(n) {
-    const d = this.d;
+  gainXp(n, dd) {
+    const d = dd || this.d;
     d.xp += n;
     let up = 0;
-    while (d.xp >= this.xpNext()) {
-      d.xp -= this.xpNext();
+    while (d.xp >= this.xpNext(d)) {
+      d.xp -= this.xpNext(d);
       d.level++;
       d.pending++;
       up++;
@@ -48,8 +49,8 @@ const Player = {
   },
 
   /* --- ekwipunek: bonusy sumowane do atk/def --- */
-  gearBonus(stat) {
-    const g = (this.d && this.d.gear) || {};
+  gearBonus(stat, dd) {
+    const q = dd || this.d, g = (q && q.gear) || {};
     let v = 0;
     for (const slot of ['sword', 'armor', 'shield']) {
       const id = g[slot];
@@ -63,12 +64,12 @@ const Player = {
   /* efektywny atak / obrona (baza + gear) */
   /* v1.2.2: promieniowanie (elektrownia) obniża ATK i DEF z rundy na rundę */
   radMul() { return G.event === 'radiation' ? Math.max(.58, 1 - .06 * (G.radStack || 0)) : 1; },
-  atk() { return Math.max(1, Math.round((this.d.atk + this.gearBonus('atk')) * this.radMul())); },
-  def() { return Math.max(0, Math.round((this.d.def + this.gearBonus('def')) * this.radMul())); },
+  atk(dd) { const q = dd || this.d; return Math.max(1, Math.round((q.atk + this.gearBonus('atk', q)) * this.radMul())); },
+  def(dd) { const q = dd || this.d; return Math.max(0, Math.round((q.def + this.gearBonus('def', q)) * this.radMul())); },
 
   /* klucz sprite'a bohatera zależny od założonej zbroi */
-  spriteKey() {
-    const id = (this.d.gear || {}).armor;
+  spriteKey(dd) {
+    const id = ((dd || this.d).gear || {}).armor;
     if (!id) return 'player';
     const it = GEAR.find(x => x.id === id);
     return (it && it.sprite) || 'player';
@@ -192,6 +193,7 @@ const Player = {
     const hp = Math.round(d.maxhp * B.hp);
     d.comps.push({
       t, name: B.name, hp, maxhp: hp,
+      res: d.comps.filter(c => !c.res).length >= TEAM_MAX ? 1 : 0,   // v1.4.0: gdy drużyna pełna – nowy kompan trafia do rezerwy
       atk: Math.max(4, Math.round(d.atk * B.atk)),
       def: Math.round(d.def * B.def) + (t === 'squire' && d.sqArmor ? SQ_ARMOR.def : 0),
       crit: B.crit, dodge: B.dodge
@@ -208,7 +210,7 @@ const Player = {
     const c = this.cost(k);
     d.sk = d.sk || {};
     d.comps = d.comps || [];
-    if ((!G.dev && d.pending < c) || (d.sk[id] || 0) >= k.max || (k.comp && this.compCount() >= 3) || (k.req && !d.sk[k.req]) || (k.need && !d[k.need]))
+    if ((!G.dev && d.pending < c) || (d.sk[id] || 0) >= k.max || (k.comp && this.compCount() >= COMP_OWN_MAX) || (k.req && !d.sk[k.req]) || (k.need && !d[k.need]))
       return false;
     if (!G.dev) d.pending -= c;
     d.sk[id] = (d.sk[id] || 0) + 1;
