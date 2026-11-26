@@ -100,13 +100,16 @@ const Combat={busy:false,guard:false,fbCd:0,
  async healSelf(e,m){if(m.say)UI.log(m.say,'bad');e.pose='attack';await sleep(300);const h=Math.max(0,Math.min(Math.round(e.s.maxhp*m.heal),e.s.maxhp-e.s.hp));e.s.hp+=h;
   G.text(e,'+'+h,'#7aff9a');G.burst(e.x,e.y-40,'#7aff9a',18);UI.log(`${e.name} odzyskuje ${h} HP.`,'bad');e.pose='';UI.hud();await sleep(450);},
  /* jedna tura wroga (używana w fazie początkowej dla szybkich i w zwykłej fazie wrogów) */
+ /* losuje cel ataku wroga: bohater albo kompan. v1.4.0: na fali, na której uratowaliśmy barda (zasadzka w bagnie), bard jest atakowany rzadko (waga 0,15 zamiast 1),
+    żeby nie ginął od razu po dołączeniu */
+ pickTarget(){const c=[G.p,...G.comps.filter(x=>x.s.hp>0)],w=a=>(G.ambush&&a.s&&a.s.t==='bard')?.15:1,tot=c.reduce((n,a)=>n+w(a),0);let r=Math.random()*tot;for(const a of c){r-=w(a);if(r<=0)return a;}return c[0];},
  async enemyAct(e){if(e.s.hp<=0||Player.d.hp<=0||e.phantom)return;
   if(e.freeze){await this.thaw(e);return;}
   for(const m of e.def.behave(e)){if(Player.d.hp<=0)break;
    if(m.summon){await this.summon(e,m.summon,m.n||2,m.say,m.txt);continue;}
    if(m.heal){await this.healSelf(e,m);continue;}
    if(m.buff){await this.whistle(e,m);continue;}
-   const o=typeof m==='number'?{m}:m,pool=[G.p,...G.comps.filter(c=>c.s.hp>0)],tg=o.p?G.p:pool[Math.floor(Math.random()*pool.length)];   // wróg bije gracza albo kompana
+   const o=typeof m==='number'?{m}:m,tg=o.p?G.p:this.pickTarget();   // wróg bije gracza albo kompana
    await this.strike(e,tg,o.m*(e.haste?1.4:1),.9,false,e.name,{rng:o.rng,pois:o.pois,say:o.say,sand:o.sand,stone:o.stone,freeze:o.freeze,magic:o.magic,burn:o.burn});}
   e.turn++;},
  async initiative(){for(const e of [...G.enemies]){if(!e.haste||e.s.hp<=0||Player.d.hp<=0)continue;
