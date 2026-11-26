@@ -114,11 +114,11 @@ Osiągnięcia, język, jakość grafiki i ruch po kliknięciu są w menu Tab (za
 - **Mody** – menu „Mody (własne kampanie)” i Kreator modów (`editor/editor.html`), patrz `mods/README.md`.
 - **Bobrza tama** – minigra w Tajdze (Spacja / Enter / klik na zielonym polu).
 - **Drużyna** – klawisz **T** (do 4 postaci, reszta w rezerwie).
-- **Mapa świata** – mała wersja świata: bohater chodzi po lądzie, ścieżkach i mostach między biomami (Tab → Mapa świata).
+- **Mapa świata** – mała wersja świata: jedna kraina podzielona na biomy, bohater chodzi po niej i po mostach; Handlarz i Zbrojmistrz przy zamku, stanowisko wiedźmy obok Moczarów (Tab → Mapa świata).
 
 ## Nowe w 1.4.0
 - **Multiplayer LAN** (2–3 graczy, każdy na swoim komputerze; tury, atak wrogów po turze gracza) – `start-lan.bat` / `start-lan.sh`, patrz `lan/README.md`. Dostępny też naprzemiennie na jednym komputerze.
 - **Mody** – menu „Mody (własne kampanie)” i Kreator modów (`editor/editor.html`), patrz `mods/README.md`.
 - **Bobrza tama** – minigra w Tajdze (Spacja / Enter / klik na zielonym polu).
 - **Drużyna** – klawisz **T** (do 4 postaci, reszta w rezerwie).
-- **Mapa świata** – mała wersja świata: bohater chodzi po lądzie, ścieżkach i mostach między biomami (Tab → Mapa świata).
+- **Mapa świata** – mała wersja świata: jedna kraina podzielona na biomy, bohater chodzi po niej i po mostach; Handlarz i Zbrojmistrz przy zamku, stanowisko wiedźmy obok Moczarów (Tab → Mapa świata).

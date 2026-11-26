@@ -133,3 +133,31 @@ PAT.push(
 `Chodź bohaterem po świecie. Stań na odblokowanym biomie, aby przenieść się do etapu (zaczniesz od 1. fali).`,`Walk the hero around the world. Stand on an unlocked biome to travel to that stage (you start from wave 1).`,`Mueve al héroe por el mundo. Colócate en un bioma desbloqueado para viajar a esa etapa (empiezas en la oleada 1).`,
 `Chodź bohaterem (WASD / strzałki) po świecie. Stań na odblokowanym biomie, aby wyruszyć do etapu.`,`Walk the hero (WASD / arrows) around the world. Stand on an unlocked biome to set off for that stage.`,`Mueve al héroe (WASD / flechas) por el mundo. Colócate en un bioma desbloqueado para partir hacia esa etapa.`,
 ];for(let i=0;i<A.length;i+=3)if(!DICT[A[i]])DICT[A[i]]=[A[i+1],A[i+2]];}
+/* stanowiska na mapie */
+{const A=[
+`Stanowisko Wiedźmy – odwiedzić? (po wizycie wrócisz tam, gdzie byłeś)`,`Witch's stand – visit? (afterwards you return to where you were)`,`Puesto de la bruja: ¿visitar? (después volverás a donde estabas)`,
+`Stanowisko Wiedźmy: eliksiry, talizmany szczęścia i ulepszenie eliksiru (zawsze leczy 75% HP). Odwiedzisz je w trakcie kampanii.`,`Witch's stand: potions, luck charms and the potion upgrade (always heals 75% HP). You can visit it during the campaign.`,`Puesto de la bruja: pociones, amuletos de suerte y la mejora de la poción (siempre cura el 75 % de PV). Podrás visitarlo durante la campaña.`,
+`Stanowisko Wiedźmy: eliksiry, talizmany szczęścia i ulepszenie eliksiru (zawsze leczy 75% HP).`,`Witch's stand: potions, luck charms and the potion upgrade (always heals 75% HP).`,`Puesto de la bruja: pociones, amuletos de suerte y la mejora de la poción (siempre cura el 75 % de PV).`,
+`Handlarz – zakupy będą dostępne, gdy zaczniesz kampanię.`,`Merchant – shopping is available once you start the campaign.`,`Mercader: las compras estarán disponibles cuando empieces la campaña.`,
+`Zbrojmistrz – zakupy będą dostępne, gdy zaczniesz kampanię.`,`Blacksmith – shopping is available once you start the campaign.`,`Herrero: las compras estarán disponibles cuando empieces la campaña.`,
+`Handlarz – otworzyć sklep? (umiejętności, eliksiry, kompani)`,`Merchant – open the shop? (skills, potions, companions)`,`Mercader: ¿abrir la tienda? (habilidades, pociones, compañeros)`,
+`Zbrojmistrz – otworzyć kuźnię? (miecze, zbroje, tarcze)`,`Blacksmith – open the forge? (swords, armor, shields)`,`Herrero: ¿abrir la herrería? (espadas, armaduras, escudos)`,
+`Otwórz (Enter)`,`Open (Enter)`,`Abrir (Enter)`,
+`Handlarz: umiejętności, eliksiry i kompani.`,`Merchant: skills, potions and companions.`,`Mercader: habilidades, pociones y compañeros.`,
+`Zbrojmistrz: miecze, zbroje i tarcze.`,`Blacksmith: swords, armor and shields.`,`Herrero: espadas, armaduras y escudos.`,
+`Handlarz`,`Merchant`,`Mercader`,
+`Zbrojmistrz`,`Blacksmith`,`Herrero`,
+`Wiedźma`,`Witch`,`Bruja`,
+];for(let i=0;i<A.length;i+=3)if(!DICT[A[i]])DICT[A[i]]=[A[i+1],A[i+2]];}
+/* hokej powietrzny */
+{const A=[
+`Neonowy hokej powietrzny!`,`Neon air hockey!`,`¡Air hockey de neón!`,
+`Mysz / dotyk albo WASD / strzałki – ruch pałki · Shift – szybciej`,`Mouse / touch or WASD / arrows – move the mallet · Shift – faster`,`Ratón / toque o WASD / flechas: mueve la pala · Shift: más rápido`,
+`MINIGRA: neonowy hokej powietrzny! Mysz / dotyk albo WASD / strzałki – ruszasz pałką, uderz krążek do bramki przeciwnika. Kto pierwszy zdobędzie 5 goli?`,`MINIGAME: neon air hockey! Mouse / touch or WASD / arrows move your mallet – hit the puck into the opponent's goal. First to 5 goals wins!`,`MINIJUEGO: ¡air hockey de neón! Ratón / toque o WASD / flechas mueven tu pala: manda el disco a la portería rival. ¡Gana quien marque 5 goles primero!`,
+];for(let i=0;i<A.length;i+=3)if(!DICT[A[i]])DICT[A[i]]=[A[i+1],A[i+2]];}
+/* mecz na stadionie */
+{const A=[
+`Mecz na stadionie!`,`Match at the stadium!`,`¡Partido en el estadio!`,
+`Mysz / dotyk albo WASD / strzałki – ruch zawodnika · Shift – szybciej`,`Mouse / touch or WASD / arrows – move your player · Shift – faster`,`Ratón / toque o WASD / flechas: mueve a tu jugador · Shift: más rápido`,
+`MINIGRA: mecz na stadionie! Mysz / dotyk albo WASD / strzałki – ruszasz bohaterem, uderz piłkę do bramki Bramkarza. Kto pierwszy zdobędzie 5 goli?`,`MINIGAME: a match at the stadium! Mouse / touch or WASD / arrows move your hero – kick the ball into the Goalkeeper's goal. First to 5 goals wins!`,`MINIJUEGO: ¡un partido en el estadio! Ratón / toque o WASD / flechas mueven a tu héroe: manda el balón a la portería del Portero. ¡Gana quien marque 5 goles primero!`,
+];for(let i=0;i<A.length;i+=3)if(!DICT[A[i]])DICT[A[i]]=[A[i+1],A[i+2]];}
